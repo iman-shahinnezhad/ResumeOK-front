@@ -38,7 +38,8 @@ export default function TabLayout() {
 
       <NativeTabs.Trigger name="library">
         <Icon 
-          src={require('../../assets/images/file.png')}
+          sf={{ default: 'doc', selected: 'doc.fill' }}
+          androidSrc={<VectorIcon family={Ionicons} name="document" />}
         />
         <Label>Your Doc</Label>
       </NativeTabs.Trigger>
