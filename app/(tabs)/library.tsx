@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as Clipboard from 'expo-clipboard';
+import { copyToClipboard } from '../../utils/clipboard';
 import { useAuth } from '../../context/AuthContext';
 
 interface SelectedResumeFile {
@@ -214,13 +214,7 @@ export default function Library() {
   };
 
   const handleCopyCoverLetterText = async (text: string) => {
-    try {
-      await Clipboard.setStringAsync(text);
-      Alert.alert("Copied", "Cover letter copied to clipboard!");
-    } catch (e) {
-      console.log("Failed to copy cover letter text:", e);
-      Alert.alert("Error", "Failed to copy text to clipboard.");
-    }
+    await copyToClipboard(text, "Cover letter copied to clipboard!");
   };
 
   const handleDownloadCoverLetterPdf = async (text: string) => {

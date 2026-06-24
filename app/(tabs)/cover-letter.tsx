@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
-import * as Clipboard from 'expo-clipboard';
+import { copyToClipboard } from '../../utils/clipboard';
 import { useAuth } from '../../context/AuthContext';
 import ReferralBottomSheet from '../../components/ReferralBottomSheet';
 
@@ -555,13 +555,7 @@ To help us parse your response, please enclose the sections in specific tags as 
   };
 
   const handleCopyText = async () => {
-    try {
-      await Clipboard.setStringAsync(generatedCoverLetterText);
-      Alert.alert("Copied", "Cover letter copied to clipboard!");
-    } catch (e) {
-      console.log("Failed to copy text:", e);
-      Alert.alert("Error", "Failed to copy text to clipboard.");
-    }
+    await copyToClipboard(generatedCoverLetterText, "Cover letter copied to clipboard!");
   };
 
   const handleItemPress = (item: JobMatch) => {

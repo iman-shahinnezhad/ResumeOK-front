@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, Share, StyleSheet, Text, TouchableOpacity, Vi
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { API_URL, useAuth } from '../context/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { copyToClipboard as safeCopyToClipboard } from '../utils/clipboard';
 
 interface Props {
   visible: boolean;
@@ -56,17 +57,7 @@ export default function ReferralBottomSheet({ visible, onClose }: Props) {
 
   const copyToClipboard = async () => {
     if (stats.referralCode) {
-      try {
-        const Clipboard = require('expo-clipboard');
-        if (Clipboard?.setStringAsync) {
-          await Clipboard.setStringAsync(stats.referralCode);
-          Alert.alert('Copied!', 'Referral code copied to clipboard.');
-          return;
-        }
-      } catch (e) {
-        console.warn('Clipboard not available');
-      }
-      Alert.alert('Referral Code', `Your code is: ${stats.referralCode}`);
+      await safeCopyToClipboard(stats.referralCode, 'Referral code copied to clipboard.');
     }
   };
 

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, API_URL } from '../context/AuthContext';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { restorePurchases, getReceipt } from '../utils/purchases';
+import { copyToClipboard } from '../utils/clipboard';
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
@@ -46,17 +47,7 @@ export default function Settings() {
 
   const copyCode = async () => {
     if (referralCode) {
-      try {
-        const Clipboard = require('expo-clipboard');
-        if (Clipboard && Clipboard.setStringAsync) {
-          await Clipboard.setStringAsync(referralCode);
-          Alert.alert("Copied!", "Referral code copied to clipboard.");
-          return;
-        }
-      } catch (e) {
-        console.warn('Clipboard not available');
-      }
-      Alert.alert("Referral Code", `Your code is: ${referralCode}`);
+      await copyToClipboard(referralCode, "Referral code copied to clipboard.");
     }
   };
 

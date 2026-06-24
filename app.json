@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "resumeok",
+    "name": "ResumeOK - Tailor Resume & CV",
     "slug": "resumeok",
     "version": "1.4.1",
     "orientation": "default",
@@ -68,7 +68,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "154927e8-5a3f-49b2-aa6c-1be76d6bccf5"
+        "projectId": "6fe26504-d20b-48f3-b2a0-5668ae77b475"
       }
     },
     "owner": "imansh"

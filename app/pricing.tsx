@@ -205,10 +205,10 @@ export default function Pricing() {
         <Text style={styles.title}>Unlock AI Features{'\n'}on your phone</Text>
 
         <View style={styles.featuresContainer}>
-          {renderFeature('All Premium Features (Age, Jobs, Era & More)')}
-          {renderFeature('2K Image Generation with Gemini Pro')}
-          {renderFeature('Early Access Features')}
-          {renderFeature('No Ads')}
+          {renderFeature('Tailor unlimited resumes & CVs')}
+          {renderFeature('Write custom cover letters instantly')}
+          {renderFeature('AI-powered ATS matching & insights')}
+          {renderFeature('Download & share professional PDFs')}
         </View>
 
         {isLoading ? (

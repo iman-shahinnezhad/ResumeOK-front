@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { copyToClipboard } from '../utils/clipboard';
 
 interface Props {
   children: ReactNode;
@@ -42,19 +43,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (!this.state.error) return;
     const errorDetails = `Error: ${this.state.error.message}\n\nStack:\n${this.state.error.stack}\n\nComponent Stack:\n${this.state.errorInfo?.componentStack}`;
 
-    try {
-      const Clipboard = require('expo-clipboard');
-      if (Clipboard && Clipboard.setStringAsync) {
-        await Clipboard.setStringAsync(errorDetails);
-        Alert.alert('Copied!', 'Crash logs copied to clipboard.');
-        return;
-      }
-    } catch (e) {
-      console.warn('Clipboard module not available');
-    }
-
-    // Fallback if native module is not linked
-    Alert.alert('Crash Logs', errorDetails.substring(0, 400) + '...');
+    await copyToClipboard(errorDetails, 'Crash logs copied to clipboard.');
   };
 
   private handleReset = () => {
