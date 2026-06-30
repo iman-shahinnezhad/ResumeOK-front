@@ -42,13 +42,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(session.user);
           await initPurchases(session.user.id);
           
-          // Verify active subscription status from StoreKit on startup
-          verifyActiveSubscriptionOnStartup(session.user.id, session.accessToken, API_URL).then(async (updatedUser) => {
-            if (updatedUser) {
-              setUser(updatedUser);
-              await saveSession({ ...session, user: updatedUser });
+          // Refresh user profile from backend on startup to get latest subscription/credits status
+          try {
+            const res = await fetch(`${API_URL}/auth/me`, {
+              headers: { 'Authorization': `Bearer ${session.accessToken}` }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.user) {
+                setUser(data.user);
+                await saveSession({ ...session, user: data.user });
+              }
             }
-          });
+          } catch (e) {
+            console.log("Failed to refresh user profile on startup:", e);
+          }
         } else {
           let currentGuestId = '';
           const idInfo = await FileSystem.getInfoAsync(GUEST_ID_FILE);
