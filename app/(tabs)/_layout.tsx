@@ -2,15 +2,10 @@ import { Tabs } from 'expo-router';
 import { NativeTabs, Icon, Label, VectorIcon } from 'expo-router/unstable-native-tabs';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
-import { Platform, useColorScheme } from 'react-native';
+import { Platform } from 'react-native';
 
 export default function TabLayout() {
   const isPad = Platform.OS === 'ios' && Platform.isPad;
-  const colorScheme = useColorScheme();
-  
-  const isDark = colorScheme === 'dark';
-  const tabBgColor = isDark ? '#121212' : '#FFFFFF';
-  const activeColor = isDark ? '#60a5fa' : '#2563eb'; // Harmonious blue tints for active tabs
 
   if (isPad) {
     return (
@@ -24,7 +19,7 @@ export default function TabLayout() {
   }
 
   return (
-    <NativeTabs backgroundColor={tabBgColor} tintColor={activeColor}>
+    <NativeTabs backgroundColor="#FFFFFF" tintColor="#2563eb">
       <NativeTabs.Trigger name="index">
         <Icon 
           sf={{ default: 'diamond', selected: 'diamond.fill' }} 
