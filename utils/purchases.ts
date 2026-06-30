@@ -230,3 +230,86 @@ export const setupPurchaseListeners = (
     purchaseErrorSubscription.remove();
   };
 };
+
+/**
+ * Sync subscription status with Apple StoreKit on startup
+ */
+export const syncSubscriptionStatusWithStoreKit = async (userId: string, token: string, API_URL: string): Promise<any | null> => {
+  const RNIap = getIAP();
+  if (!RNIap) {
+    // In Expo Go, fallback to a simple user profile fetch
+    try {
+      const res = await fetch(`${API_URL}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.user;
+      }
+    } catch (e) {
+      console.warn("Failed to fetch profile in simulation mode:", e);
+    }
+    return null;
+  }
+
+  try {
+    console.log("Checking active subscriptions from StoreKit...");
+    
+    // Retrieve currently active/available purchases from StoreKit
+    const purchases = await RNIap.getAvailablePurchases();
+    
+    // Filter for our weekly subscription SKUs
+    const activeSubscription = purchases?.find(p => 
+      p.productId === 'com.resume.starter' || p.productId === 'com.resume.pro'
+    );
+
+    if (activeSubscription) {
+      console.log("Found active subscription in StoreKit:", activeSubscription.productId);
+      
+      // Get the current iOS App Store receipt
+      const receipt = await getReceipt();
+      if (receipt) {
+        // Send receipt to backend to verify and update plan/credits in DB
+        const res = await fetch(`${API_URL}/purchase/verify-apple`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            receiptData: receipt,
+            deviceId: userId
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            return data.user;
+          }
+        }
+      }
+    } else {
+      console.log("No active subscriptions found in StoreKit. Reverting user to Free...");
+      // Tell backend to set user back to Free and reset credits to 0
+      const res = await fetch(`${API_URL}/purchase/degrade-to-free`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ deviceId: userId })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) {
+          return data.user;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Error syncing subscription status with StoreKit:", e);
+  }
+  return null;
+};

@@ -2,7 +2,7 @@ import * as Application from 'expo-application';
 import * as FileSystem from 'expo-file-system/legacy';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { initPurchases, verifyActiveSubscriptionOnStartup } from '../utils/purchases';
+import { initPurchases, syncSubscriptionStatusWithStoreKit } from '../utils/purchases';
 import { clearSession, getSession, saveSession, User } from '../utils/session';
 
 const GUEST_CREDIT_FILE = `${FileSystem.documentDirectory}guest_credit.txt`;
@@ -42,21 +42,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(session.user);
           await initPurchases(session.user.id);
           
-          // Refresh user profile from backend on startup to get latest subscription/credits status
-          try {
-            const res = await fetch(`${API_URL}/auth/me`, {
-              headers: { 'Authorization': `Bearer ${session.accessToken}` }
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (data.user) {
-                setUser(data.user);
-                await saveSession({ ...session, user: data.user });
-              }
+          // Sync subscription status with Apple StoreKit on startup
+          syncSubscriptionStatusWithStoreKit(session.user.id, session.accessToken, API_URL).then(async (updatedUser) => {
+            if (updatedUser) {
+              setUser(updatedUser);
+              await saveSession({ ...session, user: updatedUser });
             }
-          } catch (e) {
-            console.log("Failed to refresh user profile on startup:", e);
-          }
+          });
         } else {
           let currentGuestId = '';
           const idInfo = await FileSystem.getInfoAsync(GUEST_ID_FILE);
