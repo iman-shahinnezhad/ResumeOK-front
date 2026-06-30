@@ -4,9 +4,14 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Appearance } from 'react-native';
+import { ThemeProvider, DefaultTheme } from '@react-navigation/native';
 import ErrorBoundary from '../components/ErrorBoundary';
 import Splash from '../components/Splash';
 import { AuthProvider } from '../context/AuthContext';
+
+// Force the app's JS layer to always run in light mode
+Appearance.setColorScheme('light');
 
 // Keep the native splash screen visible until we explicitly hide it in RootLayout
 SplashScreen.preventAutoHideAsync().catch(() => { });
@@ -46,22 +51,23 @@ export default function RootLayout() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <AuthProvider>
-          <StatusBar style="light" />
+          <StatusBar style="dark" />
 
-          {/* Stack navigation must always remain mounted so the native view hierarchy is active */}
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              animation: 'default',
-            }}
-          >
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="audit" />
-            <Stack.Screen name="pricing" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-            <Stack.Screen name="account" />
-            <Stack.Screen name="report-bug" />
-            <Stack.Screen name="referral-onboarding" />
-          </Stack>
+          <ThemeProvider value={DefaultTheme}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                animation: 'default',
+              }}
+            >
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="audit" />
+              <Stack.Screen name="pricing" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+              <Stack.Screen name="account" />
+              <Stack.Screen name="report-bug" />
+              <Stack.Screen name="referral-onboarding" />
+            </Stack>
+          </ThemeProvider>
 
           {!appReady && <Splash onContinue={() => setAppReady(true)} />}
         </AuthProvider>
