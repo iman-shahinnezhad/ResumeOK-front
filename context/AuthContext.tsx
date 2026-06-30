@@ -1,8 +1,8 @@
 import * as Application from 'expo-application';
 import * as FileSystem from 'expo-file-system/legacy';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Platform, Alert } from 'react-native';
-import { initPurchases } from '../utils/purchases';
+import { Platform } from 'react-native';
+import { initPurchases, verifyActiveSubscriptionOnStartup } from '../utils/purchases';
 import { clearSession, getSession, saveSession, User } from '../utils/session';
 
 const GUEST_CREDIT_FILE = `${FileSystem.documentDirectory}guest_credit.txt`;
@@ -41,6 +41,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session) {
           setUser(session.user);
           await initPurchases(session.user.id);
+          
+          // Verify active subscription status from StoreKit on startup
+          verifyActiveSubscriptionOnStartup(session.user.id, session.accessToken, API_URL).then(async (updatedUser) => {
+            if (updatedUser) {
+              setUser(updatedUser);
+              await saveSession({ ...session, user: updatedUser });
+            }
+          });
         } else {
           let currentGuestId = '';
           const idInfo = await FileSystem.getInfoAsync(GUEST_ID_FILE);
@@ -150,7 +158,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (data.success && typeof data.credit === 'number') {
             setGuestCredit(data.credit);
             await FileSystem.writeAsStringAsync(GUEST_CREDIT_FILE, data.credit.toString());
-            Alert.alert("Credits Deducted", `${amount} credits have been deducted from your balance.`);
             return true;
           }
         } catch (err: any) {
@@ -164,7 +171,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const newCredit = guestCredit - amount;
         setGuestCredit(newCredit);
         await FileSystem.writeAsStringAsync(GUEST_CREDIT_FILE, newCredit.toString());
-        Alert.alert("Credits Deducted", `${amount} credits have been deducted from your balance.`);
         return true;
       }
       return false;
@@ -193,7 +199,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const updatedSession = { ...session, user: data.user };
       await saveSession(updatedSession);
       setUser(data.user);
-      Alert.alert("Credits Deducted", `${amount} credits have been deducted from your balance.`);
 
       return true;
     } catch (err: any) {
