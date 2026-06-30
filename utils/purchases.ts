@@ -259,7 +259,7 @@ export const syncSubscriptionStatusWithStoreKit = async (userId: string, token: 
     const purchases = await RNIap.getAvailablePurchases();
     
     // Filter for our weekly subscription SKUs
-    const activeSubscription = purchases?.find(p => 
+    const activeSubscription = purchases?.find((p: any) => 
       p.productId === 'com.resume.starter' || p.productId === 'com.resume.pro'
     );
 
