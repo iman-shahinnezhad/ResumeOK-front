@@ -4,45 +4,49 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
 import { Platform } from 'react-native';
 
+
 export default function TabLayout() {
-  const isPad = Platform.OS === 'ios' && Platform.isPad;
+    const isPad = Platform.OS === 'ios' && Platform.isPad;
 
-  if (isPad) {
+    if (isPad) {
+        return (
+            <Tabs
+                screenOptions={{
+                    headerShown: false,
+                    tabBarStyle: { display: 'none' },
+                }}
+            />
+        );
+    }
+
+    // Static background for all tabs
+    const tabBg = '#F8F9FA';
+    const tint = '#2563eb';
     return (
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: { display: 'none' },
-        }}
-      />
+        <NativeTabs backgroundColor={tabBg} tintColor={tint} disableTransparentOnScrollEdge={true}>
+            <NativeTabs.Trigger name="index">
+                <Icon
+                    sf={{ default: 'diamond', selected: 'diamond.fill' }}
+                    androidSrc={<VectorIcon family={Ionicons} name="diamond" />}
+                />
+                <Label>Resume</Label>
+            </NativeTabs.Trigger>
+
+            <NativeTabs.Trigger name="cover-letter">
+                <Icon
+                    sf={{ default: 'circle', selected: 'circle.fill' }}
+                    androidSrc={<VectorIcon family={Ionicons} name="ellipse" />}
+                />
+                <Label>Cover Letter</Label>
+            </NativeTabs.Trigger>
+
+            <NativeTabs.Trigger name="library">
+                <Icon
+                    sf={{ default: 'doc', selected: 'doc.fill' }}
+                    androidSrc={<VectorIcon family={Ionicons} name="document" />}
+                />
+                <Label>Your Doc</Label>
+            </NativeTabs.Trigger>
+        </NativeTabs>
     );
-  }
-
-  return (
-    <NativeTabs backgroundColor="#FFFFFF" tintColor="#2563eb">
-      <NativeTabs.Trigger name="index">
-        <Icon 
-          sf={{ default: 'diamond', selected: 'diamond.fill' }} 
-          androidSrc={<VectorIcon family={Ionicons} name="diamond" />} 
-        />
-        <Label>Resume</Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="cover-letter">
-        <Icon 
-          sf={{ default: 'circle', selected: 'circle.fill' }} 
-          androidSrc={<VectorIcon family={Ionicons} name="ellipse" />} 
-        />
-        <Label>Cover Letter</Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="library">
-        <Icon 
-          sf={{ default: 'doc', selected: 'doc.fill' }}
-          androidSrc={<VectorIcon family={Ionicons} name="document" />}
-        />
-        <Label>Your Doc</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
 }
