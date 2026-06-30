@@ -121,14 +121,10 @@ export default function Pricing() {
                 try {
                   const mockSku = selectedPack.product.identifier;
                   let payloadB64 = '';
-                  if (mockSku === 'com.resumeok.pro') {
-                    payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20ucmVzdW1lb2sucHJvIiwidHJhbnNhY3Rpb25JZCI6Im1vY2tfMTIzIn0=';
-                  } else if (mockSku === 'com.resumeok.basic') {
-                    payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20ucmVzdW1lb2suYmFzaWMiLCJ0cmFuc2FjdGlvbklkIjoibW9ja18xMjMifQ==';
-                  } else if (mockSku === 'com.resumeok.ultimate') {
-                    payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20ucmVzdW1lb2sudWx0aW1hdGUiLCJ0cmFuc2FjdGlvbklkIjoibW9ja18xMjMifQ==';
+                  if (mockSku === 'com.resume.pro') {
+                    payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20ucmVzdW1lLnBybyIsInRyYW5zYWN0aW9uSWQiOiJtb2NrXzEyMyJ9';
                   } else {
-                    payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20ucmVzdW1lb2subWF4IiwidHJhbnNhY3Rpb25JZCI6Im1vY2tfMTIzIn0=';
+                    payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20ucmVzdW1lLnN0YXJ0ZXIiLCJ0cmFuc2FjdGlvbklkIjoibW9ja18xMjMifQ==';
                   }
                   
                   const mockReceipt = `eyJhbGciOiJSUzI1NiJ9.${payloadB64}.mock_signature`;

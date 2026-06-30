@@ -2,7 +2,7 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 
 const itemSKUs = Platform.select({
-  ios: ['com.resumeok.basic', 'com.resumeok.pro', 'com.resumeok.ultimate'],
+  ios: ['com.resume.starter', 'com.resume.pro'],
   android: []
 }) as string[];
 
@@ -45,26 +45,18 @@ export const initPurchases = async (userId?: string) => {
 const MOCK_PACKAGES = [
   {
     product: {
-      identifier: 'com.resumeok.basic',
-      title: 'Basic',
-      description: '100 Credits / Mo',
-      priceString: '$4.99/Mo',
+      identifier: 'com.resume.starter',
+      title: 'Starter',
+      description: '200 Credits / Week',
+      priceString: '$4.99/Wk',
     }
   },
   {
     product: {
-      identifier: 'com.resumeok.pro',
+      identifier: 'com.resume.pro',
       title: 'Pro',
-      description: '200 Credits / Mo',
-      priceString: '$8.99/Mo',
-    }
-  },
-  {
-    product: {
-      identifier: 'com.resumeok.ultimate',
-      title: 'Ultimate',
-      description: '500 Credits / Mo',
-      priceString: '$18.99/Mo',
+      description: '400 Credits / Week',
+      priceString: '$9.99/Wk',
     }
   }
 ];
@@ -89,16 +81,13 @@ export const getPackages = async (): Promise<any[]> => {
       const productId = product.productId || product.identifier || product.id || '';
       let desc = product.description;
       let title = product.title;
-      
-      if (productId === 'com.resumeok.basic') {
-        desc = '100 Credits / Mo';
-        title = 'Basic';
-      } else if (productId === 'com.resumeok.pro') {
-        desc = '200 Credits / Mo';
+
+      if (productId === 'com.resume.starter') {
+        desc = '200 Credits / Week';
+        title = 'Starter';
+      } else if (productId === 'com.resume.pro') {
+        desc = '400 Credits / Week';
         title = 'Pro';
-      } else if (productId === 'com.resumeok.ultimate') {
-        desc = '500 Credits / Mo';
-        title = 'Ultimate';
       }
 
       // Format price to 2 decimal places and preserve currency symbol if possible
@@ -127,7 +116,7 @@ export const getPackages = async (): Promise<any[]> => {
       return {
         product: {
           identifier: productId,
-          title: title || product.title || (productId === 'com.resumeok.pro' ? 'Pro' : 'Max'),
+          title: title || product.title || (productId === 'com.resume.pro' ? 'Pro' : 'Starter'),
           description: desc,
           priceString: priceStr,
         }

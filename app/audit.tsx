@@ -12,7 +12,8 @@ import {
   Platform,
   Alert,
   TextInput,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
@@ -27,6 +28,7 @@ interface SelectedResumeFile {
   uri?: string;
   size?: number;
   mimeType?: string;
+  isBuilt?: boolean;
 }
 
 interface AnalysisResult {
@@ -74,6 +76,62 @@ export default function AuditScreen() {
     setFixedIssues([]);
     setIsCreditDeducted(false);
   }, [selectedResume, jobUrl]);
+
+  const isMagicDisabled = !jobUrl.trim() || !selectedResume || !selectedResume.uri || !selectedResume.id;
+
+  const [hasAgreedPrivacy, setHasAgreedPrivacy] = React.useState<boolean>(false);
+  const [privacyModalVisible, setPrivacyModalVisible] = React.useState<boolean>(false);
+  const [isPicking, setIsPicking] = React.useState<boolean>(false);
+  const [showValidationErrors, setShowValidationErrors] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    const checkPrivacyConsent = async () => {
+      try {
+        const consentPath = `${FileSystem.documentDirectory}privacy_agreed.txt`;
+        const info = await FileSystem.getInfoAsync(consentPath);
+        if (info.exists) {
+          setHasAgreedPrivacy(true);
+        }
+      } catch (e) {
+        console.log("Error checking privacy consent:", e);
+      }
+    };
+    checkPrivacyConsent();
+  }, []);
+
+  const handleAgreePrivacy = async () => {
+    if (isPicking) return;
+    try {
+      const consentPath = `${FileSystem.documentDirectory}privacy_agreed.txt`;
+      await FileSystem.writeAsStringAsync(consentPath, 'true');
+      setHasAgreedPrivacy(true);
+      setPrivacyModalVisible(false);
+      setTimeout(() => {
+        pickResume();
+      }, 300);
+    } catch (e) {
+      console.log("Error saving privacy consent:", e);
+      setHasAgreedPrivacy(true);
+      setPrivacyModalVisible(false);
+      pickResume();
+    }
+  };
+
+  const getValidationError = () => {
+    const isUrlEmpty = !jobUrl.trim();
+    const isResumeMissing = !selectedResume || !selectedResume.uri || !selectedResume.id;
+    
+    if (isUrlEmpty && isResumeMissing) {
+      return "Please paste a job URL and select a resume.";
+    }
+    if (isUrlEmpty) {
+      return "Please paste a valid job position URL.";
+    }
+    if (isResumeMissing) {
+      return "Please upload or select a resume.";
+    }
+    return "";
+  };
 
   const convertMarkdownToHtml = (markdown: string) => {
     if (!markdown) return "";
@@ -491,14 +549,16 @@ export default function AuditScreen() {
         let parsed: SelectedResumeFile[] = [];
         if (fileInfo.exists) {
           const content = await FileSystem.readAsStringAsync(resumesJsonPath);
-          parsed = JSON.parse(content);
+          const rawParsed = JSON.parse(content);
+          if (Array.isArray(rawParsed)) {
+            // Filter out default mock resumes (mock resumes have no uri, or have ids '1', '2', '3')
+            parsed = rawParsed.filter(item => item.uri && !['1', '2', '3'].includes(item.id));
+            if (parsed.length !== rawParsed.length) {
+              await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(parsed));
+            }
+          }
         } else {
-          // If resumes.json doesn't exist, initialize with mock resumes
-          parsed = [
-            { id: '1', name: 'OmidMoradi_25jun.PDF', date: '23/09 03:36' },
-            { id: '2', name: 'SaraKhan_21sep.PDF', date: '21/09 14:22' },
-            { id: '3', name: 'AliReza_30aug.PDF', date: '30/08 09:15' },
-          ];
+          parsed = [];
           await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(parsed));
         }
 
@@ -532,6 +592,8 @@ export default function AuditScreen() {
   };
 
   const pickResume = async () => {
+    if (isPicking) return;
+    setIsPicking(true);
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'],
@@ -567,6 +629,7 @@ export default function AuditScreen() {
           uri: localPath,
           size: file.size,
           mimeType: file.mimeType || 'application/pdf',
+          isBuilt: false
         };
 
         // Also save to global list
@@ -593,18 +656,29 @@ export default function AuditScreen() {
     } catch (err) {
       console.log("Error picking document:", err);
       Alert.alert("Error", "Failed to select document.");
+    } finally {
+      setIsPicking(false);
     }
   };
 
   const handleUploadResume = () => {
-    pickResume();
+    if (hasAgreedPrivacy) {
+      pickResume();
+    } else {
+      setPrivacyModalVisible(true);
+    }
   };
 
   const handleAnalyzeResume = async () => {
-    if (!selectedResume) {
-      Alert.alert("Resume Required", "Please choose or upload a resume first.");
+    if (isMagicDisabled) {
+      setShowValidationErrors(true);
+      const errorMsg = getValidationError();
+      if (errorMsg) {
+        Alert.alert("Missing Fields", errorMsg);
+      }
       return;
     }
+    setShowValidationErrors(false);
 
     let deducted = false;
     setCurrentView('loading');
@@ -639,8 +713,8 @@ export default function AuditScreen() {
         }
       }
 
-      if (userCredit >= 10) {
-        const success = await deductCredits(10);
+      if (userCredit >= 1) {
+        const success = await deductCredits(1);
         if (success) {
           deducted = true;
         }
@@ -826,7 +900,7 @@ RULES:
       console.log("Error analyzing resume with Gemini:", e);
       if (deducted) {
         try {
-          await refundCredits(10);
+          await refundCredits(1);
         } catch (refundErr) {
           console.log("Failed to refund credits:", refundErr);
         }
@@ -1006,12 +1080,12 @@ RULES:
     let isDeductedThisRun = false;
     try {
       if (!isCreditDeducted) {
-        if (userCredit < 10) {
+        if (userCredit < 1) {
           setShowReferralSheet(true);
           setIsDownloading(false);
           return;
         }
-        const success = await deductCredits(10);
+        const success = await deductCredits(1);
         if (!success) {
           Alert.alert("Deduction Failed", "Failed to deduct credits.");
           setIsDownloading(false);
@@ -1072,7 +1146,7 @@ RULES:
       if (isDeductedThisRun) {
         setIsCreditDeducted(false);
         try {
-          await refundCredits(10);
+          await refundCredits(1);
         } catch (refundErr) {
           console.log("Failed to refund credits:", refundErr);
         }
@@ -1104,9 +1178,9 @@ RULES:
       setIsFixingComplete(false);
 
       // Populate fake optimized resume text so download works
-      const mockOptimizedText = `OMID MORADI
-Phone: +98 912 345 6789 | Email: omid.moradi@example.com
-City: Tehran, Iran
+      const mockOptimizedText = `JOHN DOE
+Phone: +1 555 123 4567 | Email: john.doe@example.com
+City: New York, USA
 
 PROFESSIONAL SUMMARY
 Highly skilled software engineer with extensive experience in full stack development. Specialized in designing scalable web architectures and leading engineering teams.
@@ -1117,7 +1191,7 @@ Lead Software Engineer | Tech Company (2022 - Present)
 - Optimized app load time by 40% using advanced caching.
 
 Education
-Bachelor of Science in Computer Science | Sharif University of Technology (2018 - 2022)`;
+Bachelor of Science in Computer Science | Stanford University (2018 - 2022)`;
       setOptimizedResumeText(mockOptimizedText);
 
       // Populate fake fixed issues descriptions
@@ -1287,6 +1361,11 @@ Bachelor of Science in Computer Science | Sharif University of Technology (2018 
 
           {/* DO THE MAGIC Button at the bottom */}
           <View style={[styles.bottomButtonContainer, { paddingBottom: insets.bottom + 20 }]}>
+            {showValidationErrors && isMagicDisabled && (
+              <Text style={styles.validationErrorText}>
+                {getValidationError()}
+              </Text>
+            )}
             <TouchableOpacity
               style={[styles.rewriteButton, { marginTop: 0 }]}
               activeOpacity={0.8}
@@ -1378,11 +1457,11 @@ Bachelor of Science in Computer Science | Sharif University of Technology (2018 
                     let isDeductedThisRun = false;
                     try {
                       if (!isCreditDeducted) {
-                        if (userCredit < 10) {
+                        if (userCredit < 1) {
                           setShowReferralSheet(true);
                           return;
                         }
-                        const success = await deductCredits(10);
+                        const success = await deductCredits(1);
                         if (!success) {
                           Alert.alert("Deduction Failed", "Failed to deduct credits.");
                           return;
@@ -1401,7 +1480,7 @@ Bachelor of Science in Computer Science | Sharif University of Technology (2018 
                           if (isDeductedThisRun) {
                             setIsCreditDeducted(false);
                             try {
-                              await refundCredits(10);
+                              await refundCredits(1);
                             } catch (refundErr) {
                               console.log("Failed to refund credits:", refundErr);
                             }
@@ -1502,6 +1581,43 @@ Bachelor of Science in Computer Science | Sharif University of Technology (2018 
         </View>
       )}
       <ReferralBottomSheet visible={showReferralSheet} onClose={() => setShowReferralSheet(false)} />
+
+      {/* Privacy Consent Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={privacyModalVisible}
+        onRequestClose={() => setPrivacyModalVisible(false)}
+      >
+        <View style={styles.privacyModalOverlay}>
+          <View style={styles.privacyModalContent}>
+            <View style={styles.privacyIconWrapper}>
+              <Ionicons name="shield-checkmark" size={40} color="#000000" />
+            </View>
+            <Text style={styles.privacyModalTitle}>Data Privacy Consent</Text>
+            <Text style={styles.privacyModalBody}>
+              To analyze your resume and match it against job criteria, we process your document securely using confidential AI models (such as Gemini).{"\n\n"}
+              Your document data is processed privately and is never permanently stored on our servers or shared with unauthorized third parties.
+            </Text>
+            <View style={styles.privacyModalButtons}>
+              <TouchableOpacity
+                style={styles.privacyCancelBtn}
+                activeOpacity={0.8}
+                onPress={() => setPrivacyModalVisible(false)}
+              >
+                <Text style={styles.privacyCancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.privacyAgreeBtn}
+                activeOpacity={0.8}
+                onPress={handleAgreePrivacy}
+              >
+                <Text style={styles.privacyAgreeBtnText}>Agree & Continue</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1859,6 +1975,14 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     backgroundColor: '#F6F6F6',
   },
+  validationErrorText: {
+    color: '#EF4444',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
   fixedIssueItem: {
     marginBottom: 24,
     width: '100%',
@@ -1908,6 +2032,81 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     paddingHorizontal: 20,
+  },
+  privacyModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  privacyModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  privacyIconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EEF2F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  privacyModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#000000',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  privacyModalBody: {
+    fontSize: 14,
+    color: '#4B5563',
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  privacyModalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+  },
+  privacyCancelBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  privacyCancelBtnText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  privacyAgreeBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  privacyAgreeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   cardDivider: {
     height: 1,

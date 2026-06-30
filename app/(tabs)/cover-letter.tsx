@@ -13,7 +13,8 @@ import {
   RefreshControl,
   ScrollView,
   TextInput,
-  ActivityIndicator
+  ActivityIndicator,
+  Platform
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
@@ -59,6 +60,7 @@ interface SelectedResumeFile {
 export default function CoverLetterScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const isPad = Platform.OS === 'ios' && Platform.isPad;
   const { user, guestCredit, deductCredits, refundCredits, refreshCredits } = useAuth();
   const userCredit = user?.credit ?? guestCredit;
 
@@ -235,7 +237,7 @@ export default function CoverLetterScreen() {
       return;
     }
 
-    if (userCredit < 10) {
+    if (userCredit < 1) {
       setShowReferralSheet(true);
       return;
     }
@@ -246,7 +248,7 @@ export default function CoverLetterScreen() {
 
     let deducted = false;
     try {
-      const success = await deductCredits(10);
+      const success = await deductCredits(1);
       if (!success) {
         Alert.alert("Deduction Failed", "Failed to deduct credits.");
         setCurrentView('generator');
@@ -490,7 +492,7 @@ To help us parse your response, please enclose the sections in specific tags as 
       console.log("Error generating cover letter:", e);
       if (deducted) {
         try {
-          await refundCredits(10);
+          await refundCredits(1);
         } catch (refundErr) {
           console.log("Failed to refund credits:", refundErr);
         }
@@ -633,7 +635,7 @@ To help us parse your response, please enclose the sections in specific tags as 
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { marginTop: insets.top }]}>
+      <View style={[styles.header, { marginTop: insets.top + (isPad ? 25 : 0) }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           {(currentView === 'generator' && matches.length > 0) && (
             <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
@@ -664,6 +666,29 @@ To help us parse your response, please enclose the sections in specific tags as 
           )}
         </View>
 
+        {isPad && (
+          <View style={styles.topNavCapsule}>
+            <TouchableOpacity
+              style={styles.topNavItem}
+              onPress={() => router.replace('/(tabs)')}
+            >
+              <Text style={styles.topNavText}>Resume</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.topNavItem, styles.topNavItemActive]}
+              onPress={() => router.replace('/(tabs)/cover-letter')}
+            >
+              <Text style={[styles.topNavText, styles.topNavTextActive]}>Cover Letter</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.topNavItem}
+              onPress={() => router.replace('/(tabs)/library')}
+            >
+              <Text style={styles.topNavText}>Your Doc</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <TouchableOpacity 
           style={styles.creditsBadge} 
           activeOpacity={0.8} 
@@ -673,9 +698,10 @@ To help us parse your response, please enclose the sections in specific tags as 
         </TouchableOpacity>
       </View>
 
-      {/* --- LIST VIEW --- */}
-      {currentView === 'list' && (
-        <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, width: '100%', maxWidth: isPad ? 600 : '100%', alignSelf: 'center' }}>
+        {/* --- LIST VIEW --- */}
+        {currentView === 'list' && (
+          <View style={{ flex: 1 }}>
           <Text style={styles.pageTitle}>Write Cover Letter</Text>
           
           <FlatList
@@ -862,6 +888,7 @@ To help us parse your response, please enclose the sections in specific tags as 
           </View>
         </View>
       )}
+      </View>
 
       <ReferralBottomSheet visible={showReferralSheet} onClose={() => setShowReferralSheet(false)} />
     </View>
@@ -1306,5 +1333,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  topNavCapsule: {
+    flexDirection: 'row',
+    backgroundColor: '#E2E8F0',
+    borderRadius: 24,
+    padding: 4,
+    alignItems: 'center',
+  },
+  topNavItem: {
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  topNavItemActive: {
+    backgroundColor: '#FFFFFF',
+  },
+  topNavText: {
+    color: '#4B5563',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  topNavTextActive: {
+    color: '#007AFF',
+    fontWeight: '700',
   },
 });
