@@ -2,19 +2,20 @@
   "expo": {
     "name": "ResumeOK - Tailor Resume & CV",
     "slug": "resumeok",
-    "version": "1.4.1",
+    "version": "1.5.2",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "resumeok",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pixflow.resumeok",
+      "buildNumber": "4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSPhotoLibraryUsageDescription": "The app accesses your photos or documents to let you choose files for ResumeOK.",
-        "NSCameraUsageDescription": "The app needs to access your camera to let you take a photo for ResumeOK.",
+        "NSPhotoLibraryUsageDescription": "This app requires access to your photo library to select a profile photo to be embedded directly into your generated resume templates.",
+        "NSCameraUsageDescription": "This app requires access to your camera to take a photo to use as a profile picture on your generated resume templates.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         }
@@ -28,11 +29,13 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "versionCode": 4,
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
-        "android.permission.READ_MEDIA_IMAGES"
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECORD_AUDIO"
       ],
       "package": "com.pixflow.resumeok"
     },
@@ -68,9 +71,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "6fe26504-d20b-48f3-b2a0-5668ae77b475"
+        "projectId": "f71680bd-b86e-4ad1-8214-87bcc22a01f5"
       }
     },
-    "owner": "imansh"
+    "owner": ""
   }
 }
