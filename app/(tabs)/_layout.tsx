@@ -24,7 +24,7 @@ export default function TabLayout() {
     const tint = '#2563eb';
     return (
         <NativeTabs backgroundColor={tabBg} tintColor={tint} disableTransparentOnScrollEdge={true}>
-            <NativeTabs.Trigger name="index">
+            <NativeTabs.Trigger name="index" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
                 <Icon
                     sf={{ default: 'diamond', selected: 'diamond.fill' }}
                     androidSrc={<VectorIcon family={Ionicons} name="diamond" />}
@@ -32,7 +32,7 @@ export default function TabLayout() {
                 <Label>Resume</Label>
             </NativeTabs.Trigger>
 
-            <NativeTabs.Trigger name="cover-letter">
+            <NativeTabs.Trigger name="cover-letter" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
                 <Icon
                     sf={{ default: 'circle', selected: 'circle.fill' }}
                     androidSrc={<VectorIcon family={Ionicons} name="ellipse" />}
@@ -40,7 +40,7 @@ export default function TabLayout() {
                 <Label>Cover Letter</Label>
             </NativeTabs.Trigger>
 
-            <NativeTabs.Trigger name="library">
+            <NativeTabs.Trigger name="library" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
                 <Icon
                     sf={{ default: 'doc', selected: 'doc.fill' }}
                     androidSrc={<VectorIcon family={Ionicons} name="document" />}
