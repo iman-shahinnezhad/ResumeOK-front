@@ -899,7 +899,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F6F6F6',
-    paddingHorizontal: 24,
   },
   header: {
     flexDirection: 'row',
@@ -907,6 +906,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     zIndex: 10,
+    paddingHorizontal: 24,
   },
   backButton: {
     width: 44,
@@ -1003,6 +1003,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 100,
+    paddingHorizontal: 24,
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -1066,6 +1067,7 @@ const styles = StyleSheet.create({
   // GENERATOR STYLES
   generatorContainer: {
     flex: 1,
+    paddingHorizontal: 24,
   },
   sectionContainer: {
     width: '100%',
@@ -1214,6 +1216,7 @@ const styles = StyleSheet.create({
   loadingWrapperContainer: {
     flex: 1,
     paddingTop: 24,
+    paddingHorizontal: 24,
   },
   loadingHeaderTitle: {
     color: '#000000',
@@ -1257,6 +1260,7 @@ const styles = StyleSheet.create({
   resultOuterContainer: {
     flex: 1,
     paddingTop: 24,
+    paddingHorizontal: 24,
   },
   horizontalDivider: {
     height: 1,
