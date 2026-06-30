@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Animated, Easing, ImageBackground, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, Text, View, Animated, Easing, ImageBackground, TouchableOpacity, Image, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface SplashProps {
@@ -8,6 +8,7 @@ interface SplashProps {
 
 export default function Splash({ onContinue }: SplashProps) {
   const insets = useSafeAreaInsets();
+  const isPad = Platform.OS === 'ios' && Platform.isPad;
 
   // Animation values
   const fadeHeader = useRef(new Animated.Value(0)).current;
@@ -85,94 +86,96 @@ export default function Splash({ onContinue }: SplashProps) {
       {/* Svg ambient overlay */}
       <View style={StyleSheet.absoluteFillObject} />
 
-      {/* Top Section: Customer Info Image */}
-      <Animated.View style={[
-        styles.headerContainer, 
-        { 
-          marginTop: insets.top + 30,
-          opacity: fadeHeader,
-          transform: [{ translateY: slideHeader }]
-        }
-      ]}>
-        <Image 
-          source={require('../assets/images/customer-info.png')}
-          style={styles.customerInfoImage}
-          resizeMode="contain"
-        />
-      </Animated.View>
-
-      {/* Center Section: #1 RESUME BUILDER (Staggered staircase) */}
-      <View style={styles.centerSection}>
-        <Animated.View style={{ 
-          opacity: fadeTitle1, 
-          transform: [{ translateX: slideTitle1 }] 
-        }}>
-          <Text style={styles.titleNumber}>#1</Text>
+      <View style={{ flex: 1, width: '100%', maxWidth: isPad ? 450 : '100%', alignSelf: 'center', justifyContent: 'space-between' }}>
+        {/* Top Section: Customer Info Image */}
+        <Animated.View style={[
+          styles.headerContainer, 
+          { 
+            marginTop: insets.top + 30,
+            opacity: fadeHeader,
+            transform: [{ translateY: slideHeader }]
+          }
+        ]}>
+          <Image 
+            source={require('../assets/images/customer-info.png')}
+            style={styles.customerInfoImage}
+            resizeMode="contain"
+          />
         </Animated.View>
 
-        <Animated.View style={{ 
-          opacity: fadeTitle2, 
-          transform: [{ translateX: slideTitle2 }],
-          marginLeft: 60,
-          marginTop: -5
-        }}>
-          <Text style={styles.titleMain}>RESUME</Text>
-        </Animated.View>
+        {/* Center Section: #1 RESUME BUILDER (Staggered staircase) */}
+        <View style={styles.centerSection}>
+          <Animated.View style={{ 
+            opacity: fadeTitle1, 
+            transform: [{ translateX: slideTitle1 }] 
+          }}>
+            <Text style={styles.titleNumber}>#1</Text>
+          </Animated.View>
 
-        <Animated.View style={{ 
-          opacity: fadeTitle3, 
-          transform: [{ translateX: slideTitle3 }],
-          marginLeft: 120,
-          marginTop: -5
-        }}>
-          <Text style={styles.titleMain}>BUILDER</Text>
-        </Animated.View>
-      </View>
+          <Animated.View style={{ 
+            opacity: fadeTitle2, 
+            transform: [{ translateX: slideTitle2 }],
+            marginLeft: 60,
+            marginTop: -5
+          }}>
+            <Text style={styles.titleMain}>RESUME</Text>
+          </Animated.View>
 
-      {/* Lower Section: BASED ON JOB SKILL REQUIRED (Staggered staircase) */}
-      <View style={styles.lowerSection}>
-        <Animated.View style={{ 
-          opacity: fadeLower1, 
-          transform: [{ translateX: slideLower1 }],
-          marginLeft: 70
-        }}>
-          <Text style={styles.lowerMain}>BASED ON</Text>
-        </Animated.View>
+          <Animated.View style={{ 
+            opacity: fadeTitle3, 
+            transform: [{ translateX: slideTitle3 }],
+            marginLeft: 120,
+            marginTop: -5
+          }}>
+            <Text style={styles.titleMain}>BUILDER</Text>
+          </Animated.View>
+        </View>
 
-        <Animated.View style={{ 
-          opacity: fadeLower2, 
-          transform: [{ translateX: slideLower2 }],
-          marginLeft: 125,
-          marginTop: -2
-        }}>
-          <Text style={styles.lowerMain}>JOB SKILL</Text>
-        </Animated.View>
+        {/* Lower Section: BASED ON JOB SKILL REQUIRED (Staggered staircase) */}
+        <View style={styles.lowerSection}>
+          <Animated.View style={{ 
+            opacity: fadeLower1, 
+            transform: [{ translateX: slideLower1 }],
+            marginLeft: 70
+          }}>
+            <Text style={styles.lowerMain}>BASED ON</Text>
+          </Animated.View>
 
-        <Animated.View style={{ 
-          opacity: fadeLower3, 
-          transform: [{ translateX: slideLower3 }],
-          marginLeft: 170,
-          marginTop: -2
-        }}>
-          <Text style={styles.lowerMain}>REQUIRED</Text>
-        </Animated.View>
-      </View>
+          <Animated.View style={{ 
+            opacity: fadeLower2, 
+            transform: [{ translateX: slideLower2 }],
+            marginLeft: 125,
+            marginTop: -2
+          }}>
+            <Text style={styles.lowerMain}>JOB SKILL</Text>
+          </Animated.View>
 
-      {/* Bottom Button Section */}
-      <View style={[styles.buttonSection, { marginBottom: insets.bottom + 30 }]}>
-        <Animated.View style={{
-          opacity: fadeButton,
-          transform: [{ scale: scaleButton }],
-          width: '100%'
-        }}>
-          <TouchableOpacity 
-            style={styles.continueButton} 
-            activeOpacity={0.9} 
-            onPress={onContinue}
-          >
-            <Text style={styles.continueButtonText}>CONTINUE</Text>
-          </TouchableOpacity>
-        </Animated.View>
+          <Animated.View style={{ 
+            opacity: fadeLower3, 
+            transform: [{ translateX: slideLower3 }],
+            marginLeft: 170,
+            marginTop: -2
+          }}>
+            <Text style={styles.lowerMain}>REQUIRED</Text>
+          </Animated.View>
+        </View>
+
+        {/* Bottom Button Section */}
+        <View style={[styles.buttonSection, { marginBottom: insets.bottom + 30 }]}>
+          <Animated.View style={{
+            opacity: fadeButton,
+            transform: [{ scale: scaleButton }],
+            width: '100%'
+          }}>
+            <TouchableOpacity 
+              style={styles.continueButton} 
+              activeOpacity={0.9} 
+              onPress={onContinue}
+            >
+              <Text style={styles.continueButtonText}>CONTINUE</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
       </View>
     </ImageBackground>
   );
@@ -210,7 +213,7 @@ const styles = StyleSheet.create({
   },
   titleMain: {
     color: '#ffffff',
-    fontSize: 32,
+    fontSize: 52,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -221,8 +224,8 @@ const styles = StyleSheet.create({
   },
   lowerMain: {
     color: '#ffffff',
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 52,
+    fontWeight: '900',
     letterSpacing: 0.5,
   },
   buttonSection: {
