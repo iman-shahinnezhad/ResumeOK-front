@@ -27,8 +27,8 @@ export default function TabLayout() {
             <NativeTabs.Trigger name="index" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
                 <Icon
                     src={{
-                        default: require('../../assets/images/resume.svg'),
-                        selected: require('../../assets/images/resume-h.svg')
+                        default: require('../../assets/images/resume.png'),
+                        selected: require('../../assets/images/resume-active.png')
                     }}
                 />
                 <Label>Resume</Label>
@@ -37,8 +37,8 @@ export default function TabLayout() {
             <NativeTabs.Trigger name="cover-letter" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
                 <Icon
                     src={{
-                        default: require('../../assets/images/cover.svg'),
-                        selected: require('../../assets/images/cover-h.svg')
+                        default: require('../../assets/images/cover.png'),
+                        selected: require('../../assets/images/cover-active.png')
                     }}
                 />
                 <Label>Cover Letter</Label>
@@ -47,8 +47,8 @@ export default function TabLayout() {
             <NativeTabs.Trigger name="library" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
                 <Icon
                     src={{
-                        default: require('../../assets/images/doc.svg'),
-                        selected: require('../../assets/images/doc-h.svg')
+                        default: require('../../assets/images/doc.png'),
+                        selected: require('../../assets/images/doc-active.png')
                     }}
                 />
                 <Label>Your Doc</Label>
