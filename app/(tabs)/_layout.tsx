@@ -21,9 +21,25 @@ export default function TabLayout() {
 
     // Static background for all tabs
     const tabBg = '#F8F9FA';
-    const tint = '#2563eb';
+    const tint = '#007AFF';
     return (
-        <NativeTabs backgroundColor={tabBg} tintColor={tint} disableTransparentOnScrollEdge={true}>
+        <NativeTabs 
+            backgroundColor={tabBg} 
+            tintColor={tint} 
+            disableTransparentOnScrollEdge={true}
+            labelStyle={{
+                default: {
+                    color: '#64748B',
+                    fontSize: 11,
+                    fontWeight: '600',
+                },
+                selected: {
+                    color: tint,
+                    fontSize: 11,
+                    fontWeight: '700',
+                }
+            }}
+        >
             <NativeTabs.Trigger name="index" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
                 <Icon
                     src={{

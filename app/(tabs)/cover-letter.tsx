@@ -898,7 +898,7 @@ To help us parse your response, please enclose the sections in specific tags as 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6F6F6',
+    backgroundColor: '#F8F9FA',
   },
   header: {
     flexDirection: 'row',
@@ -1184,7 +1184,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: 24,
     paddingTop: 12,
-    backgroundColor: '#F6F6F6',
+    backgroundColor: '#F8F9FA',
   },
   magicButton: {
     backgroundColor: '#000000',

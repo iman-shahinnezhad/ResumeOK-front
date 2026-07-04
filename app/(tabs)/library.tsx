@@ -14,8 +14,10 @@ import {
   RefreshControl,
   Modal,
   FlatList,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as FileSystem from 'expo-file-system/legacy';
 import { copyToClipboard } from '../../utils/clipboard';
 import { useAuth } from '../../context/AuthContext';
@@ -27,6 +29,7 @@ interface SelectedResumeFile {
   uri?: string;
   size?: number;
   mimeType?: string;
+  isBuilt?: boolean;
 }
 
 interface SavedCoverLetter {
@@ -43,13 +46,19 @@ interface SavedCoverLetter {
 export default function Library() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+  const isPad = Platform.OS === 'ios' && Platform.isPad;
   const { user, guestCredit, refreshCredits } = useAuth();
   const userCredit = user?.credit ?? guestCredit;
 
-  const [activeTab, setActiveTab] = useState<'resume' | 'cover-letter'>('resume');
+  const [activeTab, setActiveTab] = useState<'resume' | 'cover-letter' | 'build-resume'>('resume');
   const [resumes, setResumes] = useState<SelectedResumeFile[]>([]);
   const [coverLetters, setCoverLetters] = useState<SavedCoverLetter[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  const uploadedResumesList = resumes.filter(r => !r.isBuilt);
+  const builtResumesList = resumes.filter(r => r.isBuilt);
 
   // Detail Modal States
   const [selectedLetter, setSelectedLetter] = useState<SavedCoverLetter | null>(null);
@@ -122,7 +131,23 @@ export default function Library() {
         Alert.alert("File Not Found", "The resume file does not exist on your device.");
         return;
       }
-      await Sharing.shareAsync(item.uri, {
+
+      // Copy to cache directory with clean name for sharing sheet beauty
+      const cleanSharePath = `${FileSystem.cacheDirectory}${item.name}`;
+      try {
+        const cacheInfo = await FileSystem.getInfoAsync(cleanSharePath);
+        if (cacheInfo.exists) {
+          await FileSystem.deleteAsync(cleanSharePath, { idempotent: true });
+        }
+      } catch (e) {
+        console.log("Error cleaning up cached share file in library:", e);
+      }
+      await FileSystem.copyAsync({
+        from: item.uri,
+        to: cleanSharePath
+      });
+
+      await Sharing.shareAsync(cleanSharePath, {
         mimeType: 'application/pdf',
         dialogTitle: `Download ${item.name}`,
         UTI: 'com.adobe.pdf'
@@ -273,28 +298,55 @@ export default function Library() {
     setModalVisible(true);
   };
 
-  const renderResumeItem = ({ item }: { item: SelectedResumeFile }) => (
-    <TouchableOpacity
-      style={styles.gridItem}
-      activeOpacity={0.7}
-      onPress={() => handleResumePress(item)}
-      onLongPress={() => handleDeleteResume(item)}
-    >
-      <View style={styles.folderIconContainer}>
-        <Ionicons name="folder" size={64} color="#4B5563" />
-        <TouchableOpacity 
-          style={styles.deleteBadge} 
-          activeOpacity={0.8}
-          onPress={() => handleDeleteResume(item)}
-        >
-          <Ionicons name="close-circle" size={20} color="#EF4444" />
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.fileNameText} numberOfLines={2}>
-        {item.name}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderResumeItem = ({ item }: { item: SelectedResumeFile }) => {
+    let indicatorColor = '#4B5563'; // default Slate
+    if (item.name.toLowerCase().includes('executive')) {
+      indicatorColor = '#1E293B';
+    } else if (item.name.toLowerCase().includes('creative')) {
+      indicatorColor = '#3B2E9B';
+    } else if (item.name.toLowerCase().includes('elegant')) {
+      indicatorColor = '#7C2D12';
+    }
+
+    return (
+      <TouchableOpacity
+        style={styles.resumeCard}
+        activeOpacity={0.8}
+        onPress={() => handleResumePress(item)}
+      >
+        <View style={styles.resumeCardLeft}>
+          <View style={[styles.resumeIconWrapper, { backgroundColor: indicatorColor + '15' }]}>
+            <Ionicons name="document-text" size={24} color={indicatorColor} />
+          </View>
+          <View style={styles.resumeTextWrapper}>
+            <Text style={styles.resumeTitle} numberOfLines={1}>
+              {item.name.replace(/_built\.pdf$/, '').replace(/_Resume\.pdf$/, '').replace(/_/g, ' ')}
+            </Text>
+            <Text style={styles.resumeDate}>Generated: {item.date}</Text>
+            <Text style={styles.resumeMime} numberOfLines={1}>{item.name}</Text>
+          </View>
+        </View>
+
+        <View style={styles.resumeCardRight}>
+          <TouchableOpacity
+            style={styles.cardShareButton}
+            activeOpacity={0.8}
+            onPress={() => handleShareResume(item)}
+          >
+            <Ionicons name="share-social-outline" size={16} color="#007AFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.cardShareButton, { marginLeft: 8 }]}
+            activeOpacity={0.8}
+            onPress={() => handleDeleteResume(item)}
+          >
+            <Ionicons name="trash-outline" size={16} color="#EF4444" />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const renderCoverLetterItem = ({ item }: { item: SavedCoverLetter }) => (
     <TouchableOpacity
@@ -338,7 +390,7 @@ export default function Library() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { marginTop: insets.top }]}>
+      <View style={[styles.header, { marginTop: insets.top + (isPad ? 25 : 0) }]}>
         <TouchableOpacity
           style={styles.profileContainer}
           activeOpacity={0.8}
@@ -350,6 +402,29 @@ export default function Library() {
           />
         </TouchableOpacity>
 
+        {isPad && (
+          <View style={styles.topNavCapsule}>
+            <TouchableOpacity
+              style={styles.topNavItem}
+              onPress={() => router.replace('/(tabs)')}
+            >
+              <Text style={styles.topNavText}>Resume</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.topNavItem}
+              onPress={() => router.replace('/(tabs)/cover-letter')}
+            >
+              <Text style={styles.topNavText}>Cover Letter</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.topNavItem, styles.topNavItemActive]}
+              onPress={() => router.replace('/(tabs)/library')}
+            >
+              <Text style={[styles.topNavText, styles.topNavTextActive]}>Your Doc</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <TouchableOpacity
           style={styles.creditsBadge}
           activeOpacity={0.8}
@@ -359,101 +434,271 @@ export default function Library() {
         </TouchableOpacity>
       </View>
 
-      {/* Tabs Row */}
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'resume' && styles.tabButtonActive]}
-          activeOpacity={0.9}
-          onPress={() => setActiveTab('resume')}
-        >
-          <Text style={[styles.tabText, activeTab === 'resume' && styles.tabTextActive]}>
-            Resume
-          </Text>
-          {activeTab === 'resume' && <View style={styles.activeIndicator} />}
-        </TouchableOpacity>
+      <View style={{ flex: 1, width: '100%', maxWidth: isPad ? 600 : (isLandscape ? 600 : '100%'), alignSelf: 'center' }}>
+        {/* Tabs Row */}
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'resume' && styles.tabButtonActive]}
+            activeOpacity={0.9}
+            onPress={() => setActiveTab('resume')}
+          >
+            <Text style={[styles.tabText, activeTab === 'resume' && styles.tabTextActive]}>
+              Resumes
+            </Text>
+            {activeTab === 'resume' && <View style={styles.activeIndicator} />}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'cover-letter' && styles.tabButtonActive]}
-          activeOpacity={0.9}
-          onPress={() => setActiveTab('cover-letter')}
-        >
-          <Text style={[styles.tabText, activeTab === 'cover-letter' && styles.tabTextActive]}>
-            Cover letter
-          </Text>
-          {activeTab === 'cover-letter' && <View style={styles.activeIndicator} />}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'cover-letter' && styles.tabButtonActive]}
+            activeOpacity={0.9}
+            onPress={() => setActiveTab('cover-letter')}
+          >
+            <Text style={[styles.tabText, activeTab === 'cover-letter' && styles.tabTextActive]}>
+              Cover letters
+            </Text>
+            {activeTab === 'cover-letter' && <View style={styles.activeIndicator} />}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'build-resume' && styles.tabButtonActive]}
+            activeOpacity={0.9}
+            onPress={() => setActiveTab('build-resume')}
+          >
+            <Text style={[styles.tabText, activeTab === 'build-resume' && styles.tabTextActive]}>
+              Build Resume
+            </Text>
+            {activeTab === 'build-resume' && <View style={styles.activeIndicator} />}
+          </TouchableOpacity>
+        </View>
+
+        {/* Content Section */}
+        {activeTab === 'resume' ? (
+          uploadedResumesList.length === 0 ? (
+            <ScrollView
+              contentContainerStyle={styles.emptyContainer}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+            >
+              <Ionicons name="folder-open-outline" size={80} color="#A0AEC0" />
+              <Text style={styles.emptyTitle}>No Resumes yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Upload or select a resume in the Match Resume tool to start auditing.
+              </Text>
+              <TouchableOpacity
+                style={styles.actionButton}
+                activeOpacity={0.8}
+                onPress={() => router.push('/audit')}
+              >
+                <Text style={styles.actionButtonText}>Match Resume ✨</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          ) : (
+            <FlatList
+              data={uploadedResumesList}
+              keyExtractor={(item) => item.id}
+              renderItem={renderResumeItem}
+              contentContainerStyle={styles.listContainer}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+            />
+          )
+        ) : activeTab === 'cover-letter' ? (
+          coverLetters.length === 0 ? (
+            <ScrollView
+              contentContainerStyle={styles.emptyContainer}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+            >
+              <Ionicons name="document-text-outline" size={80} color="#A0AEC0" />
+              <Text style={styles.emptyTitle}>No Cover Letters yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Paste a job description URL and generate professional cover letters instantly.
+              </Text>
+              <TouchableOpacity
+                style={styles.actionButton}
+                activeOpacity={0.8}
+                onPress={() => router.push('/(tabs)/cover-letter')}
+              >
+                <Text style={styles.actionButtonText}>Write Cover Letter ✨</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          ) : (
+            <FlatList
+              data={coverLetters}
+              keyExtractor={(item) => item.id}
+              renderItem={renderCoverLetterItem}
+              contentContainerStyle={styles.listContainer}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+            />
+          )
+        ) : (
+          /* Build Resume Tab Panel */
+          <ScrollView
+            style={styles.buildTabContainer}
+            contentContainerStyle={styles.buildTabContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {builtResumesList.length > 0 ? (
+              <View style={{ width: '100%' }}>
+                <Text style={styles.sectionHeading}>Your Built Resumes</Text>
+                <View style={{ marginBottom: 16 }}>
+                  {builtResumesList.map((item) => (
+                    <View key={item.id} style={{ marginBottom: 8 }}>
+                      {renderResumeItem({ item })}
+                    </View>
+                  ))}
+                </View>
+                
+                <TouchableOpacity
+                  style={styles.buildAnotherBtn}
+                  activeOpacity={0.8}
+                  onPress={() => router.push('/build-resume')}
+                >
+                  <Text style={styles.buildAnotherBtnText}>Build Another Resume ✨</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ width: '100%' }}>
+                <LinearGradient
+                  colors={['#4F46E5', '#7C3AED']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.heroCard}
+                >
+                  <View style={styles.heroCardLeft}>
+                    <View style={styles.heroBadge}>
+                      <Ionicons name="sparkles" size={10} color="#FBBF24" style={{ marginRight: 4 }} />
+                      <Text style={styles.heroBadgeText}>FREE & UNLIMITED</Text>
+                    </View>
+                    <Text style={styles.heroTitle}>Create Your Dream Resume</Text>
+                    <Text style={styles.heroSubtitle}>
+                      100% offline, private, and credit-free resume builder.
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.heroStartBtn}
+                      activeOpacity={0.9}
+                      onPress={() => router.push('/build-resume')}
+                    >
+                      <Text style={styles.heroStartBtnText}>Start Building Now</Text>
+                      <Ionicons name="arrow-forward" size={16} color="#4F46E5" style={{ marginLeft: 6 }} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.heroCardRight}>
+                    <Ionicons name="document-text" size={72} color="rgba(255,255,255,0.25)" />
+                  </View>
+                </LinearGradient>
+
+                <Text style={styles.sectionHeading}>Available Template Layouts</Text>
+
+                <View style={styles.templatesShowcaseGrid}>
+                  <View style={styles.templateShowcaseCard}>
+                    <View style={[styles.templateShowcaseMini, { borderColor: '#475569' }]}>
+                      <View style={[styles.templateMiniHeader, { backgroundColor: '#475569' }]} />
+                      <View style={styles.templateMiniRow}>
+                        <View style={[styles.templateMiniLine, { width: '30%', height: 4, backgroundColor: '#CBD5E1', marginRight: 4 }]} />
+                        <View style={[styles.templateMiniLine, { width: '60%', height: 4, backgroundColor: '#CBD5E1' }]} />
+                      </View>
+                      <View style={styles.templateMiniRow}>
+                        <View style={[styles.templateMiniLine, { width: '40%', height: 4, backgroundColor: '#E2E8F0', marginRight: 4 }]} />
+                        <View style={[styles.templateMiniLine, { width: '50%', height: 4, backgroundColor: '#E2E8F0' }]} />
+                      </View>
+                    </View>
+                    <Text style={styles.templateShowcaseTitle}>Modern Slate</Text>
+                    <Text style={styles.templateShowcaseDesc}>Clean split-column layout with slate highlights</Text>
+                  </View>
+
+                  <View style={styles.templateShowcaseCard}>
+                    <View style={[styles.templateShowcaseMini, { borderColor: '#1E293B' }]}>
+                      <View style={[styles.templateMiniHeader, { backgroundColor: '#1E293B', height: 16 }]} />
+                      <View style={[styles.templateMiniRow, { justifyContent: 'center' }]}>
+                        <View style={[styles.templateMiniLine, { width: '50%', height: 5, backgroundColor: '#CBD5E1' }]} />
+                      </View>
+                      <View style={styles.templateMiniRow}>
+                        <View style={[styles.templateMiniLine, { width: '80%', height: 4, backgroundColor: '#E2E8F0' }]} />
+                      </View>
+                      <View style={styles.templateMiniRow}>
+                        <View style={[styles.templateMiniLine, { width: '70%', height: 4, backgroundColor: '#E2E8F0' }]} />
+                      </View>
+                    </View>
+                    <Text style={styles.templateShowcaseTitle}>Executive Classic</Text>
+                    <Text style={styles.templateShowcaseDesc}>Timeless centered design for leadership roles</Text>
+                  </View>
+
+                  <View style={styles.templateShowcaseCard}>
+                    <View style={[styles.templateShowcaseMini, { borderColor: '#1E1B4B' }]}>
+                      <View style={styles.templateMiniCols}>
+                        <View style={[styles.templateMiniLeftCol, { backgroundColor: '#1E1B4B', width: '25%' }]} />
+                        <View style={[styles.templateMiniRightCol, { width: '75%', padding: 4 }]}>
+                          <View style={[styles.templateMiniLine, { width: '80%', height: 4, backgroundColor: '#CBD5E1', marginBottom: 4 }]} />
+                          <View style={[styles.templateMiniLine, { width: '60%', height: 3, backgroundColor: '#E2E8F0', marginBottom: 4 }]} />
+                          <View style={[styles.templateMiniLine, { width: '70%', height: 3, backgroundColor: '#E2E8F0' }]} />
+                        </View>
+                      </View>
+                    </View>
+                    <Text style={styles.templateShowcaseTitle}>Creative Columns</Text>
+                    <Text style={styles.templateShowcaseDesc}>Vibrant and bold layout with a navy sidebar</Text>
+                  </View>
+
+                  <View style={styles.templateShowcaseCard}>
+                    <View style={[styles.templateShowcaseMini, { borderColor: '#7C2D12' }]}>
+                      <View style={[styles.templateMiniHeader, { backgroundColor: '#FDF8F6', height: 12, borderBottomWidth: 1, borderBottomColor: '#7C2D12' }]} />
+                      <View style={styles.templateMiniRow}>
+                        <View style={[styles.templateMiniLine, { width: '35%', height: 4, backgroundColor: '#F97316' }]} />
+                      </View>
+                      <View style={styles.templateMiniRow}>
+                        <View style={[styles.templateMiniLine, { width: '85%', height: 4, backgroundColor: '#CBD5E1' }]} />
+                      </View>
+                      <View style={styles.templateMiniRow}>
+                        <View style={[styles.templateMiniLine, { width: '80%', height: 4, backgroundColor: '#E2E8F0' }]} />
+                      </View>
+                    </View>
+                    <Text style={styles.templateShowcaseTitle}>Elegant Warm</Text>
+                    <Text style={styles.templateShowcaseDesc}>Warm styling with sophisticated editorial fonts</Text>
+                  </View>
+                </View>
+
+                <View style={styles.featuresListContainer}>
+                  <Text style={styles.sectionHeading}>Why Build With Us?</Text>
+                  <View style={styles.featureItem}>
+                    <View style={styles.featureIconBox}>
+                      <Ionicons name="shield-checkmark" size={20} color="#10B981" />
+                    </View>
+                    <View style={styles.featureTextBox}>
+                      <Text style={styles.featureTitle}>100% Private</Text>
+                      <Text style={styles.featureDesc}>All data remains securely stored on your local device.</Text>
+                    </View>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <View style={styles.featureIconBox}>
+                      <Ionicons name="image" size={20} color="#F59E0B" />
+                    </View>
+                    <View style={styles.featureTextBox}>
+                      <Text style={styles.featureTitle}>Profile Image Support</Text>
+                      <Text style={styles.featureDesc}>Easily upload your photo to be beautifully embedded into layouts.</Text>
+                    </View>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <View style={styles.featureIconBox}>
+                      <Ionicons name="share-social" size={20} color="#3B82F6" />
+                    </View>
+                    <View style={styles.featureTextBox}>
+                      <Text style={styles.featureTitle}>Instant PDF Sharing</Text>
+                      <Text style={styles.featureDesc}>Export high-resolution PDFs directly to print or share instantly.</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
+          </ScrollView>
+        )}
       </View>
-
-      {/* Content Section */}
-      {activeTab === 'resume' ? (
-        resumes.length === 0 ? (
-          <ScrollView
-            contentContainerStyle={styles.emptyContainer}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          >
-            <Ionicons name="folder-open-outline" size={80} color="#A0AEC0" />
-            <Text style={styles.emptyTitle}>No Resumes yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Upload a resume or build one step-by-step using our editor.
-            </Text>
-            <TouchableOpacity
-              style={styles.actionButton}
-              activeOpacity={0.8}
-              onPress={() => router.push('/build-resume')}
-            >
-              <Text style={styles.actionButtonText}>Build Resume ✨</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        ) : (
-          <FlatList
-            data={resumes}
-            keyExtractor={(item) => item.id}
-            renderItem={renderResumeItem}
-            numColumns={3}
-            columnWrapperStyle={styles.gridRow}
-            contentContainerStyle={styles.gridContainer}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          />
-        )
-      ) : (
-        coverLetters.length === 0 ? (
-          <ScrollView
-            contentContainerStyle={styles.emptyContainer}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          >
-            <Ionicons name="document-text-outline" size={80} color="#A0AEC0" />
-            <Text style={styles.emptyTitle}>No Cover Letters yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Paste a job description URL and generate professional cover letters instantly.
-            </Text>
-            <TouchableOpacity
-              style={styles.actionButton}
-              activeOpacity={0.8}
-              onPress={() => router.push('/(tabs)/cover-letter')}
-            >
-              <Text style={styles.actionButtonText}>Write Cover Letter ✨</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        ) : (
-          <FlatList
-            data={coverLetters}
-            keyExtractor={(item) => item.id}
-            renderItem={renderCoverLetterItem}
-            contentContainerStyle={styles.listContainer}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          />
-        )
-      )}
 
       {/* Cover Letter Details Modal */}
       <Modal
@@ -539,7 +784,26 @@ export default function Library() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6F6F6',
+    backgroundColor: '#F8F9FA',
+  },
+  buildAnotherBtn: {
+    backgroundColor: '#000000',
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 24,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  buildAnotherBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
   header: {
     flexDirection: 'row',
@@ -612,42 +876,70 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     borderRadius: 1.5,
   },
-  // Grid View Styles for Resumes
-  gridContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 100,
-  },
-  gridRow: {
-    justifyContent: 'flex-start',
-  },
-  gridItem: {
-    width: '30%',
-    marginHorizontal: '1.6%',
+  // Resume Card Styles
+  resumeCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  folderIconContainer: {
-    position: 'relative',
-    width: 72,
-    height: 72,
+  resumeCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
+  },
+  resumeIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginRight: 12,
   },
-  deleteBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+  resumeTextWrapper: {
+    flex: 1,
   },
-  fileNameText: {
-    fontSize: 12,
-    color: '#2D3748',
-    fontWeight: '600',
-    textAlign: 'center',
-    paddingHorizontal: 4,
+  resumeTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 2,
+  },
+  resumeDate: {
+    fontSize: 11,
+    color: '#718096',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  resumeMime: {
+    fontSize: 11,
+    color: '#A0AEC0',
+    fontWeight: '500',
+  },
+  resumeCardRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardShareButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F7FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   // List View Styles for Cover Letters
   listContainer: {
@@ -868,6 +1160,221 @@ const styles = StyleSheet.create({
   modalFooterButtonTextDownload: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontWeight: '700',
+  },
+  // Build tab styles
+  buildTabContainer: {
+    flex: 1,
+  },
+  buildTabContent: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 120,
+  },
+  heroCard: {
+    borderRadius: 28,
+    padding: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 28,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  heroCardLeft: {
+    flex: 1,
+    marginRight: 16,
+  },
+  heroCardRight: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  heroBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+  heroSubtitle: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+    marginBottom: 16,
+  },
+  heroStartBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+  },
+  heroStartBtnText: {
+    color: '#4F46E5',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  sectionHeading: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#000000',
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  templatesShowcaseGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 28,
+  },
+  templateShowcaseCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+    padding: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  templateShowcaseMini: {
+    width: '100%',
+    height: 90,
+    borderWidth: 1.5,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    overflow: 'hidden',
+    marginBottom: 10,
+    padding: 6,
+  },
+  templateMiniHeader: {
+    height: 10,
+    borderRadius: 4,
+    marginBottom: 8,
+    width: '100%',
+  },
+  templateMiniRow: {
+    flexDirection: 'row',
+    marginBottom: 4,
+    alignItems: 'center',
+  },
+  templateMiniLine: {
+    borderRadius: 2,
+  },
+  templateMiniCols: {
+    flexDirection: 'row',
+    height: '100%',
+  },
+  templateMiniLeftCol: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  templateMiniRightCol: {
+    flex: 1,
+  },
+  templateShowcaseTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  templateShowcaseDesc: {
+    fontSize: 10,
+    color: '#718096',
+    lineHeight: 13,
+    fontWeight: '500',
+  },
+  featuresListContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+    padding: 20,
+    marginBottom: 20,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  featureIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  featureTextBox: {
+    flex: 1,
+  },
+  featureTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 2,
+  },
+  featureDesc: {
+    fontSize: 12,
+    color: '#718096',
+    lineHeight: 16,
+    fontWeight: '500',
+  },
+  topNavCapsule: {
+    flexDirection: 'row',
+    backgroundColor: '#E2E8F0',
+    borderRadius: 24,
+    padding: 4,
+    alignItems: 'center',
+  },
+  topNavItem: {
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  topNavItemActive: {
+    backgroundColor: '#FFFFFF',
+  },
+  topNavText: {
+    color: '#4B5563',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  topNavTextActive: {
+    color: '#007AFF',
     fontWeight: '700',
   },
 });
