@@ -26,24 +26,30 @@ export default function TabLayout() {
         <NativeTabs backgroundColor={tabBg} tintColor={tint} disableTransparentOnScrollEdge={true}>
             <NativeTabs.Trigger name="index" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
                 <Icon
-                    sf={{ default: 'diamond', selected: 'diamond.fill' }}
-                    androidSrc={<VectorIcon family={Ionicons} name="diamond" />}
+                    src={{
+                        default: require('../../assets/images/resume.svg'),
+                        selected: require('../../assets/images/resume-h.svg')
+                    }}
                 />
                 <Label>Resume</Label>
             </NativeTabs.Trigger>
 
             <NativeTabs.Trigger name="cover-letter" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
                 <Icon
-                    sf={{ default: 'circle', selected: 'circle.fill' }}
-                    androidSrc={<VectorIcon family={Ionicons} name="ellipse" />}
+                    src={{
+                        default: require('../../assets/images/cover.svg'),
+                        selected: require('../../assets/images/cover-h.svg')
+                    }}
                 />
                 <Label>Cover Letter</Label>
             </NativeTabs.Trigger>
 
             <NativeTabs.Trigger name="library" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
                 <Icon
-                    sf={{ default: 'doc', selected: 'doc.fill' }}
-                    androidSrc={<VectorIcon family={Ionicons} name="document" />}
+                    src={{
+                        default: require('../../assets/images/doc.svg'),
+                        selected: require('../../assets/images/doc-h.svg')
+                    }}
                 />
                 <Label>Your Doc</Label>
             </NativeTabs.Trigger>

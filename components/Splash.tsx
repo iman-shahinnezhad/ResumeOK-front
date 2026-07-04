@@ -89,15 +89,15 @@ export default function Splash({ onContinue }: SplashProps) {
       <View style={{ flex: 1, width: '100%', maxWidth: isPad ? 450 : '100%', alignSelf: 'center', justifyContent: 'space-between' }}>
         {/* Top Section: Customer Info Image */}
         <Animated.View style={[
-          styles.headerContainer, 
-          { 
+          styles.headerContainer,
+          {
             marginTop: insets.top + 30,
             opacity: fadeHeader,
             transform: [{ translateY: slideHeader }]
           }
         ]}>
-          <Image 
-            source={require('../assets/images/customer-info.png')}
+          <Image
+            source={require('../assets/images/logo.webp')}
             style={styles.customerInfoImage}
             resizeMode="contain"
           />
@@ -105,15 +105,15 @@ export default function Splash({ onContinue }: SplashProps) {
 
         {/* Center Section: #1 RESUME BUILDER (Staggered staircase) */}
         <View style={styles.centerSection}>
-          <Animated.View style={{ 
-            opacity: fadeTitle1, 
-            transform: [{ translateX: slideTitle1 }] 
+          <Animated.View style={{
+            opacity: fadeTitle1,
+            transform: [{ translateX: slideTitle1 }]
           }}>
             <Text style={styles.titleNumber}>#1</Text>
           </Animated.View>
 
-          <Animated.View style={{ 
-            opacity: fadeTitle2, 
+          <Animated.View style={{
+            opacity: fadeTitle2,
             transform: [{ translateX: slideTitle2 }],
             marginLeft: 60,
             marginTop: -5
@@ -121,8 +121,8 @@ export default function Splash({ onContinue }: SplashProps) {
             <Text style={styles.titleMain}>RESUME</Text>
           </Animated.View>
 
-          <Animated.View style={{ 
-            opacity: fadeTitle3, 
+          <Animated.View style={{
+            opacity: fadeTitle3,
             transform: [{ translateX: slideTitle3 }],
             marginLeft: 120,
             marginTop: -5
@@ -133,16 +133,16 @@ export default function Splash({ onContinue }: SplashProps) {
 
         {/* Lower Section: BASED ON JOB SKILL REQUIRED (Staggered staircase) */}
         <View style={styles.lowerSection}>
-          <Animated.View style={{ 
-            opacity: fadeLower1, 
+          <Animated.View style={{
+            opacity: fadeLower1,
             transform: [{ translateX: slideLower1 }],
             marginLeft: 70
           }}>
             <Text style={styles.lowerMain}>BASED ON</Text>
           </Animated.View>
 
-          <Animated.View style={{ 
-            opacity: fadeLower2, 
+          <Animated.View style={{
+            opacity: fadeLower2,
             transform: [{ translateX: slideLower2 }],
             marginLeft: 125,
             marginTop: -2
@@ -150,8 +150,8 @@ export default function Splash({ onContinue }: SplashProps) {
             <Text style={styles.lowerMain}>JOB SKILL</Text>
           </Animated.View>
 
-          <Animated.View style={{ 
-            opacity: fadeLower3, 
+          <Animated.View style={{
+            opacity: fadeLower3,
             transform: [{ translateX: slideLower3 }],
             marginLeft: 170,
             marginTop: -2
@@ -167,9 +167,9 @@ export default function Splash({ onContinue }: SplashProps) {
             transform: [{ scale: scaleButton }],
             width: '100%'
           }}>
-            <TouchableOpacity 
-              style={styles.continueButton} 
-              activeOpacity={0.9} 
+            <TouchableOpacity
+              style={styles.continueButton}
+              activeOpacity={0.9}
               onPress={onContinue}
             >
               <Text style={styles.continueButtonText}>CONTINUE</Text>
@@ -207,13 +207,13 @@ const styles = StyleSheet.create({
   },
   titleNumber: {
     color: '#ffffff',
-    fontSize: 52,
+    fontSize: 38,
     fontWeight: '900',
     letterSpacing: -1,
   },
   titleMain: {
     color: '#ffffff',
-    fontSize: 52,
+    fontSize: 32,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   },
   lowerMain: {
     color: '#ffffff',
-    fontSize: 52,
+    fontSize: 32,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
