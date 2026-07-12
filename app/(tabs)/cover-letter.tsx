@@ -18,6 +18,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
+
+const getFriendlyErrorMessage = (error: any) => {
+  const msg = error?.message || '';
+  if (msg.includes('Network request failed') || msg.includes('Failed to fetch') || msg.includes('network')) {
+    return 'Network request failed. Please check your internet connection and try again.';
+  }
+  return msg || 'An unexpected error occurred. Please try again.';
+};
 import { copyToClipboard } from '../../utils/clipboard';
 import { useAuth } from '../../context/AuthContext';
 import ReferralBottomSheet from '../../components/ReferralBottomSheet';
@@ -497,7 +505,7 @@ To help us parse your response, please enclose the sections in specific tags as 
           console.log("Failed to refund credits:", refundErr);
         }
       }
-      Alert.alert("Generation Failed", e?.message || "Failed to generate cover letter. Please check your connection.");
+      Alert.alert("Generation Failed", getFriendlyErrorMessage(e));
       setCurrentView('generator');
     } finally {
       setIsGenerating(false);
@@ -955,6 +963,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 20,
     lineHeight: 38,
+    textAlign: 'center',
   },
   customBanner: {
     backgroundColor: '#FFFFFF',

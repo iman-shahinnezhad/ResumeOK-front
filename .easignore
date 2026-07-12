@@ -1,0 +1,7 @@
+# Ignore web application and server folders in EAS builds to reduce archive size
+web/
+server/
+node_modules/
+.expo/
+dist/
+*.log

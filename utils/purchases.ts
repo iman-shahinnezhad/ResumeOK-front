@@ -47,16 +47,16 @@ const MOCK_PACKAGES = [
     product: {
       identifier: 'com.resume.starter',
       title: 'Starter',
-      description: '200 Credits / Week',
-      priceString: '$4.99/Wk',
+      description: '70 Match Resume + 30 Cover letter',
+      priceString: '$4.99',
     }
   },
   {
     product: {
       identifier: 'com.resume.pro',
       title: 'Pro',
-      description: '400 Credits / Week',
-      priceString: '$9.99/Wk',
+      description: '140 Match Resume + 60 Cover letter',
+      priceString: '$9.99',
     }
   }
 ];
@@ -83,10 +83,10 @@ export const getPackages = async (): Promise<any[]> => {
       let title = product.title;
 
       if (productId === 'com.resume.starter') {
-        desc = '200 Credits / Week';
+        desc = '70 Match Resume + 30 Cover letter';
         title = 'Starter';
       } else if (productId === 'com.resume.pro') {
-        desc = '400 Credits / Week';
+        desc = '140 Match Resume + 60 Cover letter';
         title = 'Pro';
       }
 

@@ -131,7 +131,7 @@ export default function ReferralBottomSheet({ visible, onClose }: Props) {
 
           <Text style={styles.title}>Share your invite code</Text>
           <Text style={styles.subtitle}>
-            Invite {stats.referralLevel === 0 ? '3' : '5 more'} friends to earn free credits
+            Invite {stats.referralLevel === 0 ? '3' : '5'} friends to earn free credits
           </Text>
 
           {fetchError ? (
@@ -141,7 +141,7 @@ export default function ReferralBottomSheet({ visible, onClose }: Props) {
           ) : (
             <>
               <Text style={styles.statsText}>
-                Total Friend Joined: {loading ? '...' : stats.totalJoined}
+                Total Friend Joined: {loading ? '...' : (stats.referralLevel === 0 ? `${stats.totalJoined} of 3` : `${stats.referralLevel >= 2 ? 5 : Math.max(0, stats.totalJoined - 3)} of 5`)}
               </Text>
 
               <View style={styles.codeRow}>
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   closeButton: {
     position: 'absolute',
     top: 0,
-    left: 0,
+    left: 10,
     width: 36,
     height: 36,
     borderRadius: 18,

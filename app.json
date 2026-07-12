@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "ResumeOK - Tailor Resume & CV",
+    "name": "ResumeOK",
     "slug": "resumeok",
-    "version": "1.5.2",
+    "version": "2.0.2",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "resumeok",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pixflow.resumeok",
-      "buildNumber": "4",
+      "buildNumber": "19",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "This app requires access to your photo library to select a profile photo to be embedded directly into your generated resume templates.",
@@ -44,6 +44,19 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "@howincodes/expo-dynamic-app-icon",
+        {
+          "icon1": {
+            "ios": "./assets/images/icon1.png",
+            "android": "./assets/images/icon1.png"
+          },
+          "icon2": {
+            "ios": "./assets/images/icon2.png",
+            "android": "./assets/images/icon2.png"
+          }
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",

@@ -23,9 +23,9 @@ export default function TabLayout() {
     const tabBg = '#F8F9FA';
     const tint = '#007AFF';
     return (
-        <NativeTabs 
-            backgroundColor={tabBg} 
-            tintColor={tint} 
+        <NativeTabs
+            backgroundColor={tabBg}
+            tintColor={tint}
             disableTransparentOnScrollEdge={true}
             labelStyle={{
                 default: {

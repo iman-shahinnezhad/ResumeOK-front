@@ -2,7 +2,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
@@ -55,12 +54,14 @@ interface ResumeFormData {
   dob?: string;
   nationality?: string;
   profileImage?: string;
+  website?: string;
 
   // Step 2: Work Experience
   workExperiences: WorkExperience[];
 
   // Step 3: Skills
   skills: string[];
+  languages: string[];
 
   // Step 4: Education
   educations: Education[];
@@ -87,8 +88,10 @@ export default function BuildResumeScreen() {
     dob: '',
     nationality: '',
     profileImage: '',
+    website: '',
     workExperiences: [],
     skills: [],
+    languages: ['English (Primary)', 'French (A2)'],
     educations: [],
     summary: '',
   });
@@ -96,6 +99,8 @@ export default function BuildResumeScreen() {
   // UI state for Loading and PDF Preview
   const [isFinalizing, setIsFinalizing] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
+  const [showTemplateSelection, setShowTemplateSelection] = useState<boolean>(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('modern_slate');
 
   // UI state for Step 1
   const [showOptional, setShowOptional] = useState<boolean>(false);
@@ -291,9 +296,11 @@ export default function BuildResumeScreen() {
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState<boolean>(false);
   const [expToDeleteId, setExpToDeleteId] = useState<string | null>(null);
 
-  // UI state for Step 3 (Skills)
+  // UI state for Step 3 (Skills & Languages)
   const [showAddSkillInput, setShowAddSkillInput] = useState<boolean>(false);
   const [newSkillText, setNewSkillText] = useState<string>('');
+  const [showAddLanguageInput, setShowAddLanguageInput] = useState<boolean>(false);
+  const [newLanguageText, setNewLanguageText] = useState<string>('');
 
   // UI state for Step 4 (Education Modal)
   const [isEduModalVisible, setIsEduModalVisible] = useState<boolean>(false);
@@ -314,8 +321,7 @@ export default function BuildResumeScreen() {
   const [isEduDeleteConfirmVisible, setIsEduDeleteConfirmVisible] = useState<boolean>(false);
   const [eduToDeleteId, setEduToDeleteId] = useState<string | null>(null);
 
-  // UI state for Step 5 (Summary)
-  const [isGeneratingSummary, setIsGeneratingSummary] = useState<boolean>(false);
+
 
   // AI suggestions list (Step 2)
   const aiHelpSuggestions = [
@@ -435,96 +441,46 @@ export default function BuildResumeScreen() {
   const handleFinalize = async () => {
     try {
       setIsFinalizing(true);
-      
-      const experiencesText = formData.workExperiences
-        .map(exp => `ID: ${exp.id}\nTitle: ${exp.jobTitle}\nCompany: ${exp.companyName}\nDescription: ${exp.description}`)
-        .join('\n\n');
-
-      const educationsText = formData.educations
-        .map(edu => `ID: ${edu.id}\nDegree: ${edu.degree}\nSchool: ${edu.schoolName}\nDescription: ${edu.description}`)
-        .join('\n\n');
-
-      const promptText = `You are an expert resume writer. Polish and refine the descriptions of work experiences and education records for the following candidate to make them sound highly professional, action-oriented, and grammatically perfect.
-
-Candidate Name: ${formData.firstName} ${formData.lastName}
-Target Role: ${formData.jobTitle}
-
-RAW WORK EXPERIENCES:
-${experiencesText}
-
-RAW EDUCATION:
-${educationsText}
-
-Respond ONLY with a valid JSON object matching this exact structure:
-{
-  "workExperiences": [
-    { "id": "experience_id", "description": "polished bulleted descriptions here, using • for each bullet point" }
-  ],
-  "educations": [
-    { "id": "education_id", "description": "polished bulleted descriptions or paragraph here, using • if bulleted" }
-  ]
-}
-
-Ensure the output is valid JSON. Do not include markdown code blocks, do not include introductory text, and do not wrap the JSON in \`\`\`json.`;
-
-      const response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': 'AQ.Ab8RN6LjiOKxvxO8J1J0MWsp3Wrbo5emB0MOb6JFXsWKYIlqhw'
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [{ text: promptText }]
-              }
-            ]
-          })
-        }
-      );
-
-      if (response.ok) {
-        const responseJson = await response.json();
-        const rawText = responseJson.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        const cleanedText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-        
-        try {
-          const parsed = JSON.parse(cleanedText);
-          
-          setFormData(prev => {
-            const updatedWork = prev.workExperiences.map(work => {
-              const match = parsed.workExperiences?.find((w: any) => w.id === work.id);
-              return match ? { ...work, description: match.description } : work;
-            });
-            const updatedEdu = prev.educations.map(edu => {
-              const match = parsed.educations?.find((e: any) => e.id === edu.id);
-              return match ? { ...edu, description: match.description } : edu;
-            });
-            return {
-              ...prev,
-              workExperiences: updatedWork,
-              educations: updatedEdu
-            };
-          });
-        } catch (e) {
-          console.log('Failed to parse Gemini polish response:', e);
-        }
-      }
+      // Simulated compile delay
+      await new Promise(resolve => setTimeout(resolve, 800));
     } catch (error) {
       console.log('Error during finalization:', error);
     } finally {
-      setTimeout(() => {
-        setIsFinalizing(false);
-        setShowPreview(true);
-      }, 1500);
+      setIsFinalizing(false);
+      setShowTemplateSelection(true);
     }
   };
 
   const handleDownloadPdf = async () => {
     try {
-      const htmlContent = `
+      let base64Image = '';
+      if (formData.profileImage) {
+        try {
+          base64Image = await FileSystem.readAsStringAsync(formData.profileImage, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+        } catch (err) {
+          console.log("Error reading profile image for base64:", err);
+        }
+      }
+
+      let mimeType = 'image/jpeg';
+      if (formData.profileImage) {
+        if (formData.profileImage.toLowerCase().endsWith('.png')) {
+          mimeType = 'image/png';
+        } else if (formData.profileImage.toLowerCase().endsWith('.gif')) {
+          mimeType = 'image/gif';
+        }
+      }
+
+      const imgHtml = base64Image 
+        ? `data:${mimeType};base64,${base64Image}`
+        : '';
+
+      let htmlContent = '';
+
+      if (selectedTemplate === 'modern_slate') {
+        htmlContent = `
 <html>
 <head>
   <style>
@@ -532,11 +488,11 @@ Ensure the output is valid JSON. Do not include markdown code blocks, do not inc
       font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       color: #000000;
       margin: 40px;
-      line-height: 1.5;
+      line-height: 1.4;
     }
-    .header {
-      border-bottom: 2px solid #000000;
-      padding-bottom: 15px;
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
       margin-bottom: 25px;
     }
     .name {
@@ -544,149 +500,189 @@ Ensure the output is valid JSON. Do not include markdown code blocks, do not inc
       font-weight: bold;
       text-transform: uppercase;
       margin: 0;
-      letter-spacing: 1px;
+      letter-spacing: 0.5px;
+      color: #000000;
     }
     .title {
-      font-size: 16px;
+      font-size: 14px;
       color: #4b5563;
-      margin: 5px 0 0 0;
+      margin: 4px 0 0 0;
       font-weight: 500;
     }
-    .container {
-      display: flex;
+    .layout-table {
+      width: 100%;
+      border-collapse: collapse;
     }
     .left-col {
       width: 33%;
       padding-right: 20px;
-      border-right: 1px solid #e5e7eb;
+      border-right: 1.5px solid #cbd5e1;
+      vertical-align: top;
     }
     .right-col {
       width: 67%;
-      padding-left: 25px;
+      padding-left: 20px;
+      vertical-align: top;
     }
     .section-title {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: bold;
       text-transform: uppercase;
-      margin-top: 25px;
-      margin-bottom: 12px;
-      border-bottom: 1px solid #000000;
-      padding-bottom: 4px;
-      letter-spacing: 1px;
-    }
-    .section-title:first-child {
       margin-top: 0;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+      color: #000000;
     }
-    .detail-label {
+    .contacts-sec {
+      margin-bottom: 24px;
+    }
+    .contact-item {
       font-size: 11px;
-      font-weight: bold;
-      color: #4b5563;
-      margin-top: 8px;
-      text-transform: uppercase;
+      color: #000000;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      word-break: break-all;
     }
-    .detail-val {
-      font-size: 13px;
-      margin-bottom: 4px;
+    .contact-icon {
+      margin-right: 8px;
+      flex-shrink: 0;
+      color: #000000;
+    }
+    .profile-img {
+      width: 75px;
+      height: 75px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 15px;
+      display: block;
+    }
+    .skill-item {
+      font-size: 11px;
+      color: #000000;
+      margin-bottom: 6px;
+    }
+    .right-section-title {
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-top: 0;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+      color: #000000;
     }
     .profile-text {
-      font-size: 13px;
-      margin-bottom: 20px;
+      font-size: 11.5px;
       color: #374151;
+      line-height: 1.5;
+      margin-bottom: 15px;
+    }
+    .section-divider {
+      border: none;
+      border-top: 1px solid #cbd5e1;
+      margin-top: 15px;
+      margin-bottom: 15px;
     }
     .item-block {
-      margin-bottom: 18px;
+      margin-bottom: 14px;
     }
     .item-title {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: bold;
       margin: 0;
-    }
-    .item-company {
-      font-size: 13px;
-      font-weight: 600;
-      color: #4b5563;
-      margin: 2px 0;
+      color: #000000;
     }
     .item-sub {
-      font-size: 12px;
-      color: #6b7280;
-      margin: 2px 0 6px 0;
+      font-size: 11px;
+      color: #737373;
+      margin: 3px 0;
     }
     .item-desc {
-      font-size: 12px;
-      margin: 0;
-      padding-left: 18px;
+      font-size: 11px;
+      margin: 4px 0 0 0;
+      padding-left: 15px;
       color: #374151;
+      line-height: 1.4;
     }
     .item-desc li {
-      margin-bottom: 4px;
-    }
-    .skill-val {
-      font-size: 13px;
-      margin-bottom: 6px;
-      color: #374151;
+      margin-bottom: 3px;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1 class="name">${formData.firstName} ${formData.lastName}</h1>
-    <p class="title">${formData.jobTitle}</p>
-  </div>
-  <div class="container">
-    <div class="left-col">
-      <div class="section-title">Details</div>
-      
-      <div class="detail-label">Phone</div>
-      <div class="detail-val">${formData.phone}</div>
-      
-      <div class="detail-label">Email</div>
-      <div class="detail-val" style="word-break: break-all;">${formData.email}</div>
-      
-      <div class="detail-label">City</div>
-      <div class="detail-val">${formData.city}</div>
-      
-      ${formData.dob ? `
-        <div class="detail-label">DOB</div>
-        <div class="detail-val">${formData.dob}</div>
-      ` : ''}
-      
-      ${formData.nationality ? `
-        <div class="detail-label">Nationality</div>
-        <div class="detail-val">${formData.nationality}</div>
-      ` : ''}
-      
-      ${formData.skills.length > 0 ? `
-        <div class="section-title">Skills</div>
-        ${formData.skills.map(s => `<div class="skill-val">• ${s}</div>`).join('')}
-      ` : ''}
-    </div>
-    
-    <div class="right-col">
-      <div class="section-title">Profile</div>
-      <div class="profile-text">${formData.summary}</div>
-      
-      ${formData.workExperiences.length > 0 ? `
-        <div class="section-title">Work Experience</div>
+  <table class="header-table">
+    <tr>
+      <td style="vertical-align: top;">
+        <h1 class="name">${formData.firstName} ${formData.lastName}</h1>
+        <p class="title">${formData.jobTitle}</p>
+      </td>
+    </tr>
+  </table>
+  <table class="layout-table">
+    <tr>
+      <td class="left-col">
+        ${imgHtml ? `<img src="${imgHtml}" class="profile-img" />` : ''}
+        
+        <div class="contacts-sec">
+          <div class="section-title">CONTACTS</div>
+          <div class="contact-item">
+            <svg class="contact-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            <span>${formData.phone}</span>
+          </div>
+          <div class="contact-item">
+            <svg class="contact-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <span>${formData.email}</span>
+          </div>
+          <div class="contact-item">
+            <svg class="contact-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span>${formData.city}</span>
+          </div>
+          ${formData.website ? `
+          <div class="contact-item">
+            <svg class="contact-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            <span>${formData.website}</span>
+          </div>
+          ` : ''}
+        </div>
+        
+        ${formData.skills.length > 0 ? `
+        <div class="contacts-sec" style="margin-top: 24px;">
+          <div class="section-title">SKILLS</div>
+          ${formData.skills.map(s => `<div class="skill-item">• ${s}</div>`).join('')}
+        </div>
+        ` : ''}
+        
+        ${formData.languages && formData.languages.length > 0 ? `
+        <div class="contacts-sec" style="margin-top: 24px;">
+          <div class="section-title">LANGUAGES</div>
+          ${formData.languages.map(l => `<div class="skill-item">• ${l}</div>`).join('')}
+        </div>
+        ` : ''}
+      </td>
+      <td class="right-col">
+        <div class="right-section-title">SUMMERY</div>
+        <div class="profile-text">${formData.summary}</div>
+        <hr class="section-divider" />
+        
+        ${formData.workExperiences.length > 0 ? `
+        <div class="right-section-title" style="margin-top: 15px;">WORK EXPERIENCE</div>
         ${formData.workExperiences.map(exp => `
           <div class="item-block">
             <h3 class="item-title">${exp.jobTitle}</h3>
-            <div class="item-company">${exp.companyName}</div>
-            <p class="item-sub">${exp.startDate} - ${exp.endDate}  |  ${exp.city}</p>
+            <p class="item-sub">${exp.companyName}, ${exp.city} | ${exp.startDate} - ${exp.endDate}</p>
             <ul class="item-desc">
               ${exp.description.split('\n').filter(l => l.trim().length > 0).map(l => `<li>${l.replace(/^[•\s*-]+/, '').trim()}</li>`).join('')}
             </ul>
           </div>
         `).join('')}
-      ` : ''}
-      
-      ${formData.educations.length > 0 ? `
-        <div class="section-title">Education</div>
+        ` : ''}
+        
+        ${formData.educations.length > 0 ? `
+        <div class="right-section-title" style="margin-top: 20px;">EDUCATION</div>
         ${formData.educations.map(edu => `
           <div class="item-block">
             <h3 class="item-title">${edu.degree} in ${edu.fieldOfStudy}</h3>
-            <div class="item-company">${edu.schoolName}</div>
-            <p class="item-sub">${edu.startDate} - ${edu.endDate}  |  ${edu.city}${edu.gpa ? `  •  GPA: ${edu.gpa}` : ''}</p>
+            <p class="item-sub">${edu.schoolName}, ${edu.city} | ${edu.startDate} - ${edu.endDate}</p>
             ${edu.description ? `
               <ul class="item-desc">
                 ${edu.description.split('\n').filter(l => l.trim().length > 0).map(l => `<li>${l.replace(/^[•\s*-]+/, '').trim()}</li>`).join('')}
@@ -694,12 +690,640 @@ Ensure the output is valid JSON. Do not include markdown code blocks, do not inc
             ` : ''}
           </div>
         `).join('')}
-      ` : ''}
-    </div>
-  </div>
+        ` : ''}
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
 `;
+      } else if (selectedTemplate === 'executive_classic') {
+        htmlContent = `
+<html>
+<head>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #000000;
+      margin: 45px;
+      line-height: 1.4;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .profile-img {
+      width: 75px;
+      height: 75px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      margin: 0 auto 12px auto;
+    }
+    .name {
+      font-size: 26px;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin: 0 0 4px 0;
+      letter-spacing: 0.5px;
+    }
+    .title {
+      font-size: 14px;
+      color: #374151;
+      margin: 0;
+      font-weight: 500;
+    }
+    .contact-bar {
+      text-align: center;
+      font-size: 10.5px;
+      color: #4b5563;
+      margin-top: 8px;
+      border-bottom: 1.5px solid #000000;
+      padding-bottom: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .contact-item {
+      display: flex;
+      align-items: center;
+    }
+    .contact-icon {
+      margin-right: 4px;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #000000;
+      padding-bottom: 3px;
+      letter-spacing: 0.5px;
+    }
+    .profile-text {
+      font-size: 11.5px;
+      margin-bottom: 15px;
+      color: #374151;
+      line-height: 1.5;
+    }
+    .item-block {
+      margin-bottom: 12px;
+    }
+    .item-company {
+      font-size: 11px;
+      font-weight: 600;
+      color: #4b5563;
+      margin: 2px 0;
+    }
+    .item-desc {
+      font-size: 11px;
+      margin: 4px 0 0 0;
+      padding-left: 15px;
+      color: #374151;
+      line-height: 1.4;
+    }
+    .item-desc li {
+      margin-bottom: 3px;
+    }
+    .skills-list {
+      font-size: 11px;
+      line-height: 1.5;
+      color: #374151;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    ${imgHtml ? `<img src="${imgHtml}" class="profile-img" />` : ''}
+    <h1 class="name">${formData.firstName} ${formData.lastName}</h1>
+    <p class="title">${formData.jobTitle}</p>
+    <div class="contact-bar">
+      <div class="contact-item">
+        <svg class="contact-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        <span>${formData.phone}</span>
+      </div>
+      <div class="contact-item">
+        <svg class="contact-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+        <span>${formData.email}</span>
+      </div>
+      <div class="contact-item">
+        <svg class="contact-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        <span>${formData.city}</span>
+      </div>
+      ${formData.website ? `
+      <div class="contact-item">
+        <svg class="contact-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        <span>${formData.website}</span>
+      </div>
+      ` : ''}
+    </div>
+  </div>
+
+  <div class="section-title">SUMMERY</div>
+  <div class="profile-text">${formData.summary}</div>
+
+  ${formData.workExperiences.length > 0 ? `
+    <div class="section-title">WORK EXPERIENCE</div>
+    ${formData.workExperiences.map(exp => `
+      <div class="item-block">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 2px;">
+          <tr>
+            <td style="font-weight: bold; font-size: 12px; text-align: left; color: #000000;">${exp.jobTitle}</td>
+            <td style="font-size: 11px; color: #737373; text-align: right;">${exp.startDate} - ${exp.endDate}</td>
+          </tr>
+        </table>
+        <div class="item-company">${exp.companyName}, ${exp.city}</div>
+        <ul class="item-desc">
+          ${exp.description.split('\n').filter(l => l.trim().length > 0).map(l => `<li>${l.replace(/^[•\s*-]+/, '').trim()}</li>`).join('')}
+        </ul>
+      </div>
+    `).join('')}
+  ` : ''}
+
+  ${formData.educations.length > 0 ? `
+    <div class="section-title">EDUCATION</div>
+    ${formData.educations.map(edu => `
+      <div class="item-block">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 2px;">
+          <tr>
+            <td style="font-weight: bold; font-size: 12px; text-align: left; color: #000000;">${edu.degree} in ${edu.fieldOfStudy}</td>
+            <td style="font-size: 11px; color: #737373; text-align: right;">${edu.startDate} - ${edu.endDate}</td>
+          </tr>
+        </table>
+        <div class="item-company">${edu.schoolName}, ${edu.city}</div>
+        ${edu.description ? `
+          <ul class="item-desc">
+            ${edu.description.split('\n').filter(l => l.trim().length > 0).map(l => `<li>${l.replace(/^[•\s*-]+/, '').trim()}</li>`).join('')}
+          </ul>
+        ` : ''}
+      </div>
+    `).join('')}
+  ` : ''}
+
+  ${formData.skills.length > 0 ? `
+    <div class="section-title">SKILLS</div>
+    <div class="skills-list">
+      • ${formData.skills.join(' &nbsp;&nbsp;&bull;&nbsp;&nbsp; ')}
+    </div>
+  ` : ''}
+
+  ${formData.languages && formData.languages.length > 0 ? `
+    <div class="section-title">LANGUAGES</div>
+    <div class="skills-list">
+      ${formData.languages.join(' &nbsp;&nbsp;&nbsp;&nbsp; ')}
+    </div>
+  ` : ''}
+</body>
+</html>
+`;
+      } else if (selectedTemplate === 'creative_column') {
+        htmlContent = `
+<html>
+<head>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #374151;
+      margin: 40px;
+      line-height: 1.4;
+    }
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+    .name-cell {
+      vertical-align: bottom;
+    }
+    .contacts-cell {
+      text-align: right;
+      vertical-align: bottom;
+    }
+    .name {
+      font-size: 26px;
+      font-weight: bold;
+      color: #000000;
+      margin: 0;
+    }
+    .title {
+      font-size: 13px;
+      color: #4b5563;
+      margin: 4px 0 0 0;
+      font-weight: 500;
+    }
+    .contact-item {
+      font-size: 10.5px;
+      color: #4b5563;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .contact-icon {
+      margin-right: 6px;
+    }
+    .header-line {
+      border: none;
+      border-top: 1.5px solid #cbd5e1;
+      margin-bottom: 20px;
+    }
+    .layout-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .left-col {
+      width: 65%;
+      padding-right: 20px;
+      vertical-align: top;
+    }
+    .right-col {
+      width: 35%;
+      padding-left: 15px;
+      vertical-align: top;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: #000000;
+      border-bottom: 1.5px solid #cbd5e1;
+      padding-bottom: 3px;
+      margin-top: 0;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+    .item-block {
+      margin-bottom: 15px;
+    }
+    .item-title {
+      font-size: 12px;
+      font-weight: bold;
+      color: #000000;
+      margin: 0;
+    }
+    .item-company {
+      font-size: 11px;
+      font-weight: 600;
+      color: #4b5563;
+      margin: 2px 0;
+    }
+    .item-desc {
+      font-size: 11px;
+      margin: 4px 0 0 0;
+      padding-left: 15px;
+      color: #374151;
+      line-height: 1.4;
+    }
+    .item-desc li {
+      margin-bottom: 3px;
+    }
+    .profile-text {
+      font-size: 11px;
+      line-height: 1.5;
+      color: #374151;
+      margin-bottom: 15px;
+    }
+    .list-item {
+      font-size: 11px;
+      color: #374151;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <table class="header-table">
+    <tr>
+      ${imgHtml ? `
+      <td style="width: 70px; vertical-align: bottom; padding-right: 15px;">
+        <img src="${imgHtml}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; display: block;" />
+      </td>
+      ` : ''}
+      <td class="name-cell">
+        <h1 class="name">${formData.firstName} ${formData.lastName}</h1>
+        <p class="title">${formData.jobTitle}</p>
+      </td>
+      <td class="contacts-cell">
+        <div class="contact-item">
+          <span>${formData.phone}</span>
+          <svg class="contact-icon" style="margin-left: 6px; margin-right: 0;" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        </div>
+        <div class="contact-item">
+          <span>${formData.email}</span>
+          <svg class="contact-icon" style="margin-left: 6px; margin-right: 0;" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+        </div>
+        <div class="contact-item">
+          <span>${formData.city}</span>
+          <svg class="contact-icon" style="margin-left: 6px; margin-right: 0;" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        </div>
+        ${formData.website ? `
+        <div class="contact-item">
+          <span>${formData.website}</span>
+          <svg class="contact-icon" style="margin-left: 6px; margin-right: 0;" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        </div>
+        ` : ''}
+      </td>
+    </tr>
+  </table>
+  
+  <hr class="header-line" />
+  
+  <table class="layout-table">
+    <tr>
+      <td class="left-col">
+        ${formData.workExperiences.length > 0 ? `
+        <div class="section-title">WORK EXPERIENCE</div>
+        ${formData.workExperiences.map(exp => `
+          <div class="item-block">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 2px;">
+              <tr>
+                <td style="font-weight: bold; font-size: 12px; text-align: left; color: #000000;">${exp.jobTitle}</td>
+                <td style="font-size: 10.5px; color: #737373; text-align: right;">${exp.startDate} - ${exp.endDate}</td>
+              </tr>
+            </table>
+            <div class="item-company">${exp.companyName}, ${exp.city}</div>
+            <ul class="item-desc">
+              ${exp.description.split('\n').filter(l => l.trim().length > 0).map(l => `<li>${l.replace(/^[•\s*-]+/, '').trim()}</li>`).join('')}
+            </ul>
+          </div>
+        `).join('')}
+        ` : ''}
+        
+        ${formData.educations.length > 0 ? `
+        <div class="section-title" style="margin-top: 15px;">EDUCATION</div>
+        ${formData.educations.map(edu => `
+          <div class="item-block">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 2px;">
+              <tr>
+                <td style="font-weight: bold; font-size: 12px; text-align: left; color: #000000;">${edu.degree} in ${edu.fieldOfStudy}</td>
+                <td style="font-size: 10.5px; color: #737373; text-align: right;">${edu.startDate} - ${edu.endDate}</td>
+              </tr>
+            </table>
+            <div class="item-company">${edu.schoolName}, ${edu.city}</div>
+            ${edu.description ? `
+              <ul class="item-desc">
+                ${edu.description.split('\n').filter(l => l.trim().length > 0).map(l => `<li>${l.replace(/^[•\s*-]+/, '').trim()}</li>`).join('')}
+              </ul>
+            ` : ''}
+          </div>
+        `).join('')}
+        ` : ''}
+      </td>
+      <td class="right-col">
+        ${formData.summary ? `
+        <div class="section-title">SUMMERY</div>
+        <div class="profile-text">${formData.summary}</div>
+        ` : ''}
+        
+        ${formData.skills.length > 0 ? `
+        <div class="section-title" style="margin-top: 15px;">SKILLS</div>
+        ${formData.skills.map(s => `<div class="list-item">• ${s}</div>`).join('')}
+        ` : ''}
+        
+        ${formData.languages && formData.languages.length > 0 ? `
+        <div class="section-title" style="margin-top: 20px;">LANGUAGES</div>
+        ${formData.languages.map(l => `<div class="list-item">• ${l}</div>`).join('')}
+        ` : ''}
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+      } else if (selectedTemplate === 'elegant_warm') {
+        htmlContent = `
+<html>
+<head>
+  <style>
+    @page {
+      margin: 0;
+    }
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
+      height: 100%;
+    }
+    .layout-table {
+      width: 100%;
+      border-collapse: collapse;
+      height: 100%;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 32%;
+      background-color: #eae6f3;
+      padding: 40px 20px;
+      vertical-align: top;
+      color: #1e1b4b;
+    }
+    .main-content {
+      width: 68%;
+      padding: 40px 30px;
+      vertical-align: top;
+      background-color: #ffffff;
+    }
+    .profile-img {
+      width: 75px;
+      height: 75px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 25px;
+      display: block;
+    }
+    .sidebar-section {
+      margin-top: 25px;
+    }
+    .sidebar-section:first-child {
+      margin-top: 0;
+    }
+    .sidebar-title {
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: #000000;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 4px;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+    .contact-item {
+      font-size: 11px;
+      color: #000000;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      word-break: break-all;
+    }
+    .contact-icon {
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    .sidebar-list-item {
+      font-size: 11px;
+      color: #000000;
+      margin-bottom: 6px;
+    }
+    .name {
+      font-size: 26px;
+      font-weight: bold;
+      color: #000000;
+      margin: 0;
+    }
+    .title {
+      font-size: 13px;
+      color: #4f46e5;
+      text-transform: uppercase;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-top: 4px;
+      margin-bottom: 20px;
+    }
+    .summary-text {
+      font-size: 11.5px;
+      line-height: 1.5;
+      margin-bottom: 25px;
+      color: #374151;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: #000000;
+      margin-top: 20px;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+    .item-block {
+      margin-bottom: 14px;
+    }
+    .item-title-row {
+      display: flex;
+      justify-content: space-between;
+    }
+    .item-title {
+      font-size: 12px;
+      font-weight: bold;
+      color: #000000;
+      margin: 0;
+    }
+    .item-date {
+      font-size: 11px;
+      color: #737373;
+    }
+    .item-company {
+      font-size: 11px;
+      font-weight: 600;
+      color: #4b5563;
+      margin: 3px 0;
+    }
+    .item-desc {
+      font-size: 11px;
+      margin: 4px 0 0 0;
+      padding-left: 15px;
+      color: #374151;
+      line-height: 1.4;
+    }
+    .item-desc li {
+      margin-bottom: 3px;
+    }
+  </style>
+</head>
+<body>
+  <table class="layout-table">
+    <tr>
+      <td class="sidebar">
+        ${imgHtml ? `<img src="${imgHtml}" class="profile-img" />` : ''}
+        
+        <div class="sidebar-section">
+          <div class="sidebar-title">Contact</div>
+          <div class="contact-item">
+            <svg class="contact-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            <span>${formData.phone}</span>
+          </div>
+          <div class="contact-item">
+            <svg class="contact-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <span>${formData.email}</span>
+          </div>
+          <div class="contact-item">
+            <svg class="contact-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span>${formData.city}</span>
+          </div>
+          ${formData.website ? `
+          <div class="contact-item">
+            <svg class="contact-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            <span>${formData.website}</span>
+          </div>
+          ` : ''}
+        </div>
+        
+        ${formData.skills.length > 0 ? `
+        <div class="sidebar-section">
+          <div class="sidebar-title">Skills</div>
+          ${formData.skills.map(s => `<div class="sidebar-list-item">• ${s}</div>`).join('')}
+        </div>
+        ` : ''}
+        
+        ${formData.languages && formData.languages.length > 0 ? `
+        <div class="sidebar-section">
+          <div class="sidebar-title">Languages</div>
+          ${formData.languages.map(l => `<div class="sidebar-list-item">• ${l}</div>`).join('')}
+        </div>
+        ` : ''}
+      </td>
+      <td class="main-content">
+        <h1 class="name">${formData.firstName} ${formData.lastName}</h1>
+        <p class="title">${formData.jobTitle}</p>
+        
+        <div class="summary-text">${formData.summary}</div>
+        
+        ${formData.workExperiences.length > 0 ? `
+        <div class="section-title">WORK EXPERIENCE</div>
+        ${formData.workExperiences.map(exp => `
+          <div class="item-block">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 2px;">
+              <tr>
+                <td style="font-weight: bold; font-size: 12px; text-align: left; color: #000000;">${exp.jobTitle}</td>
+                <td style="font-size: 11px; color: #737373; text-align: right;">${exp.startDate} - ${exp.endDate}</td>
+              </tr>
+            </table>
+            <div class="item-company">${exp.companyName}, ${exp.city}</div>
+            <ul class="item-desc">
+              ${exp.description.split('\n').filter(l => l.trim().length > 0).map(l => `<li>${l.replace(/^[•\s*-]+/, '').trim()}</li>`).join('')}
+            </ul>
+          </div>
+        `).join('')}
+        ` : ''}
+        
+        ${formData.educations.length > 0 ? `
+        <div class="section-title">EDUCATION</div>
+        ${formData.educations.map(edu => `
+          <div class="item-block">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 2px;">
+              <tr>
+                <td style="font-weight: bold; font-size: 12px; text-align: left; color: #000000;">${edu.degree} in ${edu.fieldOfStudy}</td>
+                <td style="font-size: 11px; color: #737373; text-align: right;">${edu.startDate} - ${edu.endDate}</td>
+              </tr>
+            </table>
+            <div class="item-company">${edu.schoolName}, ${edu.city}</div>
+            ${edu.description ? `
+              <ul class="item-desc">
+                ${edu.description.split('\n').filter(l => l.trim().length > 0).map(l => `<li>${l.replace(/^[•\s*-]+/, '').trim()}</li>`).join('')}
+              </ul>
+            ` : ''}
+          </div>
+        `).join('')}
+        ` : ''}
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+      }
 
       const { uri } = await Print.printToFileAsync({ html: htmlContent });
       
@@ -721,9 +1345,36 @@ Ensure the output is valid JSON. Do not include markdown code blocks, do not inc
           minute: '2-digit'
         });
 
-        const first = formData.firstName ? formData.firstName.trim() : "Resume";
-        const last = formData.lastName ? formData.lastName.trim() : "";
-        const resumeName = `${first}${last ? "_" + last : ""}_built.pdf`.replace(/\s+/g, '_');
+        const cleanStr = (str: string) => {
+          return str ? str.trim().replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_') : '';
+        };
+        const first = cleanStr(formData.firstName);
+        const last = cleanStr(formData.lastName);
+        const job = cleanStr(formData.jobTitle);
+        
+        let extraInfo = '';
+        if (job) {
+          extraInfo = job;
+        } else if (formData.skills && formData.skills.length > 0) {
+          extraInfo = cleanStr(formData.skills[0]);
+        } else if (formData.workExperiences && formData.workExperiences.length > 0 && formData.workExperiences[0].companyName) {
+          extraInfo = cleanStr(formData.workExperiences[0].companyName);
+        }
+
+        let baseParts = [];
+        if (first) baseParts.push(first);
+        if (last) baseParts.push(last);
+        if (extraInfo) baseParts.push(extraInfo);
+
+        let baseName = baseParts.join('_').replace(/_+/g, '_');
+        if (baseName.endsWith('_')) baseName = baseName.slice(0, -1);
+        if (baseName.startsWith('_')) baseName = baseName.slice(1);
+        
+        if (!baseName) {
+          baseName = 'Resume';
+        }
+        const resumeName = `${baseName}_Resume.pdf`;
+
         const resumesDir = `${FileSystem.documentDirectory}resumes/`;
         const dirInfo = await FileSystem.getInfoAsync(resumesDir);
         if (!dirInfo.exists) {
@@ -741,16 +1392,32 @@ Ensure the output is valid JSON. Do not include markdown code blocks, do not inc
           date: dateStr,
           uri: localPath,
           size: 0,
-          mimeType: 'application/pdf'
+          mimeType: 'application/pdf',
+          isBuilt: true
         };
 
         const newList = [newResume, ...currentList];
         await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(newList));
+
+        // Copy printed file to cache directory with clean name for sharing sheet beauty
+        const sharePath = `${FileSystem.cacheDirectory}${resumeName}`;
+        try {
+          const info = await FileSystem.getInfoAsync(sharePath);
+          if (info.exists) {
+            await FileSystem.deleteAsync(sharePath, { idempotent: true });
+          }
+        } catch (e) {
+          console.log("Error cleaning up cached share file:", e);
+        }
+        await FileSystem.copyAsync({
+          from: uri,
+          to: sharePath
+        });
+        await Sharing.shareAsync(sharePath, { UTI: '.pdf', mimeType: 'application/pdf' });
       } catch (saveErr) {
         console.log("Failed to save built resume to resumes list:", saveErr);
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
       }
-
-      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
     } catch (err) {
       console.log('Error generating or sharing PDF:', err);
       Alert.alert('Download Error', 'Could not generate or download PDF.');
@@ -926,6 +1593,42 @@ Ensure the output is valid JSON. Do not include markdown code blocks, do not inc
     setShowAddSkillInput(false);
   };
 
+  // Toggle language selection (Step 3)
+  const toggleLanguageSelection = (langName: string) => {
+    setFormData(prev => {
+      const isSelected = prev.languages.includes(langName);
+      if (isSelected) {
+        return {
+          ...prev,
+          languages: prev.languages.filter(l => l !== langName),
+        };
+      } else {
+        return {
+          ...prev,
+          languages: [...prev.languages, langName],
+        };
+      }
+    });
+  };
+
+  // Add custom language logic (Step 3)
+  const handleAddCustomLanguage = () => {
+    const trimmed = newLanguageText.trim();
+    if (!trimmed) return;
+
+    setFormData(prev => {
+      if (prev.languages.includes(trimmed)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        languages: [...prev.languages, trimmed],
+      };
+    });
+    setNewLanguageText('');
+    setShowAddLanguageInput(false);
+  };
+
   // Step 4 Modal validation
   const isEduInputValid = () => {
     return (
@@ -1052,70 +1755,7 @@ Ensure the output is valid JSON. Do not include markdown code blocks, do not inc
     setFormData(prev => ({ ...prev, summary: text }));
   };
 
-  // Generate professional summary using Gemini API (Step 5)
-  const generateAiSummary = async () => {
-    try {
-      setIsGeneratingSummary(true);
 
-      const experiencesText = formData.workExperiences
-        .map(exp => `- ${exp.jobTitle} at ${exp.companyName} (${exp.startDate} - ${exp.endDate}): ${exp.description}`)
-        .join('\n');
-
-      const educationsText = formData.educations.length > 0
-        ? `Education:\n` + formData.educations
-            .map(edu => `- ${edu.degree} in ${edu.fieldOfStudy} from ${edu.schoolName} (${edu.startDate} - ${edu.endDate})${edu.gpa ? `, GPA: ${edu.gpa}` : ''}`)
-            .join('\n')
-        : '';
-
-      const skillsText = formData.skills.join(', ');
-
-      const promptText = `Generate a compelling, professional resume summary (around 3 sentences) for a candidate with the following details:
-Name: ${formData.firstName} ${formData.lastName}
-Target Role/Title: ${formData.jobTitle}
-Work Experiences:
-${experiencesText}
-${educationsText ? educationsText + '\n' : ''}Skills:
-${skillsText}
-
-Return ONLY the summary text, written in professional third-person tone with active verbs. Do NOT include any introductory or concluding text, and do NOT use markdown formatting (no bolding, no headers).`;
-
-      const response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': 'AQ.Ab8RN6LjiOKxvxO8J1J0MWsp3Wrbo5emB0MOb6JFXsWKYIlqhw'
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [{ text: promptText }]
-              }
-            ]
-          })
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to generate summary');
-      }
-
-      const responseJson = await response.json();
-      const rawText = responseJson.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-      if (rawText) {
-        setFormData(prev => ({ ...prev, summary: rawText.trim() }));
-      } else {
-        throw new Error('No summary returned');
-      }
-    } catch (error) {
-      console.log('Error generating summary:', error);
-      Alert.alert('AI Generation Error', 'Failed to generate summary. Please type it manually.');
-    } finally {
-      setIsGeneratingSummary(false);
-    }
-  };
 
   if (isFinalizing) {
     return (
@@ -1132,6 +1772,117 @@ Return ONLY the summary text, written in professional third-person tone with act
     );
   }
 
+  if (showTemplateSelection) {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        {/* HEADER */}
+        <View style={[styles.header, { marginTop: insets.top }]}>
+          <TouchableOpacity style={styles.backButton} onPress={() => {
+            router.replace('/(tabs)');
+          }}>
+            <Ionicons name="chevron-back" size={28} color="#000000" />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>Select Template</Text>
+          </View>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.pageTitle}>Select a Design Template</Text>
+          <Text style={{ fontSize: 14, color: '#737373', marginTop: -20, marginBottom: 24 }}>
+            Choose a custom layout style for your resume. All templates are completely free.
+          </Text>
+
+          {[
+            {
+              id: 'modern_slate',
+              name: 'Modern Slate',
+              desc: 'Clean layouts with slate-gray accents and clear separators.',
+              tags: ['Recommended', 'Minimalist'],
+              layoutIcon: 'grid-outline'
+            },
+            {
+              id: 'executive_classic',
+              name: 'Executive Classic',
+              desc: 'Traditional corporate styling with balanced structures.',
+              tags: ['Professional', 'Corporate'],
+              layoutIcon: 'briefcase-outline'
+            },
+            {
+              id: 'creative_column',
+              name: 'Creative Columns',
+              desc: 'Premium two-column layout with colored sidebar details.',
+              tags: ['Creative', 'Tech / Design'],
+              layoutIcon: 'color-palette-outline'
+            },
+            {
+              id: 'elegant_warm',
+              name: 'Elegant Warm',
+              desc: 'Refined spacing, typography, and warm aesthetic accents.',
+              tags: ['Editorial', 'Arts / Writing'],
+              layoutIcon: 'book-outline'
+            }
+          ].map((tmpl) => {
+            const isSelected = selectedTemplate === tmpl.id;
+            return (
+              <TouchableOpacity
+                key={tmpl.id}
+                style={[
+                  styles.templateCard,
+                  isSelected ? styles.templateCardSelected : styles.templateCardUnselected
+                ]}
+                activeOpacity={0.8}
+                onPress={() => setSelectedTemplate(tmpl.id)}
+              >
+                <View style={styles.templateCardHeader}>
+                  <View style={[styles.templateIconWrapper, isSelected ? styles.templateIconSelected : null]}>
+                    <Ionicons name={tmpl.layoutIcon as any} size={24} color={isSelected ? "#FFFFFF" : "#000000"} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={styles.templateCardName}>{tmpl.name}</Text>
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={18} color="#000000" style={{ marginLeft: 8 }} />
+                      )}
+                    </View>
+                    <Text style={styles.templateCardDesc}>{tmpl.desc}</Text>
+                  </View>
+                </View>
+                <View style={styles.templateTagsRow}>
+                  {tmpl.tags.map((tag, i) => (
+                    <View key={i} style={[styles.templateTag, isSelected ? styles.templateTagSelected : null]}>
+                      <Text style={[styles.templateTagText, isSelected ? styles.templateTagTextSelected : null]}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* CONTINUE TO PREVIEW BUTTON */}
+        <View style={[styles.bottomButtonContainer, { paddingBottom: insets.bottom + 20 }]}>
+          <TouchableOpacity
+            style={styles.continueBtn}
+            activeOpacity={0.8}
+            onPress={() => {
+              setShowTemplateSelection(false);
+              setShowPreview(true);
+            }}
+          >
+            <Text style={styles.continueBtnText}>CONTINUE TO PREVIEW</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
   if (showPreview) {
     return (
       <KeyboardAvoidingView
@@ -1141,8 +1892,7 @@ Return ONLY the summary text, written in professional third-person tone with act
         {/* HEADER */}
         <View style={[styles.header, { marginTop: insets.top }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => {
-            setShowPreview(false);
-            setStep(5);
+            router.replace('/(tabs)');
           }}>
             <Ionicons name="chevron-back" size={28} color="#000000" />
           </TouchableOpacity>
@@ -1152,108 +1902,465 @@ Return ONLY the summary text, written in professional third-person tone with act
         </View>
 
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 180 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 220 }]}
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.pageTitle}>Your Resume is ready 🥳</Text>
 
+          {/* QUICK STYLE SWITCHER */}
+          <Text style={{ fontSize: 13, fontWeight: '700', color: '#000000', marginBottom: 8, paddingHorizontal: 4 }}>
+            Change Resume Template Style:
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, marginBottom: 20, paddingBottom: 4 }}
+          >
+            {[
+              { id: 'modern_slate', name: 'Slate' },
+              { id: 'executive_classic', name: 'Executive' },
+              { id: 'creative_column', name: 'Creative' },
+              { id: 'elegant_warm', name: 'Elegant' },
+            ].map(t => {
+              const active = selectedTemplate === t.id;
+              return (
+                <TouchableOpacity
+                  key={t.id}
+                  onPress={() => setSelectedTemplate(t.id)}
+                  style={{
+                    backgroundColor: active ? '#000000' : '#FFFFFF',
+                    borderWidth: 1.5,
+                    borderColor: '#000000',
+                    borderRadius: 20,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    marginRight: 8
+                  }}
+                >
+                  <Text style={{ color: active ? '#FFFFFF' : '#000000', fontSize: 13, fontWeight: '700' }}>
+                    {t.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
           {/* PDF PREVIEW CONTAINER */}
-          <View style={styles.previewContainer}>
-            {/* Top Header */}
-            <View style={styles.previewHeader}>
-              <Text style={styles.previewName}>
-                {formData.firstName} {formData.lastName}
-              </Text>
-              <Text style={styles.previewRole}>
-                {formData.jobTitle}
-              </Text>
-            </View>
+          <View style={[
+            styles.previewContainer,
+            { padding: 0 }
+          ]}>
+            {selectedTemplate === 'modern_slate' && (
+              <View style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 24 }}>
+                {/* Header */}
+                <View style={{ marginBottom: 15 }}>
+                  <Text style={{ fontSize: 24, fontWeight: '800', color: '#000000' }}>
+                    {formData.firstName} {formData.lastName}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#4B5563', fontWeight: '500', marginTop: 2 }}>
+                    {formData.jobTitle}
+                  </Text>
+                </View>
 
-            {/* Two-Column Layout */}
-            <View style={styles.previewColumnsRow}>
-              {/* Left Column */}
-              <View style={styles.previewLeftCol}>
-                <Text style={styles.previewSectionTitle}>DETAILS</Text>
-                
-                <Text style={styles.previewDetailLabel}>Phone</Text>
-                <Text style={styles.previewDetailValue}>{formData.phone}</Text>
+                {/* Main Body */}
+                <View style={{ flexDirection: 'row' }}>
+                  {/* Left Col (Contacts, Skills, Languages) */}
+                  <View style={{ width: '33%', paddingRight: 15, borderRightWidth: 1.5, borderColor: '#cbd5e1' }}>
+                    {formData.profileImage ? (
+                      <Image source={{ uri: formData.profileImage }} style={{ width: 64, height: 64, borderRadius: 32, marginBottom: 15, alignSelf: 'flex-start' }} />
+                    ) : null}
+                    
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', marginBottom: 8, letterSpacing: 0.5 }}>CONTACTS</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                      <Ionicons name="call-outline" size={12} color="#000000" style={{ marginRight: 6 }} />
+                      <Text style={{ fontSize: 10, color: '#000000', flex: 1 }}>{formData.phone}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                      <Ionicons name="mail-outline" size={12} color="#000000" style={{ marginRight: 6 }} />
+                      <Text style={{ fontSize: 10, color: '#000000', flex: 1 }} numberOfLines={1}>{formData.email}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                      <Ionicons name="location-outline" size={12} color="#000000" style={{ marginRight: 6 }} />
+                      <Text style={{ fontSize: 10, color: '#000000', flex: 1 }}>{formData.city}</Text>
+                    </View>
+                    {formData.website ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                        <Ionicons name="link-outline" size={12} color="#000000" style={{ marginRight: 6 }} />
+                        <Text style={{ fontSize: 10, color: '#000000', flex: 1 }} numberOfLines={1}>{formData.website}</Text>
+                      </View>
+                    ) : null}
 
-                <Text style={styles.previewDetailLabel}>Email</Text>
-                <Text style={styles.previewDetailValue} numberOfLines={1}>{formData.email}</Text>
+                    {formData.skills.length > 0 && (
+                      <>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', marginTop: 20, marginBottom: 8, letterSpacing: 0.5 }}>SKILLS</Text>
+                        {formData.skills.map(s => (
+                          <Text key={s} style={{ fontSize: 10, color: '#000000', marginBottom: 4 }}>• {s}</Text>
+                        ))}
+                      </>
+                    )}
 
-                <Text style={styles.previewDetailLabel}>City</Text>
-                <Text style={styles.previewDetailValue}>{formData.city}</Text>
+                    {formData.languages && formData.languages.length > 0 && (
+                      <>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', marginTop: 20, marginBottom: 8, letterSpacing: 0.5 }}>LANGUAGES</Text>
+                        {formData.languages.map(l => (
+                          <Text key={l} style={{ fontSize: 10, color: '#000000', marginBottom: 4 }}>• {l}</Text>
+                        ))}
+                      </>
+                    )}
+                  </View>
 
-                {formData.dob ? (
-                  <>
-                    <Text style={styles.previewDetailLabel}>DOB</Text>
-                    <Text style={styles.previewDetailValue}>{formData.dob}</Text>
-                  </>
-                ) : null}
+                  {/* Right Col */}
+                  <View style={{ width: '67%', paddingLeft: 18 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', marginBottom: 8, letterSpacing: 0.5 }}>SUMMERY</Text>
+                    <Text style={{ fontSize: 11, color: '#374151', lineHeight: 15, marginBottom: 15 }}>{formData.summary}</Text>
+                    
+                    <View style={{ height: 1, backgroundColor: '#cbd5e1', marginVertical: 15 }} />
 
-                {formData.nationality ? (
-                  <>
-                    <Text style={styles.previewDetailLabel}>Nationality</Text>
-                    <Text style={styles.previewDetailValue}>{formData.nationality}</Text>
-                  </>
-                ) : null}
+                    {formData.workExperiences.length > 0 && (
+                      <>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', marginBottom: 8, letterSpacing: 0.5 }}>WORK EXPERIENCE</Text>
+                        {formData.workExperiences.map(exp => (
+                          <View key={exp.id} style={{ marginBottom: 12 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#000000' }}>{exp.jobTitle}</Text>
+                            <Text style={{ fontSize: 10, fontWeight: '600', color: '#4B5563', marginVertical: 1 }}>{exp.companyName}, {exp.city} | {exp.startDate} - {exp.endDate}</Text>
+                            {exp.description ? (
+                              <View style={{ marginTop: 2 }}>{renderDescriptionBullets(exp.description)}</View>
+                            ) : null}
+                          </View>
+                        ))}
+                      </>
+                    )}
 
-                {formData.skills.length > 0 && (
-                  <>
-                    <Text style={[styles.previewSectionTitle, { marginTop: 20 }]}>SKILLS</Text>
-                    {formData.skills.map((skill) => (
-                      <Text key={skill} style={styles.previewSkillText}>• {skill}</Text>
-                    ))}
-                  </>
-                )}
+                    {formData.educations.length > 0 && (
+                      <>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', marginTop: 10, marginBottom: 8, letterSpacing: 0.5 }}>EDUCATION</Text>
+                        {formData.educations.map(edu => (
+                          <View key={edu.id} style={{ marginBottom: 12 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#000000' }}>{edu.degree} in {edu.fieldOfStudy}</Text>
+                            <Text style={{ fontSize: 10, fontWeight: '600', color: '#4B5563', marginVertical: 1 }}>{edu.schoolName}, {edu.city} | {edu.startDate} - {edu.endDate}</Text>
+                            {edu.description ? (
+                              <View style={{ marginTop: 2 }}>{renderDescriptionBullets(edu.description)}</View>
+                            ) : null}
+                          </View>
+                        ))}
+                      </>
+                    )}
+                  </View>
+                </View>
               </View>
+            )}
 
-              {/* Right Column */}
-              <View style={styles.previewRightCol}>
-                <Text style={styles.previewSectionTitle}>PROFILE</Text>
-                <Text style={styles.previewProfileText}>{formData.summary}</Text>
+            {selectedTemplate === 'executive_classic' && (
+              <View style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 24 }}>
+                {/* Centered Header */}
+                <View style={{ alignItems: 'center', marginBottom: 15 }}>
+                  {formData.profileImage ? (
+                    <Image source={{ uri: formData.profileImage }} style={{ width: 64, height: 64, borderRadius: 32, marginBottom: 12, alignSelf: 'center' }} />
+                  ) : null}
+                  <Text style={{ fontSize: 24, fontWeight: '800', color: '#000000', textAlign: 'center' }}>
+                    {formData.firstName} {formData.lastName}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#374151', fontWeight: '600', marginTop: 2, textAlign: 'center' }}>
+                    {formData.jobTitle}
+                  </Text>
+                  {/* Contact details centered row */}
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginTop: 8, gap: 10, borderBottomWidth: 1.5, borderColor: '#000000', paddingBottom: 10, width: '100%' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Ionicons name="call-outline" size={11} color="#4B5563" style={{ marginRight: 4 }} />
+                      <Text style={{ fontSize: 10.5, color: '#4B5563' }}>{formData.phone}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Ionicons name="mail-outline" size={11} color="#4B5563" style={{ marginRight: 4 }} />
+                      <Text style={{ fontSize: 10.5, color: '#4B5563' }}>{formData.email}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Ionicons name="location-outline" size={11} color="#4B5563" style={{ marginRight: 4 }} />
+                      <Text style={{ fontSize: 10.5, color: '#4B5563' }}>{formData.city}</Text>
+                    </View>
+                    {formData.website ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Ionicons name="link-outline" size={11} color="#4B5563" style={{ marginRight: 4 }} />
+                        <Text style={{ fontSize: 10.5, color: '#4B5563' }}>{formData.website}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
 
+                {/* Profile Summary */}
+                <View style={{ marginBottom: 15 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 6 }}>SUMMERY</Text>
+                  <Text style={{ fontSize: 11, color: '#374151', lineHeight: 15 }}>{formData.summary}</Text>
+                </View>
+
+                {/* Work Experience */}
                 {formData.workExperiences.length > 0 && (
-                  <>
-                    <Text style={[styles.previewSectionTitle, { marginTop: 20 }]}>WORK EXPERIENCE</Text>
-                    {formData.workExperiences.map((exp) => (
-                      <View key={exp.id} style={styles.previewItemBlock}>
-                        <Text style={styles.previewItemTitle}>{exp.jobTitle}</Text>
-                        <Text style={styles.previewItemCompany}>{exp.companyName}</Text>
-                        <Text style={styles.previewItemSub}>
-                          {exp.startDate} - {exp.endDate}  |  {exp.city}
-                        </Text>
+                  <View style={{ marginBottom: 15 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 8 }}>WORK EXPERIENCE</Text>
+                    {formData.workExperiences.map(exp => (
+                      <View key={exp.id} style={{ marginBottom: 12 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: '#000000' }}>{exp.jobTitle}</Text>
+                          <Text style={{ fontSize: 10, color: '#6B7280' }}>{exp.startDate} - {exp.endDate}</Text>
+                        </View>
+                        <Text style={{ fontSize: 10.5, fontWeight: '600', color: '#4B5563', marginVertical: 1 }}>{exp.companyName}, {exp.city}</Text>
                         {exp.description ? (
-                          <View style={{ marginTop: 4 }}>
-                            {renderDescriptionBullets(exp.description)}
-                          </View>
+                          <View style={{ marginTop: 2 }}>{renderDescriptionBullets(exp.description)}</View>
                         ) : null}
                       </View>
                     ))}
-                  </>
+                  </View>
                 )}
 
+                {/* Education */}
                 {formData.educations.length > 0 && (
-                  <>
-                    <Text style={[styles.previewSectionTitle, { marginTop: 20 }]}>EDUCATION</Text>
-                    {formData.educations.map((edu) => (
-                      <View key={edu.id} style={styles.previewItemBlock}>
-                        <Text style={styles.previewItemTitle}>{edu.degree} in {edu.fieldOfStudy}</Text>
-                        <Text style={styles.previewItemCompany}>{edu.schoolName}</Text>
-                        <Text style={styles.previewItemSub}>
-                          {edu.startDate} - {edu.endDate}  |  {edu.city} {edu.gpa ? `  •  GPA: ${edu.gpa}` : ''}
-                        </Text>
+                  <View style={{ marginBottom: 15 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 8 }}>EDUCATION</Text>
+                    {formData.educations.map(edu => (
+                      <View key={edu.id} style={{ marginBottom: 12 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: '#000000' }}>{edu.degree} in {edu.fieldOfStudy}</Text>
+                          <Text style={{ fontSize: 10, color: '#6B7280' }}>{edu.startDate} - {edu.endDate}</Text>
+                        </View>
+                        <Text style={{ fontSize: 10.5, fontWeight: '600', color: '#4B5563', marginVertical: 1 }}>{edu.schoolName}, {edu.city}</Text>
                         {edu.description ? (
-                          <View style={{ marginTop: 4 }}>
-                            {renderDescriptionBullets(edu.description)}
-                          </View>
+                          <View style={{ marginTop: 2 }}>{renderDescriptionBullets(edu.description)}</View>
                         ) : null}
                       </View>
                     ))}
-                  </>
+                  </View>
+                )}
+
+                {/* Skills Bullet Dots List */}
+                {formData.skills.length > 0 && (
+                  <View style={{ marginBottom: 15 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 6 }}>SKILLS</Text>
+                    <Text style={{ fontSize: 11, color: '#374151', lineHeight: 15 }}>
+                      • {formData.skills.join('  •  ')}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Languages */}
+                {formData.languages && formData.languages.length > 0 && (
+                  <View style={{ marginBottom: 15 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 6 }}>LANGUAGES</Text>
+                    <Text style={{ fontSize: 11, color: '#374151', lineHeight: 15 }}>
+                      {formData.languages.join('    ')}
+                    </Text>
+                  </View>
                 )}
               </View>
-            </View>
+            )}
+
+            {selectedTemplate === 'creative_column' && (
+              <View style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 24 }}>
+                {/* Header: row layout */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', borderBottomWidth: 1.5, borderColor: '#cbd5e1', paddingBottom: 12, marginBottom: 15 }}>
+                  <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                    {formData.profileImage ? (
+                      <Image source={{ uri: formData.profileImage }} style={{ width: 60, height: 60, borderRadius: 30, marginRight: 12 }} />
+                    ) : null}
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 24, fontWeight: '800', color: '#000000' }}>
+                        {formData.firstName} {formData.lastName}
+                      </Text>
+                      <Text style={{ fontSize: 13, color: '#4B5563', fontWeight: '600', marginTop: 2 }}>
+                        {formData.jobTitle}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', minWidth: 120 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                      <Text style={{ fontSize: 10, color: '#4B5563', marginRight: 6 }}>{formData.phone}</Text>
+                      <Ionicons name="call-outline" size={11} color="#4B5563" />
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                      <Text style={{ fontSize: 10, color: '#4B5563', marginRight: 6 }} numberOfLines={1}>{formData.email}</Text>
+                      <Ionicons name="mail-outline" size={11} color="#4B5563" />
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                      <Text style={{ fontSize: 10, color: '#4B5563', marginRight: 6 }}>{formData.city}</Text>
+                      <Ionicons name="location-outline" size={11} color="#4B5563" />
+                    </View>
+                    {formData.website ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 10, color: '#4B5563', marginRight: 6 }} numberOfLines={1}>{formData.website}</Text>
+                        <Ionicons name="link-outline" size={11} color="#4B5563" />
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+
+                {/* Split columns */}
+                <View style={{ flexDirection: 'row' }}>
+                  {/* Left side: Work Exp & Education (65%) */}
+                  <View style={{ width: '65%', paddingRight: 15 }}>
+                    {formData.workExperiences.length > 0 && (
+                      <View style={{ marginBottom: 15 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 8 }}>WORK EXPERIENCE</Text>
+                        {formData.workExperiences.map(exp => (
+                          <View key={exp.id} style={{ marginBottom: 12 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                              <Text style={{ fontSize: 12, fontWeight: '700', color: '#000000', flex: 1, marginRight: 5 }}>{exp.jobTitle}</Text>
+                              <Text style={{ fontSize: 10, color: '#6B7280' }}>{exp.startDate} - {exp.endDate}</Text>
+                            </View>
+                            <Text style={{ fontSize: 10.5, fontWeight: '600', color: '#4B5563', marginVertical: 1 }}>{exp.companyName}, {exp.city}</Text>
+                            {exp.description ? (
+                              <View style={{ marginTop: 2 }}>{renderDescriptionBullets(exp.description)}</View>
+                            ) : null}
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {formData.educations.length > 0 && (
+                      <View style={{ marginBottom: 15 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 8 }}>EDUCATION</Text>
+                        {formData.educations.map(edu => (
+                          <View key={edu.id} style={{ marginBottom: 12 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                              <Text style={{ fontSize: 12, fontWeight: '700', color: '#000000', flex: 1, marginRight: 5 }}>{edu.degree} in {edu.fieldOfStudy}</Text>
+                              <Text style={{ fontSize: 10, color: '#6B7280' }}>{edu.startDate} - {edu.endDate}</Text>
+                            </View>
+                            <Text style={{ fontSize: 10.5, fontWeight: '600', color: '#4B5563', marginVertical: 1 }}>{edu.schoolName}, {edu.city}</Text>
+                            {edu.description ? (
+                              <View style={{ marginTop: 2 }}>{renderDescriptionBullets(edu.description)}</View>
+                            ) : null}
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Right side: Summary, Skills, Languages (35%) */}
+                  <View style={{ width: '35%', paddingLeft: 10 }}>
+                    {formData.summary ? (
+                      <>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 6 }}>SUMMERY</Text>
+                        <Text style={{ fontSize: 11, color: '#374151', lineHeight: 15, marginBottom: 15 }}>{formData.summary}</Text>
+                      </>
+                    ) : null}
+
+                    {formData.skills.length > 0 && (
+                      <View style={{ marginBottom: 15 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 8 }}>SKILLS</Text>
+                        {formData.skills.map(s => (
+                          <Text key={s} style={{ fontSize: 10, color: '#000000', marginBottom: 4 }}>• {s}</Text>
+                        ))}
+                      </View>
+                    )}
+
+                    {formData.languages && formData.languages.length > 0 && (
+                      <View style={{ marginBottom: 15 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 8 }}>LANGUAGES</Text>
+                        {formData.languages.map(l => (
+                          <Text key={l} style={{ fontSize: 10, color: '#000000', marginBottom: 4 }}>• {l}</Text>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {selectedTemplate === 'elegant_warm' && (
+              <View style={{ backgroundColor: '#FFFFFF', flexDirection: 'row', borderRadius: 24, overflow: 'hidden' }}>
+                {/* Left Sidebar (Pastel Lavender) */}
+                <View style={{ width: '32%', backgroundColor: '#eae6f3', padding: 18 }}>
+                  {formData.profileImage ? (
+                    <Image source={{ uri: formData.profileImage }} style={{ width: 64, height: 64, borderRadius: 32, marginBottom: 20, alignSelf: 'flex-start' }} />
+                  ) : null}
+                  
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 4, marginBottom: 10 }}>Contact</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                    <Ionicons name="call-outline" size={11} color="#000000" style={{ marginRight: 6 }} />
+                    <Text style={{ fontSize: 10, color: '#000000', flex: 1 }}>{formData.phone}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                    <Ionicons name="mail-outline" size={11} color="#000000" style={{ marginRight: 6 }} />
+                    <Text style={{ fontSize: 10, color: '#000000', flex: 1 }} numberOfLines={1}>{formData.email}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                    <Ionicons name="location-outline" size={11} color="#000000" style={{ marginRight: 6 }} />
+                    <Text style={{ fontSize: 10, color: '#000000', flex: 1 }}>{formData.city}</Text>
+                  </View>
+                  {formData.website ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                      <Ionicons name="link-outline" size={11} color="#000000" style={{ marginRight: 6 }} />
+                      <Text style={{ fontSize: 10, color: '#000000', flex: 1 }} numberOfLines={1}>{formData.website}</Text>
+                    </View>
+                  ) : null}
+
+                  {formData.skills.length > 0 && (
+                    <View style={{ marginTop: 20 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 4, marginBottom: 10 }}>Skills</Text>
+                      {formData.skills.map(s => (
+                        <Text key={s} style={{ fontSize: 10, color: '#000000', marginBottom: 4 }}>• {s}</Text>
+                      ))}
+                    </View>
+                  )}
+
+                  {formData.languages && formData.languages.length > 0 && (
+                    <View style={{ marginTop: 20 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 4, marginBottom: 10 }}>Languages</Text>
+                      {formData.languages.map(l => (
+                        <Text key={l} style={{ fontSize: 10, color: '#000000', marginBottom: 4 }}>• {l}</Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+
+                {/* Right Content */}
+                <View style={{ width: '68%', padding: 20 }}>
+                  <View style={{ marginBottom: 15 }}>
+                    <Text style={{ fontSize: 22, fontWeight: '800', color: '#000000' }}>
+                      {formData.firstName} {formData.lastName}
+                    </Text>
+                    <Text style={{ fontSize: 13, color: '#4f46e5', fontWeight: '600', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      {formData.jobTitle}
+                    </Text>
+                  </View>
+
+                  <Text style={{ fontSize: 11, color: '#374151', lineHeight: 15, marginBottom: 20 }}>{formData.summary}</Text>
+
+                  {formData.workExperiences.length > 0 && (
+                    <View style={{ marginBottom: 15 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1.5, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 8 }}>WORK EXPERIENCE</Text>
+                      {formData.workExperiences.map(exp => (
+                        <View key={exp.id} style={{ marginBottom: 12 }}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#000000', flex: 1, marginRight: 5 }}>{exp.jobTitle}</Text>
+                            <Text style={{ fontSize: 10, color: '#737373' }}>{exp.startDate} - {exp.endDate}</Text>
+                          </View>
+                          <Text style={{ fontSize: 10.5, color: '#4B5563', marginVertical: 1 }}>{exp.companyName}, {exp.city}</Text>
+                          {exp.description ? (
+                            <View style={{ marginTop: 2 }}>{renderDescriptionBullets(exp.description)}</View>
+                          ) : null}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {formData.educations.length > 0 && (
+                    <View style={{ marginBottom: 15 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1.5, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 8 }}>EDUCATION</Text>
+                      {formData.educations.map(edu => (
+                        <View key={edu.id} style={{ marginBottom: 12 }}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#000000', flex: 1, marginRight: 5 }}>{edu.degree} in {edu.fieldOfStudy}</Text>
+                            <Text style={{ fontSize: 10, color: '#737373' }}>{edu.startDate} - {edu.endDate}</Text>
+                          </View>
+                          <Text style={{ fontSize: 10.5, color: '#4B5563', marginVertical: 1 }}>{edu.schoolName}, {edu.city}</Text>
+                          {edu.description ? (
+                            <View style={{ marginTop: 2 }}>{renderDescriptionBullets(edu.description)}</View>
+                          ) : null}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
           </View>
         </ScrollView>
 
@@ -1267,7 +2374,7 @@ Return ONLY the summary text, written in professional third-person tone with act
               setStep(1);
             }}
           >
-            <Text style={styles.editResumeBtnText}>EDIT</Text>
+            <Text style={styles.editResumeBtnText}>EDIT DATA</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
@@ -1275,7 +2382,7 @@ Return ONLY the summary text, written in professional third-person tone with act
             activeOpacity={0.8}
             onPress={handleDownloadPdf}
           >
-            <Text style={styles.downloadResumeBtnText}>DOWNLOAD</Text>
+            <Text style={styles.downloadResumeBtnText}>DOWNLOAD PDF</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -1314,29 +2421,12 @@ Return ONLY the summary text, written in professional third-person tone with act
           <Text style={styles.pageTitle}>Add your skills</Text>
           <Text style={styles.skillsSubtitle}>We recommend including at least 6-8 skills.</Text>
 
-          {/* Suggestion pills grid */}
-          <View style={styles.skillsGrid}>
-            {presetSkills.map((skillName) => {
-              const isSelected = formData.skills.includes(skillName);
-              return (
-                <TouchableOpacity
-                  key={skillName}
-                  style={[styles.skillPill, isSelected ? styles.skillPillSelected : styles.skillPillUnselected]}
-                  activeOpacity={0.7}
-                  onPress={() => toggleSkillSelection(skillName)}
-                >
-                  <Ionicons
-                    name={isSelected ? "checkmark" : "add"}
-                    size={14}
-                    color={isSelected ? "#FFFFFF" : "#000000"}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={[styles.skillPillText, isSelected ? styles.skillPillTextSelected : styles.skillPillTextUnselected]}>
-                    {skillName}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          {/* AI Suggested Skills Coming Soon */}
+          <View style={styles.aiSuggestionComingSoon}>
+            <Ionicons name="sparkles" size={16} color="#000000" style={{ marginRight: 8, marginTop: 1 }} />
+            <Text style={styles.aiComingSoonText}>
+              ✨ AI Suggested Skills are coming soon! Custom skills will be recommended dynamically based on your target role in the next update.
+            </Text>
           </View>
 
           {/* ADD SKILL button */}
@@ -1406,6 +2496,72 @@ Return ONLY the summary text, written in professional third-person tone with act
               </View>
             </View>
           )}
+
+          {/* Languages Section */}
+          <View style={[styles.addedSkillsWrapper, { marginTop: 30 }]}>
+            <Text style={styles.sectionHeader}>Languages</Text>
+            <View style={styles.skillsGrid}>
+              {formData.languages.map((langName) => (
+                <TouchableOpacity
+                  key={langName}
+                  style={[styles.skillPill, styles.skillPillSelected]}
+                  activeOpacity={0.7}
+                  onPress={() => toggleLanguageSelection(langName)}
+                >
+                  <Ionicons
+                    name="checkmark"
+                    size={14}
+                    color="#FFFFFF"
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={[styles.skillPillText, styles.skillPillTextSelected]}>
+                    {langName}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* ADD LANGUAGE button */}
+            <TouchableOpacity
+              style={[styles.addExpTriggerBtn, { marginTop: 10 }]}
+              activeOpacity={0.8}
+              onPress={() => setShowAddLanguageInput(prev => !prev)}
+            >
+              <Text style={styles.addExpTriggerText}>+ ADD LANGUAGE</Text>
+            </TouchableOpacity>
+
+            {/* Custom Inline Add Language input */}
+            {showAddLanguageInput && (
+              <View style={styles.skillInputWrapper}>
+                <TextInput
+                  style={styles.skillTextInput}
+                  value={newLanguageText}
+                  onChangeText={setNewLanguageText}
+                  placeholder="e.g. Spanish (Intermediate)"
+                  placeholderTextColor="#A3A3A3"
+                  autoFocus={true}
+                  onSubmitEditing={handleAddCustomLanguage}
+                />
+                <TouchableOpacity
+                  style={styles.skillAddBtn}
+                  activeOpacity={0.8}
+                  onPress={handleAddCustomLanguage}
+                >
+                  <Text style={styles.skillAddBtnText}>Add</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.skillTrashBtn}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setNewLanguageText('');
+                    setShowAddLanguageInput(false);
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </ScrollView>
 
         {/* BOTTOM CONTINUE BUTTON */}
@@ -1679,26 +2835,19 @@ Return ONLY the summary text, written in professional third-person tone with act
                     />
                   </View>
 
-                  {/* AI Help Section */}
+                  {/* Suggested Bullets Section */}
                   <View style={styles.aiHelpSection}>
                     <View style={styles.aiHelpHeader}>
-                      <Ionicons name="sparkles" size={16} color="#A855F7" style={{ marginRight: 6 }} />
-                      <Text style={styles.aiHelpTitle}>AI Help</Text>
+                      <Ionicons name="list-outline" size={16} color="#000000" style={{ marginRight: 6 }} />
+                      <Text style={styles.aiHelpTitle}>Suggested Bullets</Text>
                     </View>
                     
-                    {eduHelpSuggestions.map((suggestion, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        style={styles.aiPill}
-                        activeOpacity={0.7}
-                        onPress={() => handleAddEduAiSuggestion(suggestion)}
-                      >
-                        <Ionicons name="add-circle-outline" size={18} color="#000000" style={{ marginRight: 8 }} />
-                        <Text style={styles.aiPillText} numberOfLines={1}>
-                          {suggestion}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                    <View style={styles.aiSuggestionComingSoon}>
+                      <Ionicons name="sparkles" size={16} color="#000000" style={{ marginRight: 8, marginTop: 1 }} />
+                      <Text style={styles.aiComingSoonText}>
+                        ✨ AI Suggested Bullets are coming soon! Custom academic suggestions will be recommended dynamically in the next update.
+                      </Text>
+                    </View>
                   </View>
 
                   {/* Modal Submit Button */}
@@ -1796,7 +2945,7 @@ Return ONLY the summary text, written in professional third-person tone with act
               style={[styles.input, styles.textAreaInput, { height: 180 }]}
               value={formData.summary}
               onChangeText={handleSummaryChange}
-              placeholder="e.g. Nika"
+              placeholder="e.g. Results-driven Software Engineer with 5+ years of experience specializing in building scalable web and mobile applications..."
               placeholderTextColor="#A3A3A3"
               multiline={true}
               numberOfLines={6}
@@ -1804,28 +2953,19 @@ Return ONLY the summary text, written in professional third-person tone with act
             />
           </View>
 
-          {/* AI Help Section */}
+          {/* Suggested Summaries Section */}
           <View style={styles.aiHelpSection}>
             <View style={styles.aiHelpHeader}>
-              <Ionicons name="sparkles" size={16} color="#A855F7" style={{ marginRight: 6 }} />
-              <Text style={styles.aiHelpTitle}>AI Help</Text>
+              <Ionicons name="bulb-outline" size={16} color="#000000" style={{ marginRight: 6 }} />
+              <Text style={styles.aiHelpTitle}>Suggested Summaries</Text>
             </View>
             
-            <TouchableOpacity
-              style={styles.aiPill}
-              activeOpacity={0.7}
-              onPress={generateAiSummary}
-              disabled={isGeneratingSummary}
-            >
-              {isGeneratingSummary ? (
-                <ActivityIndicator size="small" color="#A855F7" style={{ marginRight: 8 }} />
-              ) : (
-                <Ionicons name="add-circle-outline" size={18} color="#000000" style={{ marginRight: 8 }} />
-              )}
-              <Text style={styles.aiPillText} numberOfLines={1}>
-                {isGeneratingSummary ? 'Generating Summary...' : 'Generate Summery'}
+            <View style={styles.aiSuggestionComingSoon}>
+              <Ionicons name="sparkles" size={16} color="#000000" style={{ marginRight: 8, marginTop: 1 }} />
+              <Text style={styles.aiComingSoonText}>
+                ✨ AI Suggested Summaries are coming soon! We will automatically generate personalized summaries based on your experience and skills in the next update.
               </Text>
-            </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
 
@@ -2045,26 +3185,19 @@ Return ONLY the summary text, written in professional third-person tone with act
                     />
                   </View>
 
-                  {/* AI Help Section */}
+                  {/* Suggested Bullets Section */}
                   <View style={styles.aiHelpSection}>
                     <View style={styles.aiHelpHeader}>
-                      <Ionicons name="sparkles" size={16} color="#A855F7" style={{ marginRight: 6 }} />
-                      <Text style={styles.aiHelpTitle}>AI Help</Text>
+                      <Ionicons name="list-outline" size={16} color="#000000" style={{ marginRight: 6 }} />
+                      <Text style={styles.aiHelpTitle}>Suggested Bullets</Text>
                     </View>
                     
-                    {aiHelpSuggestions.map((suggestion, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        style={styles.aiPill}
-                        activeOpacity={0.7}
-                        onPress={() => handleAddAiSuggestion(suggestion)}
-                      >
-                        <Ionicons name="add-circle-outline" size={18} color="#000000" style={{ marginRight: 8 }} />
-                        <Text style={styles.aiPillText} numberOfLines={1}>
-                          {suggestion}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                    <View style={styles.aiSuggestionComingSoon}>
+                      <Ionicons name="sparkles" size={16} color="#000000" style={{ marginRight: 8, marginTop: 1 }} />
+                      <Text style={styles.aiComingSoonText}>
+                        ✨ AI Suggested Bullets are coming soon! We will dynamically suggest professional bullet points tailored to your job role in the next update.
+                      </Text>
+                    </View>
                   </View>
 
                   {/* Modal Submit Button */}
@@ -2161,7 +3294,7 @@ Return ONLY the summary text, written in professional third-person tone with act
             style={styles.input}
             value={formData.firstName}
             onChangeText={text => handleInputChange('firstName', text)}
-            placeholder="e.g. Nika"
+            placeholder="e.g. John"
             placeholderTextColor="#A3A3A3"
           />
         </View>
@@ -2197,7 +3330,7 @@ Return ONLY the summary text, written in professional third-person tone with act
             style={[styles.input, emailError.length > 0 ? styles.inputError : undefined]}
             value={formData.email}
             onChangeText={text => handleInputChange('email', text)}
-            placeholder="e.g. NikaMorgan@gmail.com"
+            placeholder="e.g. john.morgan@gmail.com"
             placeholderTextColor="#A3A3A3"
             autoCapitalize="none"
             autoCorrect={false}
@@ -2233,6 +3366,20 @@ Return ONLY the summary text, written in professional third-person tone with act
           />
         </View>
 
+        {/* Website Link */}
+        <View style={styles.fieldContainer}>
+          <Text style={styles.fieldLabel}>Website Link (Optional)</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.website}
+            onChangeText={text => handleInputChange('website', text)}
+            placeholder="e.g. johndoe.com"
+            placeholderTextColor="#A3A3A3"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+
         {/* Optional Expandable Fields */}
         {showOptional ? (
           <View style={styles.optionalWrapper}>
@@ -2257,7 +3404,7 @@ Return ONLY the summary text, written in professional third-person tone with act
                 style={styles.input}
                 value={formData.nationality}
                 onChangeText={text => handleInputChange('nationality', text)}
-                placeholder="e.g. Iranian"
+                placeholder="e.g. Canadian"
                 placeholderTextColor="#A3A3A3"
               />
             </View>
@@ -2279,6 +3426,9 @@ Return ONLY the summary text, written in professional third-person tone with act
                   </Text>
                 </TouchableOpacity>
               </View>
+              <Text style={styles.privacyCaptionText}>
+                🔒 Privacy Note: Your profile photo is processed and stored 100% locally on your device to be embedded onto your resume templates. It is never uploaded to remote servers or shared with third parties.
+              </Text>
             </View>
           </View>
         ) : (
@@ -2312,6 +3462,72 @@ Return ONLY the summary text, written in professional third-person tone with act
 }
 
 const styles = StyleSheet.create({
+  templateCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 2,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  templateCardSelected: {
+    borderColor: '#000000',
+  },
+  templateCardUnselected: {
+    borderColor: '#EAEAEA',
+  },
+  templateCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  templateIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  templateIconSelected: {
+    backgroundColor: '#000000',
+  },
+  templateCardName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  templateCardDesc: {
+    fontSize: 13,
+    color: '#737373',
+    marginTop: 4,
+  },
+  templateTagsRow: {
+    flexDirection: 'row',
+    marginTop: 14,
+    marginLeft: 64,
+  },
+  templateTag: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginRight: 8,
+  },
+  templateTagSelected: {
+    backgroundColor: '#EAEAEA',
+  },
+  templateTagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#737373',
+  },
+  templateTagTextSelected: {
+    color: '#000000',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F9F9F9',
@@ -2431,6 +3647,12 @@ const styles = StyleSheet.create({
     color: '#737373',
     marginTop: 8,
     textAlign: 'center',
+  },
+  privacyCaptionText: {
+    fontSize: 12,
+    color: '#737373',
+    marginTop: 8,
+    lineHeight: 16,
   },
   optionalWrapper: {
     marginTop: 10,
@@ -2692,13 +3914,13 @@ const styles = StyleSheet.create({
   aiPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FAF5FF',
+    backgroundColor: '#F3F4F6',
     borderRadius: 20,
     paddingVertical: 10,
     paddingHorizontal: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#F3E8FF',
+    borderColor: '#E5E7EB',
   },
   aiPillText: {
     color: '#000000',
@@ -2797,6 +4019,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
+  },
+  aiSuggestionComingSoon: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+  },
+  aiComingSoonText: {
+    color: '#6B7280',
+    fontSize: 13.5,
+    fontWeight: '500',
+    lineHeight: 18,
+    flex: 1,
   },
 
   // Step 3: Skills Section Styles

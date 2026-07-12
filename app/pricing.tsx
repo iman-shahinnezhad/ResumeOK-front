@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { API_URL, useAuth } from '../context/AuthContext';
 import { getPackages, purchasePackage, setupPurchaseListeners } from '../utils/purchases';
+import ReferralBottomSheet from '../components/ReferralBottomSheet';
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
@@ -19,6 +20,7 @@ export default function Pricing() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPack, setSelectedPack] = useState<any>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const [referralVisible, setReferralVisible] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -97,6 +99,62 @@ export default function Pricing() {
 
   const handleContinue = async () => {
     if (!selectedPack) return;
+
+    if (isExpoGo) {
+      Alert.alert(
+        "Expo Go Simulation",
+        "In-App Purchases are not supported in Expo Go. Do you want to simulate a successful purchase?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Simulate Success",
+            onPress: async () => {
+              setIsPurchasing(true);
+              try {
+                const mockSku = selectedPack.product.identifier;
+                let payloadB64 = '';
+                if (mockSku === 'com.resume.pro') {
+                  payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20ucmVzdW1lLnBybyIsInRyYW5zYWN0aW9uSWQiOiJtb2NrXzEyMyJ9';
+                } else {
+                  payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20ucmVzdW1lLnN0YXJ0ZXIiLCJ0cmFuc2FjdGlvbklkIjoibW9ja18xMjMifQ==';
+                }
+
+                const mockReceipt = `eyJhbGciOiJSUzI1NiJ9.${payloadB64}.mock_signature`;
+
+                const response = await fetch(`${API_URL}/purchase/verify-apple`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    receiptData: mockReceipt,
+                    deviceId: user?.id || guestId
+                  })
+                });
+
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.user) {
+                    await updateUser(data.user);
+                    Alert.alert("Success", "Simulated purchase successful!");
+                    router.back();
+                  } else {
+                    Alert.alert("Verification Failed", "Mock purchase verified but failed to load user data.");
+                  }
+                } else {
+                  const errText = await response.text();
+                  Alert.alert("Failed", `Simulation failed: ${errText}`);
+                }
+              } catch (e) {
+                Alert.alert("Error", "Network error during simulation.");
+              } finally {
+                setIsPurchasing(false);
+              }
+            }
+          }
+        ]
+      );
+      return;
+    }
+
     setIsPurchasing(true);
 
     try {
@@ -107,61 +165,6 @@ export default function Pricing() {
     } catch (err: any) {
       console.error('Purchase error', err);
       setIsPurchasing(false);
-
-      if (isExpoGo) {
-        Alert.alert(
-          "Expo Go Simulation",
-          "In-App Purchases are not supported in Expo Go. Do you want to simulate a successful purchase?",
-          [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Simulate Success",
-              onPress: async () => {
-                setIsPurchasing(true);
-                try {
-                  const mockSku = selectedPack.product.identifier;
-                  let payloadB64 = '';
-                  if (mockSku === 'com.resume.pro') {
-                    payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20ucmVzdW1lLnBybyIsInRyYW5zYWN0aW9uSWQiOiJtb2NrXzEyMyJ9';
-                  } else {
-                    payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20ucmVzdW1lLnN0YXJ0ZXIiLCJ0cmFuc2FjdGlvbklkIjoibW9ja18xMjMifQ==';
-                  }
-                  
-                  const mockReceipt = `eyJhbGciOiJSUzI1NiJ9.${payloadB64}.mock_signature`;
-
-                  const response = await fetch(`${API_URL}/purchase/verify-apple`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      receiptData: mockReceipt,
-                      deviceId: user?.id || guestId
-                    })
-                  });
-
-                  if (response.ok) {
-                    const data = await response.json();
-                    if (data.user) {
-                      await updateUser(data.user);
-                      Alert.alert("Success", "Simulated purchase successful!");
-                      router.back();
-                    } else {
-                      Alert.alert("Verification Failed", "Mock purchase verified but failed to load user data.");
-                    }
-                  } else {
-                    const errText = await response.text();
-                    Alert.alert("Failed", `Simulation failed: ${errText}`);
-                  }
-                } catch (e) {
-                  Alert.alert("Error", "Network error during simulation.");
-                } finally {
-                  setIsPurchasing(false);
-                }
-              }
-            }
-          ]
-        );
-        return;
-      }
 
       if (err?.code !== 'E_USER_CANCELLED') {
         Alert.alert("Purchase Error", err.message || "Could not launch purchase sheet.");
@@ -187,7 +190,7 @@ export default function Pricing() {
         style={StyleSheet.absoluteFillObject}
       />
 
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top, 20) }]}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 35 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={24} color="#000000" />
@@ -213,30 +216,53 @@ export default function Pricing() {
             <Text style={styles.loadingText}>Fetching live plans from Apple...</Text>
           </View>
         ) : (
-          <View style={styles.packagesContainer}>
-            {packages.map((pkg, idx) => {
-              const isSelected = selectedPack?.product.identifier === pkg.product.identifier;
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  style={[styles.packageCard, isSelected ? styles.packageCardSelected : undefined]}
-                  activeOpacity={0.8}
-                  onPress={() => setSelectedPack(pkg)}
-                >
-                  <View style={styles.packageCardLeft}>
+          <>
+            <View style={styles.packagesContainer}>
+              {packages.map((pkg, idx) => {
+                const isSelected = selectedPack?.product.identifier === pkg.product.identifier;
+                const formattedPrice = pkg.product.priceString.includes('Week') || pkg.product.priceString.includes('week')
+                  ? pkg.product.priceString
+                  : `${pkg.product.priceString}/Week`;
+
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[styles.packageCard, isSelected ? styles.packageCardSelected : undefined]}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedPack(pkg)}
+                  >
                     <View style={[styles.radioContainer, isSelected ? styles.radioContainerSelected : undefined]}>
                       {isSelected && <View style={styles.radioInner} />}
                     </View>
-                    <View>
-                      <Text style={styles.pkgTitle}>{pkg.product.title}</Text>
+
+                    <View style={styles.packageContent}>
+                      <View style={styles.packageHeaderRow}>
+                        <Text style={styles.pkgTitle}>{pkg.product.title}</Text>
+                        <Text style={styles.pkgPrice}>{formattedPrice}</Text>
+                      </View>
                       <Text style={styles.pkgDesc}>{pkg.product.description}</Text>
                     </View>
-                  </View>
-                  <Text style={styles.pkgPrice}>{pkg.product.priceString}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                  </TouchableOpacity>
+                );
+              })}
+
+              <TouchableOpacity
+                style={styles.inviteCard}
+                activeOpacity={0.8}
+                onPress={() => setReferralVisible(true)}
+              >
+                <Ionicons name="gift" size={20} color="#7C3AED" style={{ marginRight: 12 }} />
+                <View style={styles.inviteContent}>
+                  <Text style={styles.inviteTitle}>Or Invite Friends</Text>
+                  <Text style={styles.inviteDesc}>Get free credits for each friend who joins</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#7C3AED" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.subscriptionTermsText}>
+              Subscription Details: Payment will be charged to your iTunes Account at confirmation of purchase. Subscriptions automatically renew unless auto-renew is turned off at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period at the rate of the selected plan. Subscriptions and auto-renewal may be managed or turned off by going to your Account Settings after purchase.
+            </Text>
+          </>
         )}
       </ScrollView>
 
@@ -257,18 +283,23 @@ export default function Pricing() {
           )}
         </TouchableOpacity>
 
+        <Text style={styles.cancelAnytimeFooterText}>Cancelable at any time</Text>
+
         <View style={styles.footerLinksRow}>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL('https://pixflow.net/pixflow-app-privacy-policy/')}>
-            <Text style={styles.footerText}>Privacy</Text>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL('https://pixflow.net/pixflow-resumeok-app-privacy-policy/')}>
+            <Text style={styles.footerText}>Privacy Policy</Text>
           </TouchableOpacity>
-          <Text style={[styles.footerText, { marginHorizontal: 8 }]}>|</Text>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL('https://pixflow.net/pixflow-app-user-agreement/')}>
-            <Text style={styles.footerText}>Terms</Text>
+          <Text style={[styles.footerText, { marginHorizontal: 8 }]}></Text>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}>
+            <Text style={styles.footerText}>Terms of Use</Text>
           </TouchableOpacity>
-          <View style={{ flex: 1 }} />
-          <Text style={styles.footerCancelText}>Cancelable at any time</Text>
         </View>
       </View>
+
+      <ReferralBottomSheet
+        visible={referralVisible}
+        onClose={() => setReferralVisible(false)}
+      />
     </View>
   );
 }
@@ -280,7 +311,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingBottom: 240,
+    paddingBottom: 160,
   },
   headerRow: {
     marginBottom: 20,
@@ -320,17 +351,17 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '800',
     textAlign: 'center',
-    marginBottom: 36,
+    marginBottom: 28,
     lineHeight: 40,
   },
   featuresContainer: {
-    marginBottom: 36,
+    marginBottom: 25,
     paddingHorizontal: 10,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   featureIcon: {
     marginRight: 12,
@@ -356,10 +387,9 @@ const styles = StyleSheet.create({
   packageCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: '#F5F3FF',
-    borderRadius: 24,
-    padding: 20,
+    borderRadius: 28,
+    padding: 16,
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -367,18 +397,22 @@ const styles = StyleSheet.create({
     borderColor: '#7C3AED',
     backgroundColor: '#EBE7FF',
   },
-  packageCardLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  packageContent: {
     flex: 1,
+  },
+  packageHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   radioContainer: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#7C3AED',
-    marginRight: 16,
+    marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -393,18 +427,17 @@ const styles = StyleSheet.create({
   },
   pkgTitle: {
     color: '#2E1A8E',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
-    marginBottom: 4,
   },
   pkgDesc: {
     color: '#6355D8',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
   pkgPrice: {
     color: '#2E1A8E',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
   },
   footer: {
@@ -423,7 +456,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
     shadowColor: '#4C2BE6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -442,16 +475,53 @@ const styles = StyleSheet.create({
   footerLinksRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    marginBottom: 0,
   },
   footerText: {
     color: '#9CA3AF',
     fontSize: 13,
     fontWeight: '500',
   },
-  footerCancelText: {
+  cancelAnytimeFooterText: {
     color: '#9CA3AF',
     fontSize: 13,
     fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  inviteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(124, 58, 237, 0.05)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(124, 58, 237, 0.15)',
+    marginTop: 8,
+  },
+  inviteContent: {
+    flex: 1,
+  },
+  inviteTitle: {
+    color: '#2E1A8E',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  inviteDesc: {
+    color: '#6355D8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  subscriptionTermsText: {
+    color: '#9CA3AF',
+    fontSize: 10,
+    textAlign: 'center',
+    lineHeight: 14,
+    marginTop: 16,
+    marginBottom: 8,
+    paddingHorizontal: 8,
   },
 });

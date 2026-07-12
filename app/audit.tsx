@@ -21,6 +21,14 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useAuth } from '../context/AuthContext';
 import ReferralBottomSheet from '../components/ReferralBottomSheet';
 
+const getFriendlyErrorMessage = (error: any) => {
+  const msg = error?.message || '';
+  if (msg.includes('Network request failed') || msg.includes('Failed to fetch') || msg.includes('network')) {
+    return 'Network request failed. Please check your internet connection and try again.';
+  }
+  return msg || 'An unexpected error occurred. Please try again.';
+};
+
 interface SelectedResumeFile {
   id: string;
   name: string;
@@ -905,23 +913,8 @@ RULES:
           console.log("Failed to refund credits:", refundErr);
         }
       }
-      try {
-        setLoadingStep(3); // Preparing your result
-        await new Promise(r => setTimeout(r, 1000));
-      } catch { }
-
-      // Dynamic fallback using actual error message instead of static mock report
-      setAnalysisResult({
-        match_score: 0,
-        issues_count: 1,
-        issues: [
-          { title: `Analysis Failed: ${e?.message || "Failed to analyze resume. Please check your API key and connection."}` }
-        ]
-      });
-      setFixingIndex(null);
-      setFixedIndices([]);
-      setIsFixingComplete(false);
-      setCurrentView('result');
+      Alert.alert("Analysis Failed", getFriendlyErrorMessage(e));
+      setCurrentView('audit');
     }
   };
 
@@ -1485,7 +1478,7 @@ Bachelor of Science in Computer Science | Stanford University (2018 - 2022)`;
                               console.log("Failed to refund credits:", refundErr);
                             }
                           }
-                          Alert.alert("Optimization Failed", err?.message || "Failed to optimize resume.");
+                          Alert.alert("Optimization Failed", getFriendlyErrorMessage(err));
                         } finally {
                           setIsOptimizing(false);
                         }
@@ -1494,13 +1487,16 @@ Bachelor of Science in Computer Science | Stanford University (2018 - 2022)`;
                       }
                     } catch (err: any) {
                       console.log("Error in see fixed issues:", err);
-                      Alert.alert("Error", err?.message || "An unexpected error occurred.");
+                      Alert.alert("Error", getFriendlyErrorMessage(err));
                     }
                   }}
                   disabled={isDownloading || isOptimizing}
                 >
                   {isOptimizing ? (
-                    <ActivityIndicator size="small" color="#000000" />
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <ActivityIndicator size="small" color="#000000" style={{ marginRight: 8 }} />
+                      <Text style={styles.seeFixedButtonText}>Getting your file ready</Text>
+                    </View>
                   ) : (
                     <Text style={styles.seeFixedButtonText}>SEE FIXED ISSUES</Text>
                   )}
@@ -1513,7 +1509,10 @@ Bachelor of Science in Computer Science | Stanford University (2018 - 2022)`;
                   disabled={isDownloading || isOptimizing}
                 >
                   {isDownloading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                      <Text style={styles.downloadButtonText}>Preparing your download</Text>
+                    </View>
                   ) : (
                     <Text style={styles.downloadButtonText}>DOWNLOAD IN ATS READABLE</Text>
                   )}
@@ -1572,7 +1571,10 @@ Bachelor of Science in Computer Science | Stanford University (2018 - 2022)`;
               disabled={isDownloading || isOptimizing}
             >
               {isDownloading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.downloadButtonText}>Preparing your download</Text>
+                </View>
               ) : (
                 <Text style={styles.downloadButtonText}>DOWNLOAD IN ATS READABLE</Text>
               )}

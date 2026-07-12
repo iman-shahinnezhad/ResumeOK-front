@@ -83,8 +83,9 @@ export default function Splash({ onContinue }: SplashProps) {
       style={styles.container}
       resizeMode="cover"
     >
-      {/* Svg ambient overlay */}
-      <View style={StyleSheet.absoluteFillObject} />
+      {/* Ambient Premium Glows */}
+      <View style={styles.ambientGlowLeft} />
+      <View style={styles.ambientGlowRight} />
 
       <View style={{ flex: 1, width: '100%', maxWidth: isPad ? 450 : '100%', alignSelf: 'center', justifyContent: 'space-between' }}>
         {/* Top Section: Customer Info Image */}
@@ -97,7 +98,7 @@ export default function Splash({ onContinue }: SplashProps) {
           }
         ]}>
           <Image
-            source={require('../assets/images/logo.webp')}
+            source={require('../assets/images/customer-info.png')}
             style={styles.customerInfoImage}
             resizeMode="contain"
           />
@@ -190,6 +191,36 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     backgroundColor: '#05070c',
   },
+  ambientGlowLeft: {
+    position: 'absolute',
+    top: '25%',
+    left: '-20%',
+    width: 350,
+    height: 350,
+    borderRadius: 175,
+    backgroundColor: '#a8d249',
+    opacity: 0.05,
+    shadowColor: '#a8d249',
+    shadowRadius: 150,
+    shadowOpacity: 0.6,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 2,
+  },
+  ambientGlowRight: {
+    position: 'absolute',
+    bottom: '20%',
+    right: '-20%',
+    width: 350,
+    height: 350,
+    borderRadius: 175,
+    backgroundColor: '#F8E8C0',
+    opacity: 0.04,
+    shadowColor: '#F8E8C0',
+    shadowRadius: 150,
+    shadowOpacity: 0.5,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 2,
+  },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -207,13 +238,13 @@ const styles = StyleSheet.create({
   },
   titleNumber: {
     color: '#ffffff',
-    fontSize: 38,
+    fontSize: 36,
     fontWeight: '900',
     letterSpacing: -1,
   },
   titleMain: {
     color: '#ffffff',
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -224,7 +255,7 @@ const styles = StyleSheet.create({
   },
   lowerMain: {
     color: '#ffffff',
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -235,19 +266,19 @@ const styles = StyleSheet.create({
   continueButton: {
     width: '100%',
     height: 56,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8f1ce',
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#f8f1ce',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 6,
   },
   continueButtonText: {
-    color: '#000000',
-    fontSize: 16,
+    color: '#0f1225',
+    fontSize: 14,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
