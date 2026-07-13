@@ -52,9 +52,10 @@ export default function Library() {
   const { user, guestCredit, refreshCredits } = useAuth();
   const userCredit = user?.credit ?? guestCredit;
 
-  const [activeTab, setActiveTab] = useState<'resume' | 'cover-letter' | 'build-resume'>('resume');
+  const [activeTab, setActiveTab] = useState<'resume' | 'cover-letter' | 'build-resume' | 'applied-jobs'>('resume');
   const [resumes, setResumes] = useState<SelectedResumeFile[]>([]);
   const [coverLetters, setCoverLetters] = useState<SavedCoverLetter[]>([]);
+  const [appliedJobs, setAppliedJobs] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const uploadedResumesList = resumes.filter(r => !r.isBuilt);
@@ -99,6 +100,23 @@ export default function Library() {
     } catch (e) {
       console.log("Error loading cover letters in library:", e);
     }
+
+    // Load Applied Jobs
+    try {
+      const appliedPath = `${FileSystem.documentDirectory}applied_jobs.json`;
+      const fileInfo = await FileSystem.getInfoAsync(appliedPath);
+      if (fileInfo.exists) {
+        const content = await FileSystem.readAsStringAsync(appliedPath);
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed)) {
+          setAppliedJobs(parsed);
+        }
+      } else {
+        setAppliedJobs([]);
+      }
+    } catch (e) {
+      console.log("Error loading applied jobs in library:", e);
+    }
   };
 
   useFocusEffect(
@@ -107,17 +125,121 @@ export default function Library() {
     }, [])
   );
 
+  const encodeBase64 = (input: string): string => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    let str = input;
+    let output = '';
+    for (let block = 0, charCode, i = 0, map = chars;
+         str.charAt(i | 0) || (map = '=', i % 1);
+         output += map.charAt(63 & block >> 8 - i % 1 * 8)) {
+      charCode = str.charCodeAt(i += 3/4);
+      if (charCode > 0xFF) {
+        throw new Error("'btoa' failed");
+      }
+      block = block << 8 | charCode;
+    }
+    return output;
+  };
+
+  const syncGreenhouseStatuses = async (currentList: any[]) => {
+    try {
+      const configPath = `${FileSystem.documentDirectory}greenhouse_config.json`;
+      const configInfo = await FileSystem.getInfoAsync(configPath);
+      if (!configInfo.exists) return currentList;
+
+      const configText = await FileSystem.readAsStringAsync(configPath);
+      const config = JSON.parse(configText);
+      
+      if (!config.harvestKey || !config.email) {
+        return currentList;
+      }
+
+      const authHeader = `Basic ${encodeBase64(config.harvestKey + ":")}`;
+      const res = await fetch(
+        `https://harvest.greenhouse.io/v3/candidates?email=${encodeURIComponent(config.email)}`,
+        {
+          headers: {
+            'Authorization': authHeader,
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      if (!res.ok) {
+        return currentList;
+      }
+
+      const candidates = await res.json();
+      if (!Array.isArray(candidates) || candidates.length === 0) {
+        return currentList;
+      }
+
+      const apiStatuses: Record<string, { status: string; stage: string }> = {};
+      for (const cand of candidates) {
+        if (cand.applications && Array.isArray(cand.applications)) {
+          for (const app of cand.applications) {
+            const status = app.status || 'active';
+            const stage = app.current_stage?.name || 'Application Review';
+            if (app.jobs && Array.isArray(app.jobs)) {
+              for (const j of app.jobs) {
+                apiStatuses[String(j.id)] = { status, stage };
+              }
+            }
+          }
+        }
+      }
+
+      let changed = false;
+      const updatedList = currentList.map(item => {
+        const match = apiStatuses[item.jobId];
+        if (match) {
+          if (item.status !== match.status || item.currentStage !== match.stage) {
+            changed = true;
+            return {
+              ...item,
+              status: match.status,
+              currentStage: match.stage
+            };
+          }
+        }
+        return item;
+      });
+
+      if (changed) {
+        const appliedPath = `${FileSystem.documentDirectory}applied_jobs.json`;
+        await FileSystem.writeAsStringAsync(appliedPath, JSON.stringify(updatedList));
+        return updatedList;
+      }
+    } catch (err) {
+      console.log("Error syncing Greenhouse statuses:", err);
+    }
+    return currentList;
+  };
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await refreshCredits();
       await loadData();
+
+      // Sync applied jobs
+      const appliedPath = `${FileSystem.documentDirectory}applied_jobs.json`;
+      const appliedInfo = await FileSystem.getInfoAsync(appliedPath);
+      if (appliedInfo.exists) {
+        const text = await FileSystem.readAsStringAsync(appliedPath);
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) {
+          const synced = await syncGreenhouseStatuses(parsed);
+          setAppliedJobs(synced);
+        }
+      }
     } catch (err) {
       console.log("Error refreshing library:", err);
     } finally {
       setRefreshing(false);
     }
   }, [refreshCredits]);
+
 
   const handleShareResume = async (item: SelectedResumeFile) => {
     if (!item.uri) {
@@ -298,6 +420,83 @@ export default function Library() {
     setModalVisible(true);
   };
 
+  const handleDeleteAppliedJob = (id: string) => {
+    Alert.alert(
+      "Remove Tracking",
+      "Are you sure you want to remove this job from your tracking list?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const appliedPath = `${FileSystem.documentDirectory}applied_jobs.json`;
+              const filtered = appliedJobs.filter(item => item.id !== id);
+              await FileSystem.writeAsStringAsync(appliedPath, JSON.stringify(filtered));
+              setAppliedJobs(filtered);
+            } catch (err) {
+              console.log("Error deleting applied job:", err);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const renderAppliedJobItem = ({ item }: { item: any }) => {
+    // Badges based on status
+    let badgeBg = '#E0F2FE'; // light blue
+    let badgeText = '#0369A1';
+    let statusLabel = item.status.toUpperCase();
+
+    if (item.status === 'hired') {
+      badgeBg = '#D1FAE5'; // light green
+      badgeText = '#065F46';
+      statusLabel = 'HIRED 🥳';
+    } else if (item.status === 'rejected') {
+      badgeBg = '#FEE2E2'; // light red
+      badgeText = '#991B1B';
+      statusLabel = 'REJECTED';
+    } else if (item.status === 'active') {
+      badgeBg = '#F5F3FF'; // light purple
+      badgeText = '#5B21B6';
+      statusLabel = 'ACTIVE';
+    }
+
+    return (
+      <View style={styles.appliedJobCard}>
+        <View style={styles.appliedJobHeader}>
+          <View style={styles.appliedJobInfo}>
+            <Text style={styles.appliedJobTitle} numberOfLines={1}>{item.jobTitle}</Text>
+            <Text style={styles.appliedJobCompany}>{item.companyName}</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: badgeBg }]}>
+            <Text style={[styles.statusBadgeText, { color: badgeText }]}>{statusLabel}</Text>
+          </View>
+        </View>
+
+        <View style={styles.appliedJobFooter}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.appliedJobMetaText}>
+              Stage: <Text style={{ fontWeight: '700', color: '#2E1A8E' }}>{item.currentStage || 'Application Review'}</Text>
+            </Text>
+            <Text style={styles.appliedJobDateText}>Applied: {item.date}</Text>
+            <Text style={styles.appliedJobResumeText} numberOfLines={1}>Resume: {item.resumeName}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.deleteAppBtn}
+            activeOpacity={0.8}
+            onPress={() => handleDeleteAppliedJob(item.id)}
+          >
+            <Ionicons name="trash-outline" size={16} color="#EF4444" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   const renderResumeItem = ({ item }: { item: SelectedResumeFile }) => {
     let indicatorColor = '#4B5563'; // default Slate
     if (item.name.toLowerCase().includes('executive')) {
@@ -436,39 +635,57 @@ export default function Library() {
 
       <View style={{ flex: 1, width: '100%', maxWidth: isPad ? 600 : (isLandscape ? 600 : '100%'), alignSelf: 'center' }}>
         {/* Tabs Row */}
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'resume' && styles.tabButtonActive]}
-            activeOpacity={0.9}
-            onPress={() => setActiveTab('resume')}
+        <View style={{ height: 48, marginBottom: 16 }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tabsScrollView}
+            contentContainerStyle={styles.tabsContainer}
           >
-            <Text style={[styles.tabText, activeTab === 'resume' && styles.tabTextActive]}>
-              Resumes
-            </Text>
-            {activeTab === 'resume' && <View style={styles.activeIndicator} />}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === 'resume' && styles.tabButtonActive]}
+              activeOpacity={0.9}
+              onPress={() => setActiveTab('resume')}
+            >
+              <Text style={[styles.tabText, activeTab === 'resume' && styles.tabTextActive]}>
+                Resumes
+              </Text>
+              {activeTab === 'resume' && <View style={styles.activeIndicator} />}
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'cover-letter' && styles.tabButtonActive]}
-            activeOpacity={0.9}
-            onPress={() => setActiveTab('cover-letter')}
-          >
-            <Text style={[styles.tabText, activeTab === 'cover-letter' && styles.tabTextActive]}>
-              Cover letters
-            </Text>
-            {activeTab === 'cover-letter' && <View style={styles.activeIndicator} />}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === 'cover-letter' && styles.tabButtonActive]}
+              activeOpacity={0.9}
+              onPress={() => setActiveTab('cover-letter')}
+            >
+              <Text style={[styles.tabText, activeTab === 'cover-letter' && styles.tabTextActive]}>
+                Cover letters
+              </Text>
+              {activeTab === 'cover-letter' && <View style={styles.activeIndicator} />}
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'build-resume' && styles.tabButtonActive]}
-            activeOpacity={0.9}
-            onPress={() => setActiveTab('build-resume')}
-          >
-            <Text style={[styles.tabText, activeTab === 'build-resume' && styles.tabTextActive]}>
-              Build Resume
-            </Text>
-            {activeTab === 'build-resume' && <View style={styles.activeIndicator} />}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === 'build-resume' && styles.tabButtonActive]}
+              activeOpacity={0.9}
+              onPress={() => setActiveTab('build-resume')}
+            >
+              <Text style={[styles.tabText, activeTab === 'build-resume' && styles.tabTextActive]}>
+                Build Resume
+              </Text>
+              {activeTab === 'build-resume' && <View style={styles.activeIndicator} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === 'applied-jobs' && styles.tabButtonActive]}
+              activeOpacity={0.9}
+              onPress={() => setActiveTab('applied-jobs')}
+            >
+              <Text style={[styles.tabText, activeTab === 'applied-jobs' && styles.tabTextActive]}>
+                Applied Jobs
+              </Text>
+              {activeTab === 'applied-jobs' && <View style={styles.activeIndicator} />}
+            </TouchableOpacity>
+          </ScrollView>
         </View>
 
         {/* Content Section */}
@@ -531,6 +748,39 @@ export default function Library() {
               data={coverLetters}
               keyExtractor={(item) => item.id}
               renderItem={renderCoverLetterItem}
+              contentContainerStyle={styles.listContainer}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+            />
+          )
+        ) : activeTab === 'applied-jobs' ? (
+          appliedJobs.length === 0 ? (
+            <ScrollView
+              contentContainerStyle={styles.emptyContainer}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+            >
+              <Ionicons name="briefcase-outline" size={80} color="#A0AEC0" />
+              <Text style={styles.emptyTitle}>No Applied Jobs yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Find Greenhouse jobs in the search tool and submit your applications to track them here.
+              </Text>
+              <TouchableOpacity
+                style={styles.actionButton}
+                activeOpacity={0.8}
+                onPress={() => router.push('/jobs' as any)}
+              >
+                <Text style={styles.actionButtonText}>Find Jobs 💼</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          ) : (
+            <FlatList
+              data={appliedJobs}
+              keyExtractor={(item) => item.id}
+              renderItem={renderAppliedJobItem}
               contentContainerStyle={styles.listContainer}
               showsVerticalScrollIndicator={false}
               refreshControl={
@@ -785,6 +1035,82 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
+  },
+  tabsScrollView: {
+    maxHeight: 50,
+  },
+  appliedJobCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.04)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  appliedJobHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingBottom: 12,
+    marginBottom: 12,
+  },
+  appliedJobInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  appliedJobTitle: {
+    color: '#2E1A8E',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  appliedJobCompany: {
+    color: '#6355D8',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  appliedJobFooter: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  appliedJobMetaText: {
+    color: '#6B7280',
+    fontSize: 13,
+  },
+  appliedJobDateText: {
+    color: '#9CA3AF',
+    fontSize: 11,
+    marginTop: 4,
+  },
+  appliedJobResumeText: {
+    color: '#9CA3AF',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  deleteAppBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   buildAnotherBtn: {
     backgroundColor: '#000000',

@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert, ActivityIndicator, Linking, TextInput } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, API_URL } from '../context/AuthContext';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
@@ -17,6 +18,52 @@ export default function Settings() {
   const { guestCredit, guestId, user, updateUser } = useAuth();
 
   const [referralCode, setReferralCode] = React.useState('');
+
+  // Greenhouse Integration States
+  const [ghBoardToken, setGhBoardToken] = React.useState('');
+  const [ghJobBoardKey, setGhJobBoardKey] = React.useState('');
+  const [ghHarvestKey, setGhHarvestKey] = React.useState('');
+  const [ghEmail, setGhEmail] = React.useState('');
+  const [ghSaving, setGhSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    async function loadGreenhouseConfig() {
+      try {
+        const path = `${FileSystem.documentDirectory}greenhouse_config.json`;
+        const info = await FileSystem.getInfoAsync(path);
+        if (info.exists) {
+          const text = await FileSystem.readAsStringAsync(path);
+          const parsed = JSON.parse(text);
+          setGhBoardToken(parsed.boardToken || '');
+          setGhJobBoardKey(parsed.jobBoardKey || '');
+          setGhHarvestKey(parsed.harvestKey || '');
+          setGhEmail(parsed.email || '');
+        }
+      } catch (e) {
+        console.log("Error loading Greenhouse config:", e);
+      }
+    }
+    loadGreenhouseConfig();
+  }, []);
+
+  const handleSaveGreenhouseConfig = async () => {
+    setGhSaving(true);
+    try {
+      const path = `${FileSystem.documentDirectory}greenhouse_config.json`;
+      const config = {
+        boardToken: ghBoardToken.trim(),
+        jobBoardKey: ghJobBoardKey.trim(),
+        harvestKey: ghHarvestKey.trim(),
+        email: ghEmail.trim()
+      };
+      await FileSystem.writeAsStringAsync(path, JSON.stringify(config));
+      Alert.alert("Success", "Greenhouse configuration saved successfully.");
+    } catch (e) {
+      Alert.alert("Error", "Could not save Greenhouse configuration.");
+    } finally {
+      setGhSaving(false);
+    }
+  };
   const [totalJoined, setTotalJoined] = React.useState(0);
   const [referralLevel, setReferralLevel] = React.useState(0);
   const [referralLoading, setReferralLoading] = React.useState(true);
@@ -364,6 +411,77 @@ export default function Settings() {
             )}
           </View>
         )}
+
+        {/* Greenhouse Integration Card */}
+        <View style={styles.referrerCard}>
+          <LinearGradient
+            colors={['rgba(27, 94, 32, 0.04)', 'rgba(27, 94, 32, 0.01)']}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <View style={styles.referralHeader}>
+            <Ionicons name="settings-outline" size={22} color="#1B5E20" />
+            <Text style={[styles.referralTitle, { color: '#000' }]}>Greenhouse Integration</Text>
+          </View>
+          <Text style={styles.referralDesc}>
+            Configure your Greenhouse keys to search jobs, apply, and track real-time application stage updates.
+          </Text>
+
+          <TextInput
+            style={[styles.referrerInput, { marginBottom: 12, borderRadius: 12, height: 44, textAlign: 'left', paddingHorizontal: 16 }]}
+            placeholder="Greenhouse Board Token (e.g. stripe)"
+            placeholderTextColor="rgba(0,0,0,0.3)"
+            value={ghBoardToken}
+            onChangeText={setGhBoardToken}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          <TextInput
+            style={[styles.referrerInput, { marginBottom: 12, borderRadius: 12, height: 44, textAlign: 'left', paddingHorizontal: 16 }]}
+            placeholder="Job Board API Key"
+            placeholderTextColor="rgba(0,0,0,0.3)"
+            value={ghJobBoardKey}
+            onChangeText={setGhJobBoardKey}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          <TextInput
+            style={[styles.referrerInput, { marginBottom: 12, borderRadius: 12, height: 44, textAlign: 'left', paddingHorizontal: 16 }]}
+            placeholder="Harvest API Key"
+            placeholderTextColor="rgba(0,0,0,0.3)"
+            value={ghHarvestKey}
+            onChangeText={setGhHarvestKey}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          <TextInput
+            style={[styles.referrerInput, { marginBottom: 16, borderRadius: 12, height: 44, textAlign: 'left', paddingHorizontal: 16 }]}
+            placeholder="Candidate Email (to track status)"
+            placeholderTextColor="rgba(0,0,0,0.3)"
+            value={ghEmail}
+            onChangeText={setGhEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          <TouchableOpacity
+            style={[styles.planButton, { backgroundColor: '#1B5E20', paddingVertical: 14 }]}
+            activeOpacity={0.8}
+            onPress={handleSaveGreenhouseConfig}
+            disabled={ghSaving}
+          >
+            {ghSaving ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Text style={styles.planButtonText}>Save Greenhouse Configuration</Text>
+            )}
+          </TouchableOpacity>
+        </View>
 
         {/* Menu Section */}
         <View style={styles.menuSectionHeader}>

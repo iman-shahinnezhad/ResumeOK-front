@@ -126,6 +126,30 @@ export default function Home() {
             </View>
           </TouchableOpacity>
 
+          {/* Job Search Section Header */}
+          <Text style={styles.sectionTitle}>Apply & Track Jobs</Text>
+
+          {/* Job Search Card */}
+          <TouchableOpacity
+            style={[styles.buildCard, { backgroundColor: '#E8F5E9', borderColor: '#A5D6A7' }]}
+            activeOpacity={0.8}
+            onPress={() => router.push('/jobs' as any)}
+          >
+            <View style={[styles.badgeContainer, { backgroundColor: '#1B5E20' }]}>
+              <Text style={styles.badgeText}>💼 Greenhouse API</Text>
+            </View>
+            <View style={styles.buildCardContentRow}>
+              <View style={[styles.folderIconImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#C8E6C9', borderRadius: 12, width: 44, height: 44, marginRight: 16 }]}>
+                <Ionicons name="search" size={24} color="#1B5E20" />
+              </View>
+              <View style={styles.buildTitleContainer}>
+                <Text style={[styles.buildTitleText, { color: '#1B5E20' }]}>Find & Apply to Jobs</Text>
+                <Ionicons name="chevron-forward" size={18} color="#1B5E20" style={styles.buildChevron} />
+              </View>
+            </View>
+          </TouchableOpacity>
+
+
         </View>
       </ScrollView>
     </View>

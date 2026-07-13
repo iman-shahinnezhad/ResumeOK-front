@@ -159,6 +159,7 @@ export default function RootLayout() {
               <Stack.Screen name="account" />
               <Stack.Screen name="report-bug" />
               <Stack.Screen name="referral-onboarding" />
+              <Stack.Screen name="jobs" />
             </Stack>
           </ThemeProvider>
 
