@@ -82,6 +82,18 @@ export default function JobsScreen() {
   // Tinder Swipe position tracking
   const swipePosition = useRef(new Animated.ValueXY()).current;
 
+  // Refs to avoid stale closures in PanResponder / swipe callbacks
+  const currentIndexRef = useRef(0);
+  const filteredJobsRef = useRef<GreenhouseJob[]>([]);
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
+  useEffect(() => {
+    filteredJobsRef.current = filteredJobs;
+  }, [filteredJobs]);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -113,7 +125,7 @@ export default function JobsScreen() {
       duration: 250,
       useNativeDriver: true
     }).start(() => {
-      const targetJob = filteredJobs[currentIndex];
+      const targetJob = filteredJobsRef.current[currentIndexRef.current];
       
       // Increment top index
       setCurrentIndex(prev => prev + 1);
