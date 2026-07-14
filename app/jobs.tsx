@@ -621,48 +621,35 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
           </View>
         ) : (
           <View style={{ flex: 1, position: 'relative', width: '100%' }}>
-            {/* Background / Next Card */}
-            {currentIndex + 1 < filteredJobs.length && (
-              <Animated.View
-                key="bg-card"
-                style={[
-                  styles.jobCardContainer,
-                  {
-                    height: pagerHeight,
-                    position: 'absolute',
-                    width: '100%',
-                    zIndex: 1,
-                    opacity: nextCardOpacity,
-                    transform: [{ scale: nextCardScale }]
-                  }
-                ]}
-              >
-                <JobCardContent item={filteredJobs[currentIndex + 1]} isActive={false} />
-              </Animated.View>
-            )}
-
-            {/* Foreground / Active Card */}
-            <Animated.View
-              key="fg-card"
-              {...panResponder.panHandlers}
-              style={[
-                styles.jobCardContainer,
-                getCardStyle(),
-                {
-                  height: pagerHeight,
-                  position: 'absolute',
-                  width: '100%',
-                  zIndex: 2
-                }
-              ]}
-            >
-              <JobCardContent 
-                item={filteredJobs[currentIndex]} 
-                isActive={true} 
-                likeOpacity={likeOpacity} 
-                nopeOpacity={nopeOpacity} 
-              />
-            </Animated.View>
+            {filteredJobs.slice(currentIndex, currentIndex + 2).reverse().map((item, idx, arr) => {
+              const isTopCard = idx === arr.length - 1;
+              return (
+                <Animated.View
+                  key={item.id}
+                  {...(isTopCard ? panResponder.panHandlers : {})}
+                  style={[
+                    styles.jobCardContainer,
+                    isTopCard ? getCardStyle() : {
+                      opacity: nextCardOpacity,
+                      transform: [{ scale: nextCardScale }]
+                    },
+                    {
+                      height: pagerHeight,
+                      position: 'absolute',
+                      width: '100%',
+                      zIndex: isTopCard ? 2 : 1
+                    }
+                  ]}
+                >
+                  <JobCardContent 
+                    item={item} 
+                    isActive={isTopCard} 
+                    likeOpacity={likeOpacity} 
+                    nopeOpacity={nopeOpacity} 
+                  />
+                </Animated.View>
+              );
+            })}
           </View>
         )}
       </View>
