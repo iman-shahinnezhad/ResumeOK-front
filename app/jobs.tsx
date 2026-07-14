@@ -85,6 +85,7 @@ export default function JobsScreen() {
   // Refs to avoid stale closures in PanResponder / swipe callbacks
   const currentIndexRef = useRef(0);
   const filteredJobsRef = useRef<GreenhouseJob[]>([]);
+  const isAnimatingRef = useRef(false);
 
   useEffect(() => {
     currentIndexRef.current = currentIndex;
@@ -96,12 +97,14 @@ export default function JobsScreen() {
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => !isAnimatingRef.current,
+      onMoveShouldSetPanResponder: () => !isAnimatingRef.current,
       onPanResponderMove: (evt, gestureState) => {
+        if (isAnimatingRef.current) return;
         swipePosition.setValue({ x: gestureState.dx, y: gestureState.dy });
       },
       onPanResponderRelease: (evt, gestureState) => {
+        if (isAnimatingRef.current) return;
         if (gestureState.dx > 120) {
           swipeCard('right');
         } else if (gestureState.dx < -120) {
@@ -119,6 +122,9 @@ export default function JobsScreen() {
   ).current;
 
   const swipeCard = (direction: 'left' | 'right') => {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
+
     Animated.timing(swipePosition, {
       toValue: { 
         x: direction === 'right' ? 500 : -500, 
@@ -135,6 +141,8 @@ export default function JobsScreen() {
 
       // Increment top index
       setCurrentIndex(prev => prev + 1);
+
+      isAnimatingRef.current = false;
 
       // Swipe Right action (Apply / Details)
       if (direction === 'right' && targetJob) {
