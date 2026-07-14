@@ -148,8 +148,10 @@ export default function JobsScreen() {
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => !isAnimatingRef.current,
-      onMoveShouldSetPanResponder: () => !isAnimatingRef.current,
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return !isAnimatingRef.current && (Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10);
+      },
       onPanResponderMove: (evt, gestureState) => {
         if (isAnimatingRef.current) return;
         const tx = currentIndexRef.current % 2 === 0 ? translateX1 : translateX2;
@@ -160,15 +162,6 @@ export default function JobsScreen() {
       onPanResponderRelease: (evt, gestureState) => {
         if (isAnimatingRef.current) return;
 
-        // Detect tap: if drag distance is very small, treat it as a click/tap to open details
-        if (Math.abs(gestureState.dx) < 8 && Math.abs(gestureState.dy) < 8) {
-          const targetJob = filteredJobsRef.current[currentIndexRef.current];
-          if (targetJob) {
-            viewJobDetails(targetJob);
-          }
-          return;
-        }
-
         const tx = currentIndexRef.current % 2 === 0 ? translateX1 : translateX2;
         const ty = currentIndexRef.current % 2 === 0 ? translateY1 : translateY2;
         if (gestureState.dx > 120) {
@@ -176,8 +169,9 @@ export default function JobsScreen() {
         } else if (gestureState.dx < -120) {
           swipeCard('left');
         } else {
-          tx.value = withSpring(0, { damping: 15 });
-          ty.value = withSpring(0, { damping: 15 });
+          // Zero bounce return using withTiming ease-out
+          tx.value = withTiming(0, { duration: 200 });
+          ty.value = withTiming(0, { duration: 200 });
         }
       }
     })
@@ -708,12 +702,23 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
                 }
               ]}
             >
-              <JobCardContent
-                item={filteredJobs[currentIndex]}
-                isActive={true}
-                likeStyle={likeBadgeStyle}
-                nopeStyle={nopeBadgeStyle}
-              />
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={() => {
+                  const targetJob = filteredJobsRef.current[currentIndexRef.current];
+                  if (targetJob) {
+                    viewJobDetails(targetJob);
+                  }
+                }}
+                style={{ flex: 1 }}
+              >
+                <JobCardContent
+                  item={filteredJobs[currentIndex]}
+                  isActive={true}
+                  likeStyle={likeBadgeStyle}
+                  nopeStyle={nopeBadgeStyle}
+                />
+              </TouchableOpacity>
             </Animated.View>
           </View>
         )}
