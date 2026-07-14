@@ -11,10 +11,18 @@ import {
   Modal,
   Switch,
   Platform,
-  Animated,
   Linking,
   PanResponder,
 } from 'react-native';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  withTiming, 
+  interpolate, 
+  Extrapolation, 
+  runOnJS 
+} from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -78,11 +86,9 @@ export default function JobsScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [pagerHeight, setPagerHeight] = useState(480);
-  const [isCardLoading, setIsCardLoading] = useState(false);
-  const cardLoadingTimeoutRef = useRef<any>(null);
-
-  // Tinder Swipe position tracking
-  const swipePosition = useRef(new Animated.ValueXY()).current;
+  // Tinder Swipe position tracking (Reanimated Shared Values)
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
 
   // Refs to avoid stale closures in PanResponder / swipe callbacks
   const currentIndexRef = useRef(0);
@@ -90,28 +96,41 @@ export default function JobsScreen() {
   const isAnimatingRef = useRef(false);
 
   useEffect(() => {
-    return () => {
-      if (cardLoadingTimeoutRef.current) {
-        clearTimeout(cardLoadingTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     currentIndexRef.current = currentIndex;
-    
-    // Reset swipe position after a short delay to give the native thread time to completely destroy the swiped card view
-    const delayReset = setTimeout(() => {
-      swipePosition.stopAnimation();
-      swipePosition.setValue({ x: 0, y: 0 });
-    }, 100);
-
-    return () => clearTimeout(delayReset);
+    translateX.value = 0;
+    translateY.value = 0;
   }, [currentIndex]);
 
   useEffect(() => {
     filteredJobsRef.current = filteredJobs;
   }, [filteredJobs]);
+
+  const handleSwipeComplete = (direction: 'left' | 'right') => {
+    const targetJob = filteredJobsRef.current[currentIndexRef.current];
+    setCurrentIndex(prev => prev + 1);
+    translateX.value = 0;
+    translateY.value = 0;
+    isAnimatingRef.current = false;
+
+    if (direction === 'right' && targetJob) {
+      viewJobDetails(targetJob);
+    }
+  };
+
+  const swipeCard = (direction: 'left' | 'right') => {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
+
+    const targetX = direction === 'right' ? 500 : -500;
+    const targetY = direction === 'right' ? 50 : -50;
+
+    translateX.value = withTiming(targetX, { duration: 250 });
+    translateY.value = withTiming(targetY, { duration: 250 }, (finished) => {
+      if (finished) {
+        runOnJS(handleSwipeComplete)(direction);
+      }
+    });
+  };
 
   const panResponder = useRef(
     PanResponder.create({
@@ -119,7 +138,8 @@ export default function JobsScreen() {
       onMoveShouldSetPanResponder: () => !isAnimatingRef.current,
       onPanResponderMove: (evt, gestureState) => {
         if (isAnimatingRef.current) return;
-        swipePosition.setValue({ x: gestureState.dx, y: gestureState.dy });
+        translateX.value = gestureState.dx;
+        translateY.value = gestureState.dy;
       },
       onPanResponderRelease: (evt, gestureState) => {
         if (isAnimatingRef.current) return;
@@ -128,107 +148,77 @@ export default function JobsScreen() {
         } else if (gestureState.dx < -120) {
           swipeCard('left');
         } else {
-          swipePosition.stopAnimation();
-          Animated.spring(swipePosition, {
-            toValue: { x: 0, y: 0 },
-            friction: 5,
-            useNativeDriver: true
-          }).start();
+          translateX.value = withSpring(0, { damping: 15 });
+          translateY.value = withSpring(0, { damping: 15 });
         }
       }
     })
   ).current;
 
-  const swipeCard = (direction: 'left' | 'right') => {
-    if (isAnimatingRef.current) return;
-    isAnimatingRef.current = true;
+  const activeCardStyle = useAnimatedStyle(() => {
+    const rotate = interpolate(
+      translateX.value,
+      [-200, 0, 200],
+      [-10, 0, 10],
+      Extrapolation.CLAMP
+    );
 
-    Animated.timing(swipePosition, {
-      toValue: { 
-        x: direction === 'right' ? 500 : -500, 
-        y: direction === 'right' ? 50 : -50 
-      },
-      duration: 250,
-      useNativeDriver: true
-    }).start(() => {
-      const targetJob = filteredJobsRef.current[currentIndexRef.current];
-      
-      // Trigger 1-second loading state for the next card
-      setIsCardLoading(true);
-      if (cardLoadingTimeoutRef.current) {
-        clearTimeout(cardLoadingTimeoutRef.current);
-      }
-      cardLoadingTimeoutRef.current = setTimeout(() => {
-        setIsCardLoading(false);
-      }, 1000);
-
-      // Increment top index (unmounts the swiped card)
-      setCurrentIndex(prev => prev + 1);
-
-      isAnimatingRef.current = false;
-
-      // Swipe Right action (Apply / Details)
-      if (direction === 'right' && targetJob) {
-        viewJobDetails(targetJob);
-      }
-    });
-  };
-
-  const getCardStyle = () => {
-    if (isCardLoading) {
-      return {
-        opacity: 1.0,
-        transform: [
-          { translateX: 0 },
-          { translateY: 0 },
-          { rotate: '0deg' }
-        ]
-      };
-    }
-
-    const rotate = swipePosition.x.interpolate({
-      inputRange: [-200, 0, 200],
-      outputRange: ['-10deg', '0deg', '10deg']
-    });
-
-    const opacity = swipePosition.x.interpolate({
-      inputRange: [-200, -100, 0, 100, 200],
-      outputRange: [0, 0.5, 1.0, 0.5, 0],
-      extrapolate: 'clamp'
-    });
+    const opacity = interpolate(
+      translateX.value,
+      [-200, -100, 0, 100, 200],
+      [0, 0.5, 1.0, 0.5, 0],
+      Extrapolation.CLAMP
+    );
 
     return {
       opacity,
       transform: [
-        { translateX: swipePosition.x },
-        { translateY: swipePosition.y },
-        { rotate }
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { rotate: `${rotate}deg` }
       ]
     };
-  };
-
-  const nextCardScale = swipePosition.x.interpolate({
-    inputRange: [-150, 0, 150],
-    outputRange: [1.0, 0.95, 1.0],
-    extrapolate: 'clamp'
   });
 
-  const nextCardOpacity = swipePosition.x.interpolate({
-    inputRange: [-150, 0, 150],
-    outputRange: [1.0, 0.8, 1.0],
-    extrapolate: 'clamp'
+  const backgroundCardStyle = useAnimatedStyle(() => {
+    const scale = interpolate(
+      translateX.value,
+      [-150, 0, 150],
+      [1.0, 0.95, 1.0],
+      Extrapolation.CLAMP
+    );
+
+    const opacity = interpolate(
+      translateX.value,
+      [-150, 0, 150],
+      [1.0, 0.8, 1.0],
+      Extrapolation.CLAMP
+    );
+
+    return {
+      opacity,
+      transform: [{ scale }]
+    };
   });
 
-  const likeOpacity = swipePosition.x.interpolate({
-    inputRange: [0, 100],
-    outputRange: [0, 1],
-    extrapolate: 'clamp'
+  const likeBadgeStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      translateX.value,
+      [0, 100],
+      [0, 1],
+      Extrapolation.CLAMP
+    );
+    return { opacity };
   });
 
-  const nopeOpacity = swipePosition.x.interpolate({
-    inputRange: [-100, 0],
-    outputRange: [1, 0],
-    extrapolate: 'clamp'
+  const nopeBadgeStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      translateX.value,
+      [-100, 0],
+      [1, 0],
+      Extrapolation.CLAMP
+    );
+    return { opacity };
   });
 
   useEffect(() => {
@@ -343,14 +333,6 @@ export default function JobsScreen() {
             setFilteredJobs(processed);
             setCurrentPage(1);
 
-            // Trigger 1-second card loading on fresh query load
-            setIsCardLoading(true);
-            if (cardLoadingTimeoutRef.current) {
-              clearTimeout(cardLoadingTimeoutRef.current);
-            }
-            cardLoadingTimeoutRef.current = setTimeout(() => {
-              setIsCardLoading(false);
-            }, 1000);
           }
         }
       }
@@ -679,12 +661,13 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
           </View>
         ) : (
           <View style={{ flex: 1, position: 'relative', width: '100%' }}>
-            {/* Background / Next Card (100% static, does not move or intercept touches) */}
+            {/* Background / Next Card (Behind active card, changes scale/opacity dynamically) */}
             {currentIndex + 1 < filteredJobs.length && (
-              <View
+              <Animated.View
                 key="bg-card"
                 style={[
                   styles.jobCardContainer,
+                  backgroundCardStyle,
                   {
                     height: pagerHeight,
                     position: 'absolute',
@@ -694,7 +677,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
                 ]}
               >
                 <JobCardLoading />
-              </View>
+              </Animated.View>
             )}
 
             {/* Foreground / Active Card (Moves with gesture) */}
@@ -703,7 +686,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
               {...panResponder.panHandlers}
               style={[
                 styles.jobCardContainer,
-                getCardStyle(),
+                activeCardStyle,
                 {
                   height: pagerHeight,
                   position: 'absolute',
@@ -712,16 +695,12 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
                 }
               ]}
             >
-              {isCardLoading ? (
-                <JobCardLoading />
-              ) : (
-                <JobCardContent 
-                  item={filteredJobs[currentIndex]} 
-                  isActive={true} 
-                  likeOpacity={likeOpacity} 
-                  nopeOpacity={nopeOpacity} 
-                />
-              )}
+              <JobCardContent 
+                item={filteredJobs[currentIndex]} 
+                isActive={true} 
+                likeStyle={likeBadgeStyle} 
+                nopeStyle={nopeBadgeStyle} 
+              />
             </Animated.View>
           </View>
         )}
@@ -1439,18 +1418,31 @@ function stripHtml(html: string) {
 interface JobCardContentProps {
   item: GreenhouseJob;
   isActive: boolean;
-  likeOpacity?: any;
-  nopeOpacity?: any;
+  likeStyle?: any;
+  nopeStyle?: any;
 }
 
-const JobCardContent = React.memo(({ item, isActive, likeOpacity, nopeOpacity }: JobCardContentProps) => {
+const JobCardContent = React.memo(({ item, isActive, likeStyle, nopeStyle }: JobCardContentProps) => {
+  const [localLoading, setLocalLoading] = useState(isActive);
+
+  useEffect(() => {
+    if (isActive) {
+      setLocalLoading(true);
+      const timer = setTimeout(() => {
+        setLocalLoading(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isActive, item.id]);
+
+  if (isActive && localLoading) {
+    return <JobCardLoading />;
+  }
+
   const dept = item.departments?.[0]?.name || "General";
   const office = item.location.name || "Remote";
   const companyName = item.companyName || "COMPANY";
-  const rawDescription = stripHtml(item.content || "");
-  const snippet = rawDescription.length > 280 
-    ? rawDescription.slice(0, 280) + "..." 
-    : rawDescription;
+  const snippet = (item as any).cleanSnippet || "";
 
   return (
     <View style={styles.premiumCard}>
@@ -1488,11 +1480,11 @@ const JobCardContent = React.memo(({ item, isActive, likeOpacity, nopeOpacity }:
       {/* Swipe Badge Overlays (Tinder-style stamps) */}
       {isActive && (
         <>
-          <Animated.View style={[styles.swipeBadge, styles.likeBadge, { opacity: likeOpacity }]}>
+          <Animated.View style={[styles.swipeBadge, styles.likeBadge, likeStyle]}>
             <Text style={styles.likeBadgeText}>APPLY</Text>
           </Animated.View>
           
-          <Animated.View style={[styles.swipeBadge, styles.nopeBadge, { opacity: nopeOpacity }]}>
+          <Animated.View style={[styles.swipeBadge, styles.nopeBadge, nopeStyle]}>
             <Text style={styles.nopeBadgeText}>SKIP</Text>
           </Animated.View>
         </>
