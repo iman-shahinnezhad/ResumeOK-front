@@ -145,10 +145,6 @@ export default function JobsScreen() {
     }).start(() => {
       const targetJob = filteredJobsRef.current[currentIndexRef.current];
       
-      // Stop and reset position immediately for next card
-      swipePosition.stopAnimation();
-      swipePosition.setValue({ x: 0, y: 0 });
-
       // Trigger 1-second loading state for the next card
       setIsCardLoading(true);
       if (cardLoadingTimeoutRef.current) {
@@ -158,8 +154,12 @@ export default function JobsScreen() {
         setIsCardLoading(false);
       }, 1000);
 
-      // Increment top index
+      // Increment top index (unmounts the swiped card)
       setCurrentIndex(prev => prev + 1);
+
+      // Stop and reset position for the next card slot
+      swipePosition.stopAnimation();
+      swipePosition.setValue({ x: 0, y: 0 });
 
       isAnimatingRef.current = false;
 
