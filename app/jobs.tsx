@@ -634,7 +634,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
               return (
                 <Animated.View
                   key={item.id}
-                  {...(isTopCard ? panResponder.panHandlers : {})}
+                  {...panResponder.panHandlers}
                   style={[
                     styles.jobCardContainer,
                     isTopCard ? getCardStyle() : {
