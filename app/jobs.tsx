@@ -545,63 +545,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
     }
   };
 
-  const renderJobCardContent = (item: GreenhouseJob, isActive = false) => {
-    const dept = item.departments?.[0]?.name || "General";
-    const office = item.location.name || "Remote";
-    const companyName = item.companyName || "COMPANY";
-    const rawDescription = stripHtml(item.content || "");
-    const snippet = rawDescription.length > 280 
-      ? rawDescription.slice(0, 280) + "..." 
-      : rawDescription;
 
-    return (
-      <View style={styles.premiumCard}>
-        <LinearGradient
-          colors={['#FFFFFF', '#F9FAFB']}
-          style={StyleSheet.absoluteFillObject}
-        />
-        
-        <View style={styles.cardHeader}>
-          <View style={styles.companyTagLarge}>
-            <Text style={styles.companyTagTextLarge}>{companyName}</Text>
-          </View>
-        </View>
-
-        <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-
-        <View style={styles.cardMetaRow}>
-          <View style={styles.cardMetaBadge}>
-            <Ionicons name="briefcase" size={14} color="#6355D8" />
-            <Text style={styles.cardMetaText} numberOfLines={1}>{dept}</Text>
-          </View>
-          <View style={[styles.cardMetaBadge, { marginLeft: 8 }]}>
-            <Ionicons name="location" size={14} color="#6355D8" />
-            <Text style={styles.cardMetaText} numberOfLines={1}>{office}</Text>
-          </View>
-        </View>
-
-        <View style={styles.cardDivider} />
-
-        <Text style={styles.cardSectionHeading}>Description Overview</Text>
-        <View style={styles.cardSnippetContainer}>
-          <Text style={styles.cardSnippetText}>{snippet}</Text>
-        </View>
-
-        {/* Swipe Badge Overlays (Tinder-style stamps) */}
-        {isActive && (
-          <>
-            <Animated.View style={[styles.swipeBadge, styles.likeBadge, { opacity: likeOpacity }]}>
-              <Text style={styles.likeBadgeText}>APPLY</Text>
-            </Animated.View>
-            
-            <Animated.View style={[styles.swipeBadge, styles.nopeBadge, { opacity: nopeOpacity }]}>
-              <Text style={styles.nopeBadgeText}>SKIP</Text>
-            </Animated.View>
-          </>
-        )}
-      </View>
-    );
-  };
 
   return (
     <View style={styles.container}>
@@ -677,7 +621,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
                   }
                 ]}
               >
-                {renderJobCardContent(filteredJobs[currentIndex + 1], false)}
+                <JobCardContent item={filteredJobs[currentIndex + 1]} isActive={false} />
               </Animated.View>
             )}
 
@@ -695,7 +639,12 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
                 }
               ]}
             >
-              {renderJobCardContent(filteredJobs[currentIndex], true)}
+              <JobCardContent 
+                item={filteredJobs[currentIndex]} 
+                isActive={true} 
+                likeOpacity={likeOpacity} 
+                nopeOpacity={nopeOpacity} 
+              />
             </Animated.View>
           </View>
         )}
@@ -1384,4 +1333,83 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#D1FAE5',
   },
+});
+
+const stripHtml = (html: string) => {
+  if (!html) return '';
+  return html
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .trim();
+};
+
+interface JobCardContentProps {
+  item: GreenhouseJob;
+  isActive: boolean;
+  likeOpacity?: any;
+  nopeOpacity?: any;
+}
+
+const JobCardContent = React.memo(({ item, isActive, likeOpacity, nopeOpacity }: JobCardContentProps) => {
+  const dept = item.departments?.[0]?.name || "General";
+  const office = item.location.name || "Remote";
+  const companyName = item.companyName || "COMPANY";
+  const rawDescription = stripHtml(item.content || "");
+  const snippet = rawDescription.length > 280 
+    ? rawDescription.slice(0, 280) + "..." 
+    : rawDescription;
+
+  return (
+    <View style={styles.premiumCard}>
+      <LinearGradient
+        colors={['#FFFFFF', '#F9FAFB']}
+        style={StyleSheet.absoluteFillObject}
+      />
+      
+      <View style={styles.cardHeader}>
+        <View style={styles.companyTagLarge}>
+          <Text style={styles.companyTagTextLarge}>{companyName}</Text>
+        </View>
+      </View>
+
+      <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
+
+      <View style={styles.cardMetaRow}>
+        <View style={styles.cardMetaBadge}>
+          <Ionicons name="briefcase" size={14} color="#6355D8" />
+          <Text style={styles.cardMetaText} numberOfLines={1}>{dept}</Text>
+        </View>
+        <View style={[styles.cardMetaBadge, { marginLeft: 8 }]}>
+          <Ionicons name="location" size={14} color="#6355D8" />
+          <Text style={styles.cardMetaText} numberOfLines={1}>{office}</Text>
+        </View>
+      </View>
+
+      <View style={styles.cardDivider} />
+
+      <Text style={styles.cardSectionHeading}>Description Overview</Text>
+      <View style={styles.cardSnippetContainer}>
+        <Text style={styles.cardSnippetText}>{snippet}</Text>
+      </View>
+
+      {/* Swipe Badge Overlays (Tinder-style stamps) */}
+      {isActive && (
+        <>
+          <Animated.View style={[styles.swipeBadge, styles.likeBadge, { opacity: likeOpacity }]}>
+            <Text style={styles.likeBadgeText}>APPLY</Text>
+          </Animated.View>
+          
+          <Animated.View style={[styles.swipeBadge, styles.nopeBadge, { opacity: nopeOpacity }]}>
+            <Text style={styles.nopeBadgeText}>SKIP</Text>
+          </Animated.View>
+        </>
+      )}
+    </View>
+  );
 });
