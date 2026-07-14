@@ -97,8 +97,13 @@ export default function JobsScreen() {
 
   useEffect(() => {
     currentIndexRef.current = currentIndex;
-    translateX.value = 0;
-    translateY.value = 0;
+    
+    const delayTimer = setTimeout(() => {
+      translateX.value = 0;
+      translateY.value = 0;
+    }, 100);
+
+    return () => clearTimeout(delayTimer);
   }, [currentIndex]);
 
   useEffect(() => {
@@ -108,8 +113,6 @@ export default function JobsScreen() {
   const handleSwipeComplete = (direction: 'left' | 'right') => {
     const targetJob = filteredJobsRef.current[currentIndexRef.current];
     setCurrentIndex(prev => prev + 1);
-    translateX.value = 0;
-    translateY.value = 0;
     isAnimatingRef.current = false;
 
     if (direction === 'right' && targetJob) {
@@ -165,8 +168,8 @@ export default function JobsScreen() {
 
     const opacity = interpolate(
       translateX.value,
-      [-200, -100, 0, 100, 200],
-      [0, 0.5, 1.0, 0.5, 0],
+      [-250, -150, 0, 150, 250],
+      [0, 1.0, 1.0, 1.0, 0],
       Extrapolation.CLAMP
     );
 
