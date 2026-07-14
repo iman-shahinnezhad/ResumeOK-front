@@ -671,7 +671,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
                   }
                 ]}
               >
-                <JobCardContent item={filteredJobs[currentIndex + 1]} isActive={false} />
+                <JobCardLoading />
               </View>
             )}
 
