@@ -630,8 +630,8 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
                   style={[
                     styles.jobCardContainer,
                     isTopCard ? getCardStyle() : {
-                      opacity: nextCardOpacity,
-                      transform: [{ scale: nextCardScale }]
+                      opacity: 1.0,
+                      transform: [{ scale: 1.0 }]
                     },
                     {
                       height: pagerHeight,
@@ -952,6 +952,7 @@ const styles = StyleSheet.create({
   premiumCard: {
     width: '100%',
     height: '100%',
+    backgroundColor: '#FFFFFF',
     borderRadius: 28,
     padding: 24,
     borderWidth: 1.5,
