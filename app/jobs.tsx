@@ -177,6 +177,7 @@ export default function JobsScreen() {
   const getCardStyle = () => {
     if (isCardLoading) {
       return {
+        opacity: 1.0,
         transform: [
           { translateX: 0 },
           { translateY: 0 },
@@ -190,7 +191,14 @@ export default function JobsScreen() {
       outputRange: ['-10deg', '0deg', '10deg']
     });
 
+    const opacity = swipePosition.x.interpolate({
+      inputRange: [-200, -100, 0, 100, 200],
+      outputRange: [0, 0.5, 1.0, 0.5, 0],
+      extrapolate: 'clamp'
+    });
+
     return {
+      opacity,
       transform: [
         { translateX: swipePosition.x },
         { translateY: swipePosition.y },
