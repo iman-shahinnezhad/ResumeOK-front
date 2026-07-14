@@ -1080,12 +1080,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
+    flexShrink: 1,
   },
   cardMetaText: {
     color: '#6355D8',
     fontSize: 12,
     fontWeight: '700',
     marginLeft: 6,
+    flexShrink: 1,
   },
   cardDivider: {
     height: 1.5,
@@ -1466,11 +1468,11 @@ const JobCardContent = React.memo(({ item, isActive, likeStyle, nopeStyle }: Job
       <View style={styles.cardMetaRow}>
         <View style={styles.cardMetaBadge}>
           <Ionicons name="briefcase" size={14} color="#6355D8" />
-          <Text style={styles.cardMetaText}>{dept}</Text>
+          <Text style={styles.cardMetaText} numberOfLines={1} ellipsizeMode="tail">{dept}</Text>
         </View>
         <View style={[styles.cardMetaBadge, { marginLeft: 8 }]}>
           <Ionicons name="location" size={14} color="#6355D8" />
-          <Text style={styles.cardMetaText}>{office}</Text>
+          <Text style={styles.cardMetaText} numberOfLines={1} ellipsizeMode="tail">{office}</Text>
         </View>
       </View>
 
