@@ -13,6 +13,7 @@ import {
   Platform,
   Animated,
   Linking,
+  PanResponder,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -75,11 +76,105 @@ export default function JobsScreen() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [pagerHeight, setPagerHeight] = useState(480);
 
-  // Animated scroll position tracker
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // Tinder Swipe position tracking
+  const swipePosition = useRef(new Animated.ValueXY()).current;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (evt, gestureState) => {
+        swipePosition.setValue({ x: gestureState.dx, y: gestureState.dy });
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dx > 120) {
+          swipeCard('right');
+        } else if (gestureState.dx < -120) {
+          swipeCard('left');
+        } else {
+          Animated.spring(swipePosition, {
+            toValue: { x: 0, y: 0 },
+            friction: 5,
+            useNativeDriver: true
+          }).start();
+        }
+      }
+    })
+  ).current;
+
+  const swipeCard = (direction: 'left' | 'right') => {
+    Animated.timing(swipePosition, {
+      toValue: { 
+        x: direction === 'right' ? 500 : -500, 
+        y: direction === 'right' ? 50 : -50 
+      },
+      duration: 250,
+      useNativeDriver: true
+    }).start(() => {
+      const targetJob = filteredJobs[currentIndex];
+      
+      // Increment top index
+      setCurrentIndex(prev => prev + 1);
+      
+      // Reset position immediately for next card
+      swipePosition.setValue({ x: 0, y: 0 });
+
+      // Swipe Right action (Apply / Details)
+      if (direction === 'right' && targetJob) {
+        viewJobDetails(targetJob);
+      }
+    });
+  };
+
+  const getCardStyle = () => {
+    const rotate = swipePosition.x.interpolate({
+      inputRange: [-200, 0, 200],
+      outputRange: ['-10deg', '0deg', '10deg']
+    });
+
+    return {
+      transform: [
+        { translateX: swipePosition.x },
+        { translateY: swipePosition.y },
+        { rotate }
+      ]
+    };
+  };
+
+  const nextCardScale = swipePosition.x.interpolate({
+    inputRange: [-150, 0, 150],
+    outputRange: [1.0, 0.95, 1.0],
+    extrapolate: 'clamp'
+  });
+
+  const nextCardOpacity = swipePosition.x.interpolate({
+    inputRange: [-150, 0, 150],
+    outputRange: [1.0, 0.8, 1.0],
+    extrapolate: 'clamp'
+  });
+
+  const likeOpacity = swipePosition.x.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, 1],
+    extrapolate: 'clamp'
+  });
+
+  const nopeOpacity = swipePosition.x.interpolate({
+    inputRange: [-100, 0],
+    outputRange: [1, 0],
+    extrapolate: 'clamp'
+  });
+
+  useEffect(() => {
+    // Load next page of jobs when swiped near the end of loaded listings
+    if (currentIndex >= filteredJobs.length - 5 && hasMore && !isFetchingMore && !isLoadingJobs && filteredJobs.length > 0) {
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      fetchJobsFromAllBoards(nextPage, true, filterQuery, selectedCompanyFilter);
+    }
+  }, [currentIndex, filteredJobs.length, hasMore, isFetchingMore, isLoadingJobs]);
 
   // Filter role query state
   const [filterQuery, setFilterQuery] = useState('');
@@ -193,8 +288,7 @@ export default function JobsScreen() {
 
   // Reset active card index when filtered list changes
   useEffect(() => {
-    setActiveIndex(0);
-    scrollY.setValue(0);
+    setCurrentIndex(0);
   }, [filteredJobs]);
 
   const viewJobDetails = (job: GreenhouseJob) => {
@@ -439,112 +533,61 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
     }
   };
 
-  const onScrollEnd = (e: any) => {
-    const yOffset = e.nativeEvent.contentOffset.y;
-    const index = Math.round(yOffset / pagerHeight);
-    setActiveIndex(index);
-
-    // Fetch the next page of 50 jobs when user scrolls near the end of the loaded list
-    if (index >= filteredJobs.length - 5 && hasMore && !isFetchingMore && !isLoadingJobs) {
-      const nextPage = currentPage + 1;
-      setCurrentPage(nextPage);
-      fetchJobsFromAllBoards(nextPage, true, filterQuery, selectedCompanyFilter);
-    }
-  };
-
-  const renderJobCardItemAnimated = ({ item, index }: { item: GreenhouseJob, index: number }) => {
+  const renderJobCardContent = (item: GreenhouseJob, isActive = false) => {
     const dept = item.departments?.[0]?.name || "General";
     const office = item.location.name || "Remote";
     const companyName = item.companyName || "COMPANY";
     const rawDescription = stripHtml(item.content || "");
-    const snippet = rawDescription.length > 285 
-      ? rawDescription.slice(0, 285) + "..." 
+    const snippet = rawDescription.length > 280 
+      ? rawDescription.slice(0, 280) + "..." 
       : rawDescription;
 
-    const inputRange = [
-      (index - 1) * pagerHeight,
-      index * pagerHeight,
-      (index + 1) * pagerHeight
-    ];
-
-    // Sticky Parallax Card Stack calculation:
-    // Exiting card stays 85% sticky, creating a beautiful depth slide-up overlay (parallax)
-    const translateY = scrollY.interpolate({
-      inputRange,
-      outputRange: [0, 0, pagerHeight * 0.85],
-      extrapolate: 'clamp'
-    });
-
-    // Depth Scaling:
-    // Incoming card scales up from 0.92 -> 1.0. Outgoing card shrinks slightly to 0.95.
-    const scale = scrollY.interpolate({
-      inputRange,
-      outputRange: [0.92, 1.0, 0.95],
-      extrapolate: 'clamp'
-    });
-
-    // Fluid Opacity Blending:
-    // Softens entrance and exit transitions
-    const opacity = scrollY.interpolate({
-      inputRange: [
-        (index - 1) * pagerHeight,
-        index * pagerHeight,
-        (index + 0.5) * pagerHeight,
-        (index + 1) * pagerHeight
-      ],
-      outputRange: [0.4, 1.0, 0.8, 0],
-      extrapolate: 'clamp'
-    });
-
     return (
-      <Animated.View style={[
-        styles.jobCardContainer, 
-        { height: pagerHeight, transform: [{ translateY }, { scale }], opacity }
-      ]}>
-        <View style={styles.premiumCard}>
-          <LinearGradient
-            colors={['#FFFFFF', '#F9FAFB']}
-            style={StyleSheet.absoluteFillObject}
-          />
-          
-          <View style={styles.cardHeader}>
-            <View style={styles.companyTagLarge}>
-              <Text style={styles.companyTagTextLarge}>{companyName}</Text>
-            </View>
-          </View>
-
-          <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-
-          <View style={styles.cardMetaRow}>
-            <View style={styles.cardMetaBadge}>
-              <Ionicons name="briefcase" size={14} color="#6355D8" />
-              <Text style={styles.cardMetaText} numberOfLines={1}>{dept}</Text>
-            </View>
-            <View style={[styles.cardMetaBadge, { marginLeft: 8 }]}>
-              <Ionicons name="location" size={14} color="#6355D8" />
-              <Text style={styles.cardMetaText} numberOfLines={1}>{office}</Text>
-            </View>
-          </View>
-
-          <View style={styles.cardDivider} />
-
-          <Text style={styles.cardSectionHeading}>Description Overview</Text>
-          <View style={styles.cardSnippetContainer}>
-            <Text style={styles.cardSnippetText}>{snippet}</Text>
-          </View>
-
-          <View style={styles.cardFooter}>
-            <TouchableOpacity
-              style={styles.premiumApplyBtn}
-              activeOpacity={0.8}
-              onPress={() => viewJobDetails(item)}
-            >
-              <Text style={styles.premiumApplyBtnText}>View Details & Apply</Text>
-              <Ionicons name="sparkles" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
-            </TouchableOpacity>
+      <View style={styles.premiumCard}>
+        <LinearGradient
+          colors={['#FFFFFF', '#F9FAFB']}
+          style={StyleSheet.absoluteFillObject}
+        />
+        
+        <View style={styles.cardHeader}>
+          <View style={styles.companyTagLarge}>
+            <Text style={styles.companyTagTextLarge}>{companyName}</Text>
           </View>
         </View>
-      </Animated.View>
+
+        <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
+
+        <View style={styles.cardMetaRow}>
+          <View style={styles.cardMetaBadge}>
+            <Ionicons name="briefcase" size={14} color="#6355D8" />
+            <Text style={styles.cardMetaText} numberOfLines={1}>{dept}</Text>
+          </View>
+          <View style={[styles.cardMetaBadge, { marginLeft: 8 }]}>
+            <Ionicons name="location" size={14} color="#6355D8" />
+            <Text style={styles.cardMetaText} numberOfLines={1}>{office}</Text>
+          </View>
+        </View>
+
+        <View style={styles.cardDivider} />
+
+        <Text style={styles.cardSectionHeading}>Description Overview</Text>
+        <View style={styles.cardSnippetContainer}>
+          <Text style={styles.cardSnippetText}>{snippet}</Text>
+        </View>
+
+        {/* Swipe Badge Overlays (Tinder-style stamps) */}
+        {isActive && (
+          <>
+            <Animated.View style={[styles.swipeBadge, styles.likeBadge, { opacity: likeOpacity }]}>
+              <Text style={styles.likeBadgeText}>APPLY</Text>
+            </Animated.View>
+            
+            <Animated.View style={[styles.swipeBadge, styles.nopeBadge, { opacity: nopeOpacity }]}>
+              <Text style={styles.nopeBadgeText}>SKIP</Text>
+            </Animated.View>
+          </>
+        )}
+      </View>
     );
   };
 
@@ -580,9 +623,9 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
         </View>
       </View>
 
-      {/* Snapping Vertical Card Deck */}
+      {/* Snapping Vertical Card Deck (Tinder Style) */}
       <View 
-        style={{ flex: 1, paddingHorizontal: 24, paddingBottom: 24 }}
+        style={{ flex: 1, paddingHorizontal: 24, paddingBottom: 16 }}
         onLayout={(e) => setPagerHeight(e.nativeEvent.layout.height)}
       >
         {isLoadingJobs ? (
@@ -594,26 +637,78 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
             <Ionicons name="search-outline" size={48} color="#9CA3AF" />
             <Text style={styles.emptyText}>No matching jobs found</Text>
           </View>
+        ) : currentIndex >= filteredJobs.length ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="sparkles" size={48} color="#7C3AED" style={{ marginBottom: 12 }} />
+            <Text style={styles.emptyText}>You've swiped through all jobs!</Text>
+            <TouchableOpacity 
+              style={styles.resetSwipesBtn} 
+              onPress={() => { setCurrentIndex(0); }}
+            >
+              <Text style={styles.resetSwipesBtnText}>Start Over</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
-          <Animated.FlatList
-            data={filteredJobs}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={renderJobCardItemAnimated}
-            pagingEnabled
-            showsVerticalScrollIndicator={false}
-            snapToInterval={pagerHeight}
-            snapToAlignment="start"
-            decelerationRate="fast"
-            disableIntervalMomentum={true}
-            scrollEventThrottle={16}
-            onMomentumScrollEnd={onScrollEnd}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { useNativeDriver: true }
+          <View style={{ flex: 1, position: 'relative', width: '100%' }}>
+            {/* Background / Next Card */}
+            {currentIndex + 1 < filteredJobs.length && (
+              <Animated.View
+                style={[
+                  styles.jobCardContainer,
+                  {
+                    height: pagerHeight,
+                    position: 'absolute',
+                    width: '100%',
+                    zIndex: 1,
+                    opacity: nextCardOpacity,
+                    transform: [{ scale: nextCardScale }]
+                  }
+                ]}
+              >
+                {renderJobCardContent(filteredJobs[currentIndex + 1], false)}
+              </Animated.View>
             )}
-          />
+
+            {/* Foreground / Active Card */}
+            <Animated.View
+              {...panResponder.panHandlers}
+              style={[
+                styles.jobCardContainer,
+                getCardStyle(),
+                {
+                  height: pagerHeight,
+                  position: 'absolute',
+                  width: '100%',
+                  zIndex: 2
+                }
+              ]}
+            >
+              {renderJobCardContent(filteredJobs[currentIndex], true)}
+            </Animated.View>
+          </View>
         )}
       </View>
+
+      {/* Tinder Actions */}
+      {!isLoadingJobs && filteredJobs.length > 0 && currentIndex < filteredJobs.length && (
+        <View style={styles.actionsRow}>
+          <TouchableOpacity 
+            style={[styles.actionBtn, styles.actionBtnSkip]}
+            activeOpacity={0.8}
+            onPress={() => swipeCard('left')}
+          >
+            <Ionicons name="close" size={28} color="#EF4444" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.actionBtn, styles.actionBtnApply]}
+            activeOpacity={0.8}
+            onPress={() => swipeCard('right')}
+          >
+            <Ionicons name="sparkles" size={26} color="#10B981" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Details & Apply Modal */}
       <Modal
@@ -1205,5 +1300,76 @@ const styles = StyleSheet.create({
     color: '#374151',
     fontSize: 13,
     fontWeight: '700',
+  },
+  swipeBadge: {
+    position: 'absolute',
+    top: 45,
+    borderWidth: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    transform: [{ rotate: '-12deg' }],
+  },
+  likeBadge: {
+    left: 24,
+    borderColor: '#10B981',
+  },
+  likeBadgeText: {
+    color: '#10B981',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+  },
+  nopeBadge: {
+    right: 24,
+    borderColor: '#EF4444',
+    transform: [{ rotate: '12deg' }],
+  },
+  nopeBadgeText: {
+    color: '#EF4444',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+  },
+  resetSwipesBtn: {
+    backgroundColor: '#7C3AED',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginTop: 16,
+  },
+  resetSwipesBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 28,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  actionBtn: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  actionBtnSkip: {
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+  },
+  actionBtnApply: {
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
   },
 });
