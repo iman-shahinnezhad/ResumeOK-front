@@ -99,6 +99,10 @@ export default function JobsScreen() {
 
   useEffect(() => {
     currentIndexRef.current = currentIndex;
+    
+    // Reset swipe position only AFTER the component renders the new index (unmounting the old card first)
+    swipePosition.stopAnimation();
+    swipePosition.setValue({ x: 0, y: 0 });
   }, [currentIndex]);
 
   useEffect(() => {
@@ -156,10 +160,6 @@ export default function JobsScreen() {
 
       // Increment top index (unmounts the swiped card)
       setCurrentIndex(prev => prev + 1);
-
-      // Stop and reset position for the next card slot
-      swipePosition.stopAnimation();
-      swipePosition.setValue({ x: 0, y: 0 });
 
       isAnimatingRef.current = false;
 
