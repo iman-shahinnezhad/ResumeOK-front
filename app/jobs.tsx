@@ -100,9 +100,13 @@ export default function JobsScreen() {
   useEffect(() => {
     currentIndexRef.current = currentIndex;
     
-    // Reset swipe position only AFTER the component renders the new index (unmounting the old card first)
-    swipePosition.stopAnimation();
-    swipePosition.setValue({ x: 0, y: 0 });
+    // Reset swipe position after a short delay to give the native thread time to completely destroy the swiped card view
+    const delayReset = setTimeout(() => {
+      swipePosition.stopAnimation();
+      swipePosition.setValue({ x: 0, y: 0 });
+    }, 100);
+
+    return () => clearTimeout(delayReset);
   }, [currentIndex]);
 
   useEffect(() => {
