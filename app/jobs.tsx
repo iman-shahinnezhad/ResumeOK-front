@@ -78,6 +78,8 @@ export default function JobsScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [pagerHeight, setPagerHeight] = useState(480);
+  const [isCardLoading, setIsCardLoading] = useState(false);
+  const cardLoadingTimeoutRef = useRef<any>(null);
 
   // Tinder Swipe position tracking
   const swipePosition = useRef(new Animated.ValueXY()).current;
@@ -86,6 +88,14 @@ export default function JobsScreen() {
   const currentIndexRef = useRef(0);
   const filteredJobsRef = useRef<GreenhouseJob[]>([]);
   const isAnimatingRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (cardLoadingTimeoutRef.current) {
+        clearTimeout(cardLoadingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     currentIndexRef.current = currentIndex;
@@ -138,6 +148,15 @@ export default function JobsScreen() {
       // Stop and reset position immediately for next card
       swipePosition.stopAnimation();
       swipePosition.setValue({ x: 0, y: 0 });
+
+      // Trigger 1-second loading state for the next card
+      setIsCardLoading(true);
+      if (cardLoadingTimeoutRef.current) {
+        clearTimeout(cardLoadingTimeoutRef.current);
+      }
+      cardLoadingTimeoutRef.current = setTimeout(() => {
+        setIsCardLoading(false);
+      }, 1000);
 
       // Increment top index
       setCurrentIndex(prev => prev + 1);
@@ -301,6 +320,15 @@ export default function JobsScreen() {
             setAllJobs(processed);
             setFilteredJobs(processed);
             setCurrentPage(1);
+
+            // Trigger 1-second card loading on fresh query load
+            setIsCardLoading(true);
+            if (cardLoadingTimeoutRef.current) {
+              clearTimeout(cardLoadingTimeoutRef.current);
+            }
+            cardLoadingTimeoutRef.current = setTimeout(() => {
+              setIsCardLoading(false);
+            }, 1000);
           }
         }
       }
@@ -662,12 +690,16 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
                 }
               ]}
             >
-              <JobCardContent 
-                item={filteredJobs[currentIndex]} 
-                isActive={true} 
-                likeOpacity={likeOpacity} 
-                nopeOpacity={nopeOpacity} 
-              />
+              {isCardLoading ? (
+                <JobCardLoading />
+              ) : (
+                <JobCardContent 
+                  item={filteredJobs[currentIndex]} 
+                  isActive={true} 
+                  likeOpacity={likeOpacity} 
+                  nopeOpacity={nopeOpacity} 
+                />
+              )}
             </Animated.View>
           </View>
         )}
@@ -1355,6 +1387,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#D1FAE5',
   },
+  loadingCard: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingCardText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#7C3AED',
+    textAlign: 'center',
+    marginTop: 8,
+  },
 });
 
 function stripHtml(html: string) {
@@ -1435,3 +1478,16 @@ const JobCardContent = React.memo(({ item, isActive, likeOpacity, nopeOpacity }:
     </View>
   );
 });
+
+const JobCardLoading = () => {
+  return (
+    <View style={[styles.premiumCard, styles.loadingCard]}>
+      <LinearGradient
+        colors={['#FFFFFF', '#F9FAFB']}
+        style={StyleSheet.absoluteFillObject}
+      />
+      <ActivityIndicator size="large" color="#7C3AED" style={{ marginBottom: 16 }} />
+      <Text style={styles.loadingCardText}>Finding next matched role...</Text>
+    </View>
+  );
+};
