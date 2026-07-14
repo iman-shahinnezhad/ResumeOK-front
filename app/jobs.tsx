@@ -12,6 +12,7 @@ import {
   Switch,
   Platform,
   Animated,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { API_URL } from '../context/AuthContext';
 
 const POPULAR_GREENHOUSE_COMPANIES = ['stripe', 'dropbox', 'deliveroo', 'vimeo', 'amplitude'];
 const POPULAR_LEVER_COMPANIES = ['kinsta', 'aircall', 'palantir'];
@@ -44,7 +46,8 @@ interface GreenhouseJob {
   content?: string;
   companyName?: string;
   boardToken?: string;
-  sourceType?: 'greenhouse' | 'lever';
+  sourceType?: string;
+  canApplyDirectly?: boolean;
 }
 
 interface GreenhouseConfig {
@@ -69,6 +72,9 @@ export default function JobsScreen() {
   const [allJobs, setAllJobs] = useState<GreenhouseJob[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<GreenhouseJob[]>([]);
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [pagerHeight, setPagerHeight] = useState(480);
 
@@ -124,8 +130,6 @@ export default function JobsScreen() {
           }
         }
 
-        // Fetch jobs for Greenhouse & Lever tech boards
-        fetchJobsFromAllBoards();
       } catch (e) {
         console.log("Error initializing jobs screen:", e);
       }
@@ -133,96 +137,59 @@ export default function JobsScreen() {
     initData();
   }, []);
 
-  const fetchJobsFromAllBoards = async () => {
-    setIsLoadingJobs(true);
-    console.log("Fetching jobs from Greenhouse and Lever...");
+  const fetchJobsFromAllBoards = async (pageToFetch = 1, append = false, queryStr = filterQuery, companyStr = selectedCompanyFilter) => {
+    if (pageToFetch === 1) {
+      setIsLoadingJobs(true);
+    } else {
+      setIsFetchingMore(true);
+    }
+    console.log(`Fetching jobs from backend aggregator: page=${pageToFetch}, q=${queryStr}, company=${companyStr}`);
     try {
-      const greenhousePromises = POPULAR_GREENHOUSE_COMPANIES.map(async (company) => {
-        try {
-          const url = `https://boards-api.greenhouse.io/v1/boards/${company}/jobs?content=true`;
-          const response = await fetch(url);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.jobs && Array.isArray(data.jobs)) {
-              return data.jobs.map((job: any) => ({
-                ...job,
-                companyName: company.toUpperCase(),
-                boardToken: company,
-                sourceType: 'greenhouse' as const
-              }));
-            }
+      const qParam = queryStr.trim() ? `&q=${encodeURIComponent(queryStr.trim())}` : '';
+      const companyParam = companyStr && companyStr !== 'ALL' ? `&company=${encodeURIComponent(companyStr)}` : '';
+      const response = await fetch(`${API_URL}/api/jobs?limit=50&page=${pageToFetch}${qParam}${companyParam}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && Array.isArray(data.jobs)) {
+          console.log(`Successfully fetched ${data.jobs.length} jobs for page ${pageToFetch}`);
+          
+          if (data.jobs.length < 50) {
+            setHasMore(false);
+          } else {
+            setHasMore(true);
           }
-        } catch (e: any) {
-          console.log(`Failed to fetch Greenhouse jobs for ${company}:`, e);
-        }
-        return [];
-      });
 
-      const leverPromises = POPULAR_LEVER_COMPANIES.map(async (company) => {
-        try {
-          const url = `https://api.lever.co/v0/postings/${company}?mode=json`;
-          const response = await fetch(url);
-          if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data)) {
-              return data.map((item: any) => ({
-                id: item.id,
-                title: item.text,
-                absolute_url: item.applyUrl,
-                location: { name: item.categories?.location || "Remote" },
-                departments: [{ id: 0, name: item.categories?.team || "General" }],
-                content: (item.description || "") + "\n\n" + (item.lists?.map((l: any) => `<h3>${l.text}</h3>\n${l.content}`).join("\n") || ""),
-                companyName: company.toUpperCase(),
-                boardToken: company,
-                sourceType: 'lever' as const
-              }));
-            }
+          if (append) {
+            setAllJobs(prev => {
+              const existingIds = new Set(prev.map(j => j.id));
+              const newJobs = data.jobs.filter(j => !existingIds.has(j.id));
+              const combined = [...prev, ...newJobs];
+              setFilteredJobs(combined);
+              return combined;
+            });
+          } else {
+            setAllJobs(data.jobs);
+            setFilteredJobs(data.jobs);
+            setCurrentPage(1);
           }
-        } catch (e: any) {
-          console.log(`Failed to fetch Lever jobs for ${company}:`, e);
         }
-        return [];
-      });
-
-      const [ghResults, leverResults] = await Promise.all([
-        Promise.all(greenhousePromises),
-        Promise.all(leverPromises)
-      ]);
-
-      const aggregated = [...ghResults.flat(), ...leverResults.flat()];
-      console.log(`Aggregated total of ${aggregated.length} jobs (Greenhouse & Lever)`);
-      setAllJobs(aggregated);
-      setFilteredJobs(aggregated);
+      }
     } catch (err: any) {
       console.log("Error in fetchJobsFromAllBoards:", err);
     } finally {
       setIsLoadingJobs(false);
+      setIsFetchingMore(false);
     }
   };
 
-  // Filter jobs list locally when search query or company filter changes
+  // Debounced search and company filter effect (server-side query)
   useEffect(() => {
-    let list = allJobs;
-    
-    // Filter by company
-    if (selectedCompanyFilter !== 'ALL') {
-      list = list.filter(job => job.companyName === selectedCompanyFilter);
-    }
+    const delayDebounce = setTimeout(() => {
+      fetchJobsFromAllBoards(1, false, filterQuery, selectedCompanyFilter);
+    }, 450); // 450ms debounce to prevent flooding search requests
 
-    // Filter by query (role, location, department, content)
-    if (filterQuery.trim()) {
-      const query = filterQuery.toLowerCase();
-      list = list.filter(job => {
-        const titleMatch = job.title.toLowerCase().includes(query);
-        const locMatch = job.location.name.toLowerCase().includes(query);
-        const deptMatch = job.departments?.some(d => d.name.toLowerCase().includes(query)) || false;
-        const contentMatch = job.content ? job.content.toLowerCase().includes(query) : false;
-        return titleMatch || locMatch || deptMatch || contentMatch;
-      });
-    }
-
-    setFilteredJobs(list);
-  }, [filterQuery, selectedCompanyFilter, allJobs]);
+    return () => clearTimeout(delayDebounce);
+  }, [filterQuery, selectedCompanyFilter]);
 
   // Reset active card index when filtered list changes
   useEffect(() => {
@@ -374,72 +341,38 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
         setSelectedResumeId(newResumeEntry.id);
       }
 
-      // Step 2: Submit Application to Lever or Greenhouse
-      if (isLever) {
-        console.log("Submitting real Lever application...");
-        const formData = new FormData();
-        formData.append('name', `${firstName} ${lastName}`);
-        formData.append('email', email);
-        if (phone) formData.append('phone', phone);
-        
-        const resumeFileObj: any = {
-          uri: finalResumeUri,
-          name: finalResumeName,
-          type: 'application/pdf'
-        };
-        formData.append('resume', resumeFileObj);
+      // Step 2: Submit Application via unified backend endpoint
+      console.log("Submitting application to backend...");
+      const formData = new FormData();
+      formData.append('jobId', String(selectedJob?.id));
+      formData.append('companySlug', targetToken);
+      formData.append('sourceType', selectedJob?.sourceType || 'greenhouse');
+      formData.append('firstName', firstName);
+      formData.append('lastName', lastName);
+      formData.append('email', email);
+      if (phone) formData.append('phone', phone);
+      if (config.jobBoardKey && config.boardToken === targetToken) {
+        formData.append('jobBoardKey', config.jobBoardKey);
+      }
 
-        const postResponse = await fetch(
-          `https://api.lever.co/v0/postings/${targetToken}/${selectedJob?.id}/apply`,
-          {
-            method: 'POST',
-            headers: {
-              'Accept': 'application/json',
-            },
-            body: formData
-          }
-        );
+      const resumeFileObj: any = {
+        uri: finalResumeUri,
+        name: finalResumeName,
+        type: 'application/pdf'
+      };
+      formData.append('resume', resumeFileObj);
 
-        if (!postResponse.ok) {
-          const errData = await postResponse.json().catch(() => ({}));
-          throw new Error(errData.error || `Lever submit failed with status ${postResponse.status}`);
-        }
-      } else {
-        // Greenhouse submission logic
-        if (config.jobBoardKey && config.boardToken === targetToken) {
-          console.log("Submitting real Greenhouse application...");
-          const formData = new FormData();
-          formData.append('first_name', firstName);
-          formData.append('last_name', lastName);
-          formData.append('email', email);
-          formData.append('phone', phone);
-          
-          const resumeFileObj: any = {
-            uri: finalResumeUri,
-            name: finalResumeName,
-            type: 'application/pdf'
-          };
-          formData.append('resume', resumeFileObj);
+      const postResponse = await fetch(`${API_URL}/api/jobs/apply`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+        },
+        body: formData
+      });
 
-          const authHeader = `Basic ${encodeBase64(config.jobBoardKey + ":")}`;
-
-          const postResponse = await fetch(
-            `https://boards-api.greenhouse.io/v1/boards/${targetToken}/jobs/${selectedJob?.id}`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': authHeader,
-                'Accept': 'application/json',
-              },
-              body: formData
-            }
-          );
-
-          if (!postResponse.ok) {
-            const errData = await postResponse.json().catch(() => ({}));
-            throw new Error(errData.error || `Greenhouse submit failed with status ${postResponse.status}`);
-          }
-        }
+      if (!postResponse.ok) {
+        const errData = await postResponse.json().catch(() => ({}));
+        throw new Error(errData.error || `Apply failed with status ${postResponse.status}`);
       }
 
       // Save contact info back to greenhouse_config.json so it auto-fills next time
@@ -510,6 +443,13 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
     const yOffset = e.nativeEvent.contentOffset.y;
     const index = Math.round(yOffset / pagerHeight);
     setActiveIndex(index);
+
+    // Fetch the next page of 50 jobs when user scrolls near the end of the loaded list
+    if (index >= filteredJobs.length - 5 && hasMore && !isFetchingMore && !isLoadingJobs) {
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      fetchJobsFromAllBoards(nextPage, true, filterQuery, selectedCompanyFilter);
+    }
   };
 
   const renderJobCardItemAnimated = ({ item, index }: { item: GreenhouseJob, index: number }) => {
@@ -727,137 +667,159 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
                 {stripHtml(jobDetailsHtml)}
               </Text>
 
-              <View style={styles.divider} />
+              {selectedJob?.canApplyDirectly !== false && (
+                <>
+                  <View style={styles.divider} />
 
-              <Text style={styles.sectionHeading}>Quick Apply Form</Text>
-              
-              {firstName && lastName && email && !isEditingContact ? (
-                <View style={styles.contactSummaryCard}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.contactSummaryName}>{firstName} {lastName}</Text>
-                    <Text style={styles.contactSummaryEmail}>{email} {phone ? `• ${phone}` : ''}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.editContactBtn}
-                    onPress={() => setIsEditingContact(true)}
-                  >
-                    <Ionicons name="create-outline" size={16} color="#7C3AED" style={{ marginRight: 4 }} />
-                    <Text style={styles.editContactBtnText}>Edit Info</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View>
-                  <TextInput
-                    style={styles.formInput}
-                    placeholder="First Name"
-                    placeholderTextColor="rgba(0,0,0,0.3)"
-                    value={firstName}
-                    onChangeText={setFirstName}
-                  />
-
-                  <TextInput
-                    style={styles.formInput}
-                    placeholder="Last Name"
-                    placeholderTextColor="rgba(0,0,0,0.3)"
-                    value={lastName}
-                    onChangeText={setLastName}
-                  />
-
-                  <TextInput
-                    style={styles.formInput}
-                    placeholder="Email Address"
-                    placeholderTextColor="rgba(0,0,0,0.3)"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-
-                  <TextInput
-                    style={styles.formInput}
-                    placeholder="Phone Number"
-                    placeholderTextColor="rgba(0,0,0,0.3)"
-                    value={phone}
-                    onChangeText={setPhone}
-                    keyboardType="phone-pad"
-                  />
-                  {firstName && lastName && email && (
-                    <TouchableOpacity
-                      style={styles.saveContactEditBtn}
-                      onPress={() => setIsEditingContact(false)}
-                    >
-                      <Text style={styles.saveContactEditBtnText}>Done Editing</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-
-              <Text style={styles.inputLabel}>Select Resume to Apply</Text>
-              {resumesList.length === 0 ? (
-                <Text style={styles.noResumesWarning}>
-                  No resumes found. Please generate or import a resume PDF first.
-                </Text>
-              ) : (
-                <View style={styles.dropdownContainer}>
-                  {resumesList.map((r) => {
-                    const isSelected = r.id === selectedResumeId;
-                    return (
+                  <Text style={styles.sectionHeading}>Quick Apply Form</Text>
+                  
+                  {firstName && lastName && email && !isEditingContact ? (
+                    <View style={styles.contactSummaryCard}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.contactSummaryName}>{firstName} {lastName}</Text>
+                        <Text style={styles.contactSummaryEmail}>{email} {phone ? `• ${phone}` : ''}</Text>
+                      </View>
                       <TouchableOpacity
-                        key={r.id}
-                        style={[styles.dropdownItem, isSelected && styles.dropdownItemSelected]}
-                        onPress={() => setSelectedResumeId(r.id)}
+                        style={styles.editContactBtn}
+                        onPress={() => setIsEditingContact(true)}
                       >
-                        <Ionicons
-                          name={isSelected ? "checkbox" : "square-outline"}
-                          size={18}
-                          color={isSelected ? "#7C3AED" : "#6B7280"}
-                          style={{ marginRight: 8 }}
-                        />
-                        <Text
-                          style={[styles.dropdownText, isSelected && styles.dropdownTextSelected]}
-                          numberOfLines={1}
-                        >
-                          {r.name}
-                        </Text>
+                        <Ionicons name="create-outline" size={16} color="#7C3AED" style={{ marginRight: 4 }} />
+                        <Text style={styles.editContactBtnText}>Edit Info</Text>
                       </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
+                    </View>
+                  ) : (
+                    <View>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="First Name"
+                        placeholderTextColor="rgba(0,0,0,0.3)"
+                        value={firstName}
+                        onChangeText={setFirstName}
+                      />
 
-              <View style={styles.switchRow}>
-                <View style={{ flex: 1, marginRight: 16 }}>
-                  <Text style={styles.switchLabel}>AI Tailor Resume first ✨</Text>
-                  <Text style={styles.switchDesc}>
-                    Uses Gemini AI to automatically rewrite bullet points and keyword-match the resume to this description before submitting.
-                  </Text>
-                </View>
-                <Switch
-                  value={tailorResume}
-                  onValueChange={setTailorResume}
-                  trackColor={{ false: '#D1D5DB', true: '#C084FC' }}
-                  thumbColor={tailorResume ? '#7C3AED' : '#F3F4F6'}
-                />
-              </View>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="Last Name"
+                        placeholderTextColor="rgba(0,0,0,0.3)"
+                        value={lastName}
+                        onChangeText={setLastName}
+                      />
+
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="Email Address"
+                        placeholderTextColor="rgba(0,0,0,0.3)"
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                      />
+
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="Phone Number"
+                        placeholderTextColor="rgba(0,0,0,0.3)"
+                        value={phone}
+                        onChangeText={setPhone}
+                        keyboardType="phone-pad"
+                      />
+                      {firstName && lastName && email && (
+                        <TouchableOpacity
+                          style={styles.saveContactEditBtn}
+                          onPress={() => setIsEditingContact(false)}
+                        >
+                          <Text style={styles.saveContactEditBtnText}>Done Editing</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+
+                  <Text style={styles.inputLabel}>Select Resume to Apply</Text>
+                  {resumesList.length === 0 ? (
+                    <Text style={styles.noResumesWarning}>
+                      No resumes found. Please generate or import a resume PDF first.
+                    </Text>
+                  ) : (
+                    <View style={styles.dropdownContainer}>
+                      {resumesList.map((r) => {
+                        const isSelected = r.id === selectedResumeId;
+                        return (
+                          <TouchableOpacity
+                            key={r.id}
+                            style={[styles.dropdownItem, isSelected && styles.dropdownItemSelected]}
+                            onPress={() => setSelectedResumeId(r.id)}
+                          >
+                            <Ionicons
+                              name={isSelected ? "checkbox" : "square-outline"}
+                              size={18}
+                              color={isSelected ? "#7C3AED" : "#6B7280"}
+                              style={{ marginRight: 8 }}
+                            />
+                            <Text
+                              style={[styles.dropdownText, isSelected && styles.dropdownTextSelected]}
+                              numberOfLines={1}
+                            >
+                              {r.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  <View style={styles.switchRow}>
+                    <View style={{ flex: 1, marginRight: 16 }}>
+                      <Text style={styles.switchLabel}>AI Tailor Resume first ✨</Text>
+                      <Text style={styles.switchDesc}>
+                        Uses Gemini AI to automatically rewrite bullet points and keyword-match the resume to this description before submitting.
+                      </Text>
+                    </View>
+                    <Switch
+                      value={tailorResume}
+                      onValueChange={setTailorResume}
+                      trackColor={{ false: '#D1D5DB', true: '#C084FC' }}
+                      thumbColor={tailorResume ? '#7C3AED' : '#F3F4F6'}
+                    />
+                  </View>
+                </>
+              )}
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={[styles.modalSubmitBtn, (isSubmitting || resumesList.length === 0) && styles.modalSubmitBtnDisabled]}
-                onPress={handleApply}
-                disabled={isSubmitting || resumesList.length === 0}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Text style={styles.modalSubmitBtnText}>
-                      {tailorResume ? "Tailor & Submit Application" : "Submit Application"}
-                    </Text>
-                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
-                  </>
-                )}
-              </TouchableOpacity>
+              {selectedJob?.canApplyDirectly !== false ? (
+                <TouchableOpacity
+                  style={[styles.modalSubmitBtn, (isSubmitting || resumesList.length === 0) && styles.modalSubmitBtnDisabled]}
+                  onPress={handleApply}
+                  disabled={isSubmitting || resumesList.length === 0}
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Text style={styles.modalSubmitBtnText}>
+                        {tailorResume ? "Tailor & Apply Now" : "Apply Now"}
+                      </Text>
+                      <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                    </>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.modalSubmitBtn}
+                  onPress={() => {
+                    if (selectedJob?.absolute_url) {
+                      Linking.openURL(selectedJob.absolute_url).catch((err) =>
+                        console.error("Failed to open application link:", err)
+                      );
+                    }
+                  }}
+                >
+                  <Text style={styles.modalSubmitBtnText}>
+                    View & Apply on Company Site
+                  </Text>
+                  <Ionicons name="open-outline" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
