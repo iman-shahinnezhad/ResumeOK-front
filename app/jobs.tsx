@@ -159,6 +159,16 @@ export default function JobsScreen() {
       },
       onPanResponderRelease: (evt, gestureState) => {
         if (isAnimatingRef.current) return;
+
+        // Detect tap: if drag distance is very small, treat it as a click/tap to open details
+        if (Math.abs(gestureState.dx) < 8 && Math.abs(gestureState.dy) < 8) {
+          const targetJob = filteredJobsRef.current[currentIndexRef.current];
+          if (targetJob) {
+            viewJobDetails(targetJob);
+          }
+          return;
+        }
+
         const tx = currentIndexRef.current % 2 === 0 ? translateX1 : translateX2;
         const ty = currentIndexRef.current % 2 === 0 ? translateY1 : translateY2;
         if (gestureState.dx > 120) {
