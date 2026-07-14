@@ -1423,21 +1423,6 @@ interface JobCardContentProps {
 }
 
 const JobCardContent = React.memo(({ item, isActive, likeStyle, nopeStyle }: JobCardContentProps) => {
-  const [localLoading, setLocalLoading] = useState(isActive);
-
-  useEffect(() => {
-    if (isActive) {
-      setLocalLoading(true);
-      const timer = setTimeout(() => {
-        setLocalLoading(false);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isActive, item.id]);
-
-  if (isActive && localLoading) {
-    return <JobCardLoading />;
-  }
 
   const dept = item.departments?.[0]?.name || "General";
   const office = item.location.name || "Remote";
