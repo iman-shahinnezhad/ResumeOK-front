@@ -21,7 +21,8 @@ import Animated, {
   withTiming,
   interpolate,
   Extrapolation,
-  runOnJS
+  runOnJS,
+  Easing
 } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -169,9 +170,9 @@ export default function JobsScreen() {
         } else if (gestureState.dx < -120) {
           swipeCard('left');
         } else {
-          // Zero bounce return using withTiming ease-out
-          tx.value = withTiming(0, { duration: 200 });
-          ty.value = withTiming(0, { duration: 200 });
+          // Zero bounce return using a smooth decelerating ease-out curve
+          tx.value = withTiming(0, { duration: 250, easing: Easing.out(Easing.quad) });
+          ty.value = withTiming(0, { duration: 250, easing: Easing.out(Easing.quad) });
         }
       }
     })
