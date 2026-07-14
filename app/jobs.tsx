@@ -609,6 +609,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
             {/* Background / Next Card */}
             {currentIndex + 1 < filteredJobs.length && (
               <Animated.View
+                key={`bg-${filteredJobs[currentIndex + 1].id}`}
                 style={[
                   styles.jobCardContainer,
                   {
@@ -627,6 +628,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
 
             {/* Foreground / Active Card */}
             <Animated.View
+              key={`fg-${filteredJobs[currentIndex].id}`}
               {...panResponder.panHandlers}
               style={[
                 styles.jobCardContainer,
@@ -1004,14 +1006,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
-    flex: 1,
   },
   cardMetaText: {
     color: '#6355D8',
     fontSize: 12,
     fontWeight: '700',
     marginLeft: 6,
-    flex: 1,
   },
   cardDivider: {
     height: 1.5,
@@ -1383,11 +1383,11 @@ const JobCardContent = React.memo(({ item, isActive, likeOpacity, nopeOpacity }:
       <View style={styles.cardMetaRow}>
         <View style={styles.cardMetaBadge}>
           <Ionicons name="briefcase" size={14} color="#6355D8" />
-          <Text style={styles.cardMetaText} numberOfLines={1}>{dept}</Text>
+          <Text style={styles.cardMetaText}>{dept}</Text>
         </View>
         <View style={[styles.cardMetaBadge, { marginLeft: 8 }]}>
           <Ionicons name="location" size={14} color="#6355D8" />
-          <Text style={styles.cardMetaText} numberOfLines={1}>{office}</Text>
+          <Text style={styles.cardMetaText}>{office}</Text>
         </View>
       </View>
 
