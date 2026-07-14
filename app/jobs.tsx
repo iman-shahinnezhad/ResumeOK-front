@@ -467,31 +467,39 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
       (index + 1) * pagerHeight
     ];
 
-    // Sticky Card Stack calculation:
-    // When scrollY goes past this item, we translate it down to cancel out scroll, making it sticky!
+    // Sticky Parallax Card Stack calculation:
+    // Exiting card stays 85% sticky, creating a beautiful depth slide-up overlay (parallax)
     const translateY = scrollY.interpolate({
       inputRange,
-      outputRange: [0, 0, pagerHeight],
+      outputRange: [0, 0, pagerHeight * 0.85],
       extrapolate: 'clamp'
     });
 
-    // Fade the covered card out cleanly to 0 opacity once it is fully swiped away,
-    // this prevents subpixel corner border lines/shadows of the covered card from peeking out!
+    // Depth Scaling:
+    // Incoming card scales up from 0.92 -> 1.0. Outgoing card shrinks slightly to 0.95.
+    const scale = scrollY.interpolate({
+      inputRange,
+      outputRange: [0.92, 1.0, 0.95],
+      extrapolate: 'clamp'
+    });
+
+    // Fluid Opacity Blending:
+    // Softens entrance and exit transitions
     const opacity = scrollY.interpolate({
       inputRange: [
         (index - 1) * pagerHeight,
         index * pagerHeight,
-        (index + 0.98) * pagerHeight,
+        (index + 0.5) * pagerHeight,
         (index + 1) * pagerHeight
       ],
-      outputRange: [0, 1, 1, 0],
+      outputRange: [0.4, 1.0, 0.8, 0],
       extrapolate: 'clamp'
     });
 
     return (
       <Animated.View style={[
         styles.jobCardContainer, 
-        { height: pagerHeight, transform: [{ translateY }], opacity }
+        { height: pagerHeight, transform: [{ translateY }, { scale }], opacity }
       ]}>
         <View style={styles.premiumCard}>
           <LinearGradient
