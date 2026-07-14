@@ -101,7 +101,7 @@ export default function JobsScreen() {
     const delayTimer = setTimeout(() => {
       translateX.value = 0;
       translateY.value = 0;
-    }, 100);
+    }, 1);
 
     return () => clearTimeout(delayTimer);
   }, [currentIndex]);
