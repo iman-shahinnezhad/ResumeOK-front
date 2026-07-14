@@ -629,35 +629,46 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
           </View>
         ) : (
           <View style={{ flex: 1, position: 'relative', width: '100%' }}>
-            {filteredJobs.slice(currentIndex, currentIndex + 2).reverse().map((item, idx, arr) => {
-              const isTopCard = idx === arr.length - 1;
-              return (
-                <Animated.View
-                  key={item.id}
-                  {...panResponder.panHandlers}
-                  style={[
-                    styles.jobCardContainer,
-                    isTopCard ? getCardStyle() : {
-                      opacity: 1.0,
-                      transform: [{ scale: 1.0 }]
-                    },
-                    {
-                      height: pagerHeight,
-                      position: 'absolute',
-                      width: '100%',
-                      zIndex: isTopCard ? 2 : 1
-                    }
-                  ]}
-                >
-                  <JobCardContent 
-                    item={item} 
-                    isActive={isTopCard} 
-                    likeOpacity={likeOpacity} 
-                    nopeOpacity={nopeOpacity} 
-                  />
-                </Animated.View>
-              );
-            })}
+            {/* Background / Next Card (100% static, does not move or intercept touches) */}
+            {currentIndex + 1 < filteredJobs.length && (
+              <View
+                key="bg-card"
+                style={[
+                  styles.jobCardContainer,
+                  {
+                    height: pagerHeight,
+                    position: 'absolute',
+                    width: '100%',
+                    zIndex: 1
+                  }
+                ]}
+              >
+                <JobCardContent item={filteredJobs[currentIndex + 1]} isActive={false} />
+              </View>
+            )}
+
+            {/* Foreground / Active Card (Moves with gesture) */}
+            <Animated.View
+              key="fg-card"
+              {...panResponder.panHandlers}
+              style={[
+                styles.jobCardContainer,
+                getCardStyle(),
+                {
+                  height: pagerHeight,
+                  position: 'absolute',
+                  width: '100%',
+                  zIndex: 2
+                }
+              ]}
+            >
+              <JobCardContent 
+                item={filteredJobs[currentIndex]} 
+                isActive={true} 
+                likeOpacity={likeOpacity} 
+                nopeOpacity={nopeOpacity} 
+              />
+            </Animated.View>
           </View>
         )}
       </View>
