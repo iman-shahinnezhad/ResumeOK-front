@@ -86,10 +86,11 @@ export default function JobsScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [pagerHeight, setPagerHeight] = useState(480);
-  // Tinder Swipe position tracking (Reanimated Shared Values)
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const cardOpacity = useSharedValue(1);
+  // Tinder Swipe position tracking (Alternating Reanimated Shared Values to prevent unmount flashes)
+  const translateX1 = useSharedValue(0);
+  const translateY1 = useSharedValue(0);
+  const translateX2 = useSharedValue(0);
+  const translateY2 = useSharedValue(0);
 
   // Refs to avoid stale closures in PanResponder / swipe callbacks
   const currentIndexRef = useRef(0);
@@ -98,12 +99,6 @@ export default function JobsScreen() {
 
   useEffect(() => {
     currentIndexRef.current = currentIndex;
-    
-    const delayTimer = setTimeout(() => {
-      cardOpacity.value = 1;
-    }, 50);
-
-    return () => clearTimeout(delayTimer);
   }, [currentIndex]);
 
   useEffect(() => {
@@ -112,14 +107,21 @@ export default function JobsScreen() {
 
   const handleSwipeComplete = (direction: 'left' | 'right') => {
     const targetJob = filteredJobsRef.current[currentIndexRef.current];
-    
-    // Instantly hide and reset card coordinates on the UI thread
-    cardOpacity.value = 0;
-    translateX.value = 0;
-    translateY.value = 0;
+    const completedIndex = currentIndexRef.current;
     
     setCurrentIndex(prev => prev + 1);
     isAnimatingRef.current = false;
+
+    // Reset the coordinates of the swiped card in the background after it unmounts
+    setTimeout(() => {
+      if (completedIndex % 2 === 0) {
+        translateX1.value = 0;
+        translateY1.value = 0;
+      } else {
+        translateX2.value = 0;
+        translateY2.value = 0;
+      }
+    }, 100);
 
     if (direction === 'right' && targetJob) {
       viewJobDetails(targetJob);
@@ -130,11 +132,14 @@ export default function JobsScreen() {
     if (isAnimatingRef.current) return;
     isAnimatingRef.current = true;
 
+    const tx = currentIndexRef.current % 2 === 0 ? translateX1 : translateX2;
+    const ty = currentIndexRef.current % 2 === 0 ? translateY1 : translateY2;
+
     const targetX = direction === 'right' ? 500 : -500;
     const targetY = direction === 'right' ? 50 : -50;
 
-    translateX.value = withTiming(targetX, { duration: 250 });
-    translateY.value = withTiming(targetY, { duration: 250 }, (finished) => {
+    tx.value = withTiming(targetX, { duration: 250 });
+    ty.value = withTiming(targetY, { duration: 250 }, (finished) => {
       if (finished) {
         runOnJS(handleSwipeComplete)(direction);
       }
@@ -147,72 +152,57 @@ export default function JobsScreen() {
       onMoveShouldSetPanResponder: () => !isAnimatingRef.current,
       onPanResponderMove: (evt, gestureState) => {
         if (isAnimatingRef.current) return;
-        translateX.value = gestureState.dx;
-        translateY.value = gestureState.dy;
+        const tx = currentIndexRef.current % 2 === 0 ? translateX1 : translateX2;
+        const ty = currentIndexRef.current % 2 === 0 ? translateY1 : translateY2;
+        tx.value = gestureState.dx;
+        ty.value = gestureState.dy;
       },
       onPanResponderRelease: (evt, gestureState) => {
         if (isAnimatingRef.current) return;
+        const tx = currentIndexRef.current % 2 === 0 ? translateX1 : translateX2;
+        const ty = currentIndexRef.current % 2 === 0 ? translateY1 : translateY2;
         if (gestureState.dx > 120) {
           swipeCard('right');
         } else if (gestureState.dx < -120) {
           swipeCard('left');
         } else {
-          translateX.value = withSpring(0, { damping: 15 });
-          translateY.value = withSpring(0, { damping: 15 });
+          tx.value = withSpring(0, { damping: 15 });
+          ty.value = withSpring(0, { damping: 15 });
         }
       }
     })
   ).current;
 
   const activeCardStyle = useAnimatedStyle(() => {
+    const tx = currentIndex % 2 === 0 ? translateX1 : translateX2;
+    const ty = currentIndex % 2 === 0 ? translateY1 : translateY2;
+
     const rotate = interpolate(
-      translateX.value,
+      tx.value,
       [-200, 0, 200],
       [-10, 0, 10],
       Extrapolation.CLAMP
     );
 
-    const dragOpacity = interpolate(
-      translateX.value,
-      [-250, -150, 0, 150, 250],
-      [0, 1.0, 1.0, 1.0, 0],
-      Extrapolation.CLAMP
-    );
-
     return {
-      opacity: dragOpacity * cardOpacity.value,
+      opacity: 1.0,
       transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
+        { translateX: tx.value },
+        { translateY: ty.value },
         { rotate: `${rotate}deg` }
       ]
     };
   });
 
-  const backgroundCardStyle = useAnimatedStyle(() => {
-    const scale = interpolate(
-      translateX.value,
-      [-150, 0, 150],
-      [1.0, 0.95, 1.0],
-      Extrapolation.CLAMP
-    );
-
-    const opacity = interpolate(
-      translateX.value,
-      [-150, 0, 150],
-      [1.0, 0.8, 1.0],
-      Extrapolation.CLAMP
-    );
-
-    return {
-      opacity,
-      transform: [{ scale }]
-    };
-  });
+  const backgroundCardStyle = {
+    opacity: 1.0,
+    transform: [{ scale: 1.0 }]
+  };
 
   const likeBadgeStyle = useAnimatedStyle(() => {
+    const tx = currentIndex % 2 === 0 ? translateX1 : translateX2;
     const opacity = interpolate(
-      translateX.value,
+      tx.value,
       [0, 100],
       [0, 1],
       Extrapolation.CLAMP
@@ -221,8 +211,9 @@ export default function JobsScreen() {
   });
 
   const nopeBadgeStyle = useAnimatedStyle(() => {
+    const tx = currentIndex % 2 === 0 ? translateX1 : translateX2;
     const opacity = interpolate(
-      translateX.value,
+      tx.value,
       [-100, 0],
       [1, 0],
       Extrapolation.CLAMP
