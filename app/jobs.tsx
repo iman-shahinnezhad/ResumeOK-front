@@ -623,27 +623,46 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
           <View style={{ flex: 1, position: 'relative', width: '100%' }}>
             {filteredJobs.slice(currentIndex, currentIndex + 2).reverse().map((item, idx, arr) => {
               const isTopCard = idx === arr.length - 1;
+              
+              if (!isTopCard) {
+                // Background card is rendered as a completely static View (unaffected by animations)
+                return (
+                  <View
+                    key={item.id}
+                    style={[
+                      styles.jobCardContainer,
+                      {
+                        height: pagerHeight,
+                        position: 'absolute',
+                        width: '100%',
+                        zIndex: 1
+                      }
+                    ]}
+                  >
+                    <JobCardContent item={item} isActive={false} />
+                  </View>
+                );
+              }
+
+              // Foreground active card is rendered as an Animated.View with gesture handlers
               return (
                 <Animated.View
                   key={item.id}
-                  {...(isTopCard ? panResponder.panHandlers : {})}
+                  {...panResponder.panHandlers}
                   style={[
                     styles.jobCardContainer,
-                    isTopCard ? getCardStyle() : {
-                      opacity: 1.0,
-                      transform: [{ scale: 1.0 }]
-                    },
+                    getCardStyle(),
                     {
                       height: pagerHeight,
                       position: 'absolute',
                       width: '100%',
-                      zIndex: isTopCard ? 2 : 1
+                      zIndex: 2
                     }
                   ]}
                 >
                   <JobCardContent 
                     item={item} 
-                    isActive={isTopCard} 
+                    isActive={true} 
                     likeOpacity={likeOpacity} 
                     nopeOpacity={nopeOpacity} 
                   />
