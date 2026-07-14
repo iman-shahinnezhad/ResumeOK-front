@@ -508,6 +508,14 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
       }
 
       // Step 2: Submit Application via unified backend endpoint
+      console.log("Submitting application parameters:", {
+        jobId: selectedJob?.id,
+        companySlug: targetToken,
+        sourceType: selectedJob?.sourceType || 'greenhouse',
+        configBoardToken: config.boardToken,
+        hasJobBoardKey: !!config.jobBoardKey,
+        isKeyAppended: !!(config.jobBoardKey && config.boardToken?.toLowerCase() === targetToken)
+      });
       console.log("Submitting application to backend...");
       const formData = new FormData();
       formData.append('jobId', String(selectedJob?.id));
