@@ -421,7 +421,7 @@ export default function JobsScreen() {
       let finalResumeName = baseResume.name;
 
       const targetCompany = selectedJob?.companyName || 'COMPANY';
-      const targetToken = selectedJob?.boardToken || 'stripe';
+      const targetToken = (selectedJob?.boardToken || 'stripe').toLowerCase();
       const isLever = selectedJob?.sourceType === 'lever';
 
       if (tailorResume) {
@@ -517,7 +517,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
       formData.append('lastName', lastName);
       formData.append('email', email);
       if (phone) formData.append('phone', phone);
-      if (config.jobBoardKey && config.boardToken === targetToken) {
+      if (config.jobBoardKey && config.boardToken?.toLowerCase() === targetToken) {
         formData.append('jobBoardKey', config.jobBoardKey);
       }
 
