@@ -89,6 +89,7 @@ export default function JobsScreen() {
   // Tinder Swipe position tracking (Reanimated Shared Values)
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
+  const cardOpacity = useSharedValue(1);
 
   // Refs to avoid stale closures in PanResponder / swipe callbacks
   const currentIndexRef = useRef(0);
@@ -99,9 +100,8 @@ export default function JobsScreen() {
     currentIndexRef.current = currentIndex;
     
     const delayTimer = setTimeout(() => {
-      translateX.value = 0;
-      translateY.value = 0;
-    }, 1);
+      cardOpacity.value = 1;
+    }, 50);
 
     return () => clearTimeout(delayTimer);
   }, [currentIndex]);
@@ -112,6 +112,12 @@ export default function JobsScreen() {
 
   const handleSwipeComplete = (direction: 'left' | 'right') => {
     const targetJob = filteredJobsRef.current[currentIndexRef.current];
+    
+    // Instantly hide and reset card coordinates on the UI thread
+    cardOpacity.value = 0;
+    translateX.value = 0;
+    translateY.value = 0;
+    
     setCurrentIndex(prev => prev + 1);
     isAnimatingRef.current = false;
 
@@ -166,7 +172,7 @@ export default function JobsScreen() {
       Extrapolation.CLAMP
     );
 
-    const opacity = interpolate(
+    const dragOpacity = interpolate(
       translateX.value,
       [-250, -150, 0, 150, 250],
       [0, 1.0, 1.0, 1.0, 0],
@@ -174,7 +180,7 @@ export default function JobsScreen() {
     );
 
     return {
-      opacity,
+      opacity: dragOpacity * cardOpacity.value,
       transform: [
         { translateX: translateX.value },
         { translateY: translateY.value },
