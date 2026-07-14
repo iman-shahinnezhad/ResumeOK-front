@@ -161,8 +161,8 @@ export default function JobsScreen() {
 
           if (append) {
             setAllJobs(prev => {
-              const existingIds = new Set(prev.map(j => j.id));
-              const newJobs = data.jobs.filter(j => !existingIds.has(j.id));
+              const existingIds = new Set(prev.map((j: GreenhouseJob) => j.id));
+              const newJobs = data.jobs.filter((j: GreenhouseJob) => !existingIds.has(j.id));
               const combined = [...prev, ...newJobs];
               setFilteredJobs(combined);
               return combined;
