@@ -171,6 +171,16 @@ export default function JobsScreen() {
   };
 
   const getCardStyle = () => {
+    if (isCardLoading) {
+      return {
+        transform: [
+          { translateX: 0 },
+          { translateY: 0 },
+          { rotate: '0deg' }
+        ]
+      };
+    }
+
     const rotate = swipePosition.x.interpolate({
       inputRange: [-200, 0, 200],
       outputRange: ['-10deg', '0deg', '10deg']
