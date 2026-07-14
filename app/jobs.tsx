@@ -129,12 +129,12 @@ export default function JobsScreen() {
     }).start(() => {
       const targetJob = filteredJobsRef.current[currentIndexRef.current];
       
-      // Increment top index
-      setCurrentIndex(prev => prev + 1);
-      
       // Stop and reset position immediately for next card
       swipePosition.stopAnimation();
       swipePosition.setValue({ x: 0, y: 0 });
+
+      // Increment top index
+      setCurrentIndex(prev => prev + 1);
 
       // Swipe Right action (Apply / Details)
       if (direction === 'right' && targetJob) {
