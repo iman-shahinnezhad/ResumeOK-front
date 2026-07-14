@@ -503,9 +503,6 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
             <View style={styles.companyTagLarge}>
               <Text style={styles.companyTagTextLarge}>{companyName}</Text>
             </View>
-            <Text style={styles.deckIndicatorText}>
-              {index + 1} / {filteredJobs.length}
-            </Text>
           </View>
 
           <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
@@ -572,33 +569,6 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
               autoCorrect={false}
             />
           </View>
-        </View>
-
-        {/* Company Filter Pills */}
-        <View style={{ marginBottom: 12 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            {['ALL', ...POPULAR_GREENHOUSE_COMPANIES.map(c => c.toUpperCase()), ...POPULAR_LEVER_COMPANIES.map(c => c.toUpperCase())].map((company) => {
-              const isSelected = selectedCompanyFilter === company;
-              return (
-                <TouchableOpacity
-                  key={company}
-                  style={[
-                    styles.companyPill,
-                    isSelected ? styles.companyPillActive : undefined
-                  ]}
-                  activeOpacity={0.8}
-                  onPress={() => setSelectedCompanyFilter(company)}
-                >
-                  <Text style={[
-                    styles.companyPillText,
-                    isSelected ? styles.companyPillTextActive : undefined
-                  ]}>
-                    {company}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
         </View>
       </View>
 
