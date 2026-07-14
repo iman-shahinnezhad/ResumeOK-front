@@ -687,7 +687,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
 
             {/* Foreground / Active Card (Moves with gesture) */}
             <Animated.View
-              key="fg-card"
+              key={`fg-${filteredJobs[currentIndex].id}`}
               {...panResponder.panHandlers}
               style={[
                 styles.jobCardContainer,
