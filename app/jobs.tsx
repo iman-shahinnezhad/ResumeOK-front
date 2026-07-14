@@ -97,6 +97,7 @@ export default function JobsScreen() {
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
       onPanResponderMove: (evt, gestureState) => {
         swipePosition.setValue({ x: gestureState.dx, y: gestureState.dy });
       },
@@ -106,6 +107,7 @@ export default function JobsScreen() {
         } else if (gestureState.dx < -120) {
           swipeCard('left');
         } else {
+          swipePosition.stopAnimation();
           Animated.spring(swipePosition, {
             toValue: { x: 0, y: 0 },
             friction: 5,
@@ -130,7 +132,8 @@ export default function JobsScreen() {
       // Increment top index
       setCurrentIndex(prev => prev + 1);
       
-      // Reset position immediately for next card
+      // Stop and reset position immediately for next card
+      swipePosition.stopAnimation();
       swipePosition.setValue({ x: 0, y: 0 });
 
       // Swipe Right action (Apply / Details)
@@ -266,17 +269,29 @@ export default function JobsScreen() {
             setHasMore(true);
           }
 
+          // Pre-process rich HTML content to clean snippets once on fetch
+          const processed = data.jobs.map((job: GreenhouseJob) => {
+            const rawDescription = stripHtml(job.content || "");
+            const cleanSnippet = rawDescription.length > 280 
+              ? rawDescription.slice(0, 280) + "..." 
+              : rawDescription;
+            return {
+              ...job,
+              cleanSnippet
+            };
+          });
+
           if (append) {
             setAllJobs(prev => {
               const existingIds = new Set(prev.map((j: GreenhouseJob) => j.id));
-              const newJobs = data.jobs.filter((j: GreenhouseJob) => !existingIds.has(j.id));
+              const newJobs = processed.filter((j: GreenhouseJob) => !existingIds.has(j.id));
               const combined = [...prev, ...newJobs];
               setFilteredJobs(combined);
               return combined;
             });
           } else {
-            setAllJobs(data.jobs);
-            setFilteredJobs(data.jobs);
+            setAllJobs(processed);
+            setFilteredJobs(processed);
             setCurrentPage(1);
           }
         }
@@ -609,7 +624,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
             {/* Background / Next Card */}
             {currentIndex + 1 < filteredJobs.length && (
               <Animated.View
-                key={`bg-${filteredJobs[currentIndex + 1].id}`}
+                key="bg-card"
                 style={[
                   styles.jobCardContainer,
                   {
@@ -628,7 +643,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
 
             {/* Foreground / Active Card */}
             <Animated.View
-              key={`fg-${filteredJobs[currentIndex].id}`}
+              key="fg-card"
               {...panResponder.panHandlers}
               style={[
                 styles.jobCardContainer,
@@ -1335,7 +1350,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const stripHtml = (html: string) => {
+function stripHtml(html: string) {
   if (!html) return '';
   return html
     .replace(/&amp;/g, '&')
@@ -1347,7 +1362,7 @@ const stripHtml = (html: string) => {
     .replace(/<\/li>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .trim();
-};
+}
 
 interface JobCardContentProps {
   item: GreenhouseJob;
