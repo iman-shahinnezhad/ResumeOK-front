@@ -14,14 +14,14 @@ import {
   Linking,
   PanResponder,
 } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withTiming, 
-  interpolate, 
-  Extrapolation, 
-  runOnJS 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  interpolate,
+  Extrapolation,
+  runOnJS
 } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -301,7 +301,7 @@ export default function JobsScreen() {
         const data = await response.json();
         if (data.success && Array.isArray(data.jobs)) {
           console.log(`Successfully fetched ${data.jobs.length} jobs for page ${pageToFetch}`);
-          
+
           if (data.jobs.length < 50) {
             setHasMore(false);
           } else {
@@ -311,8 +311,8 @@ export default function JobsScreen() {
           // Pre-process rich HTML content to clean snippets once on fetch
           const processed = data.jobs.map((job: GreenhouseJob) => {
             const rawDescription = stripHtml(job.content || "");
-            const cleanSnippet = rawDescription.length > 280 
-              ? rawDescription.slice(0, 280) + "..." 
+            const cleanSnippet = rawDescription.length > 280
+              ? rawDescription.slice(0, 280) + "..."
               : rawDescription;
             return {
               ...job,
@@ -383,9 +383,9 @@ export default function JobsScreen() {
     let str = input;
     let output = '';
     for (let block = 0, charCode, i = 0, map = chars;
-         str.charAt(i | 0) || (map = '=', i % 1);
-         output += map.charAt(63 & block >> 8 - i % 1 * 8)) {
-      charCode = str.charCodeAt(i += 3/4);
+      str.charAt(i | 0) || (map = '=', i % 1);
+      output += map.charAt(63 & block >> 8 - i % 1 * 8)) {
+      charCode = str.charCodeAt(i += 3 / 4);
       if (charCode > 0xFF) {
         throw new Error("'btoa' failed: The string to be encoded contains characters outside of the Latin1 range.");
       }
@@ -575,7 +575,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
 
       Alert.alert(
         "Application Submitted",
-        tailorResume 
+        tailorResume
           ? "Your resume has been tailored with AI and successfully applied! You can view it under the Your Doc tab."
           : "Your application has been successfully submitted! Track its status in Your Doc tab.",
         [
@@ -635,7 +635,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
       </View>
 
       {/* Snapping Vertical Card Deck (Tinder Style) */}
-      <View 
+      <View
         style={{ flex: 1, paddingHorizontal: 24, paddingBottom: 16 }}
         onLayout={(e) => setPagerHeight(e.nativeEvent.layout.height)}
       >
@@ -652,8 +652,8 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
           <View style={styles.emptyContainer}>
             <Ionicons name="sparkles" size={48} color="#7C3AED" style={{ marginBottom: 12 }} />
             <Text style={styles.emptyText}>You've swiped through all jobs!</Text>
-            <TouchableOpacity 
-              style={styles.resetSwipesBtn} 
+            <TouchableOpacity
+              style={styles.resetSwipesBtn}
               onPress={() => { setCurrentIndex(0); }}
             >
               <Text style={styles.resetSwipesBtnText}>Start Over</Text>
@@ -676,7 +676,10 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
                   }
                 ]}
               >
-                <JobCardLoading />
+                <JobCardContent 
+                  item={filteredJobs[currentIndex + 1]} 
+                  isActive={false} 
+                />
               </Animated.View>
             )}
 
@@ -695,11 +698,11 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
                 }
               ]}
             >
-              <JobCardContent 
-                item={filteredJobs[currentIndex]} 
-                isActive={true} 
-                likeStyle={likeBadgeStyle} 
-                nopeStyle={nopeBadgeStyle} 
+              <JobCardContent
+                item={filteredJobs[currentIndex]}
+                isActive={true}
+                likeStyle={likeBadgeStyle}
+                nopeStyle={nopeBadgeStyle}
               />
             </Animated.View>
           </View>
@@ -709,15 +712,15 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
       {/* Tinder Actions */}
       {!isLoadingJobs && filteredJobs.length > 0 && currentIndex < filteredJobs.length && (
         <View style={styles.actionsRow}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnSkip]}
             activeOpacity={0.8}
             onPress={() => swipeCard('left')}
           >
             <Ionicons name="close" size={28} color="#EF4444" />
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnApply]}
             activeOpacity={0.8}
             onPress={() => swipeCard('right')}
@@ -762,7 +765,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
                   <View style={styles.divider} />
 
                   <Text style={styles.sectionHeading}>Quick Apply Form</Text>
-                  
+
                   {firstName && lastName && email && !isEditingContact ? (
                     <View style={styles.contactSummaryCard}>
                       <View style={{ flex: 1 }}>
@@ -1435,7 +1438,7 @@ const JobCardContent = React.memo(({ item, isActive, likeStyle, nopeStyle }: Job
         colors={['#FFFFFF', '#F9FAFB']}
         style={StyleSheet.absoluteFillObject}
       />
-      
+
       <View style={styles.cardHeader}>
         <View style={styles.companyTagLarge}>
           <Text style={styles.companyTagTextLarge}>{companyName}</Text>
@@ -1468,7 +1471,7 @@ const JobCardContent = React.memo(({ item, isActive, likeStyle, nopeStyle }: Job
           <Animated.View style={[styles.swipeBadge, styles.likeBadge, likeStyle]}>
             <Text style={styles.likeBadgeText}>APPLY</Text>
           </Animated.View>
-          
+
           <Animated.View style={[styles.swipeBadge, styles.nopeBadge, nopeStyle]}>
             <Text style={styles.nopeBadgeText}>SKIP</Text>
           </Animated.View>
@@ -1478,15 +1481,3 @@ const JobCardContent = React.memo(({ item, isActive, likeStyle, nopeStyle }: Job
   );
 });
 
-const JobCardLoading = () => {
-  return (
-    <View style={[styles.premiumCard, styles.loadingCard]}>
-      <LinearGradient
-        colors={['#FFFFFF', '#F9FAFB']}
-        style={StyleSheet.absoluteFillObject}
-      />
-      <ActivityIndicator size="large" color="#7C3AED" style={{ marginBottom: 16 }} />
-      <Text style={styles.loadingCardText}>Finding next matched role...</Text>
-    </View>
-  );
-};
