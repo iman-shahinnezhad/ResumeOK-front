@@ -3,7 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { initPurchases, syncSubscriptionStatusWithStoreKit } from '../utils/purchases';
-import { clearSession, getSession, saveSession, User } from '../utils/session';
+import { clearSession, getSession, saveSession, User, Session } from '../utils/session';
 
 const GUEST_CREDIT_FILE = `${FileSystem.documentDirectory}guest_credit.txt`;
 const GUEST_ID_FILE = `${FileSystem.documentDirectory}guest_id.txt`;
@@ -15,6 +15,7 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isLoading: boolean;
   logout: () => Promise<void>;
+  login: (session: Session) => Promise<void>;
   deductCredits: (amount?: number) => Promise<boolean>;
   refundCredits: (amount: number) => Promise<boolean>;
   updateUser: (user: User) => Promise<void>;
@@ -115,6 +116,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
     } catch (err) {
       console.error('Failed to logout:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (session: Session) => {
+    try {
+      setIsLoading(true);
+      await saveSession(session);
+      setUser(session.user);
+      await initPurchases(session.user.id);
+    } catch (err) {
+      console.error('Failed to login:', err);
     } finally {
       setIsLoading(false);
     }
@@ -290,6 +304,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoggedIn: !!user,
         isLoading,
         logout,
+        login,
         deductCredits,
         refundCredits,
         updateUser: async (newUser: User) => {
