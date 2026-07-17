@@ -96,6 +96,39 @@ export default function BuildResumeScreen() {
     summary: '',
   });
 
+  // Load onboarding profile if exists on mount
+  React.useEffect(() => {
+    async function loadOnboardingProfile() {
+      try {
+        const path = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+        const fileInfo = await FileSystem.getInfoAsync(path);
+        if (fileInfo.exists) {
+          const text = await FileSystem.readAsStringAsync(path);
+          const parsed = JSON.parse(text);
+          setFormData(prev => ({
+            ...prev,
+            firstName: parsed.firstName || prev.firstName,
+            lastName: parsed.lastName || prev.lastName,
+            jobTitle: parsed.jobTitle || prev.jobTitle,
+            email: parsed.email || prev.email,
+            phone: parsed.phone || prev.phone,
+            city: parsed.city || prev.city,
+            dob: parsed.dob || prev.dob,
+            nationality: parsed.nationality || prev.nationality,
+            website: parsed.website || prev.website,
+            skills: parsed.skills || prev.skills,
+            workExperiences: parsed.workExperiences || prev.workExperiences,
+            educations: parsed.educations || prev.educations,
+            summary: parsed.summary || prev.summary,
+          }));
+        }
+      } catch (e) {
+        console.log('Error loading onboarding profile in builder:', e);
+      }
+    }
+    loadOnboardingProfile();
+  }, []);
+
   // UI state for Loading and PDF Preview
   const [isFinalizing, setIsFinalizing] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);

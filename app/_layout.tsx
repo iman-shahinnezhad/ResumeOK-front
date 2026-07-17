@@ -20,7 +20,7 @@ SplashScreen.preventAutoHideAsync().catch(() => { });
 export default function RootLayout() {
   const router = useRouter();
   const [appReady, setAppReady] = useState(false);
-  const [showReferral, setShowReferral] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [checkingStorage, setCheckingStorage] = useState(true);
 
   useEffect(() => {
@@ -99,16 +99,16 @@ export default function RootLayout() {
     const checkOnboardingStates = async () => {
       try {
         const splashInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory + 'has_seen_splash.txt');
-        const referralInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory + 'has_seen_referral.txt');
+        const onboardingInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory + 'has_seen_onboarding.txt');
 
         if (splashInfo.exists) {
           setAppReady(true);
         }
-        if (!referralInfo.exists) {
-          setShowReferral(true);
+        if (!onboardingInfo.exists) {
+          setShowOnboarding(true);
         }
       } catch (e) {
-        setShowReferral(true);
+        setShowOnboarding(true);
       } finally {
         setCheckingStorage(false);
         try {
@@ -122,10 +122,10 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (appReady && !checkingStorage && showReferral) {
-      router.replace('/referral-onboarding');
+    if (appReady && !checkingStorage && showOnboarding) {
+      router.replace('/onboarding');
     }
-  }, [appReady, checkingStorage, showReferral]);
+  }, [appReady, checkingStorage, showOnboarding]);
 
   const handleContinue = async () => {
     try {
@@ -159,6 +159,7 @@ export default function RootLayout() {
               <Stack.Screen name="account" />
               <Stack.Screen name="report-bug" />
               <Stack.Screen name="referral-onboarding" />
+              <Stack.Screen name="onboarding" />
               <Stack.Screen name="jobs" />
             </Stack>
           </ThemeProvider>
