@@ -51,24 +51,137 @@ const LaurelWreathRight = () => (
   </Svg>
 );
 
+const CATEGORIES_DATA = [
+  {
+    name: 'Design',
+    icon: 'palette-outline',
+    roles: [
+      'Backend Engineer',
+      'Blockchain Engineer',
+      'Cloud Engineer',
+      'Data Engineer',
+      'Developer Relations',
+      'DevOps Engineer',
+      'Embedded Engineer',
+      'Engineering Manager',
+      'Frontend Engineer',
+      'Full stack Engineer',
+      'Game Engineer',
+      'ML Engineer',
+      'QA Engineer',
+      'Sales Engineer',
+      'Software Engineer',
+      'Site Reliability Engineer',
+      'Software Architect',
+      'Support Engineer'
+    ]
+  },
+  {
+    name: 'Software & Engineering',
+    icon: 'code-slash-outline',
+    roles: ['Mobile Engineer', 'Firmware Engineer', 'Systems Architect', 'Security Analyst']
+  },
+  {
+    name: 'Marketing',
+    icon: 'megaphone-outline',
+    roles: ['Growth Marketer', 'SEO Specialist', 'Content Strategist', 'Social Media Manager']
+  },
+  {
+    name: 'Product',
+    icon: 'cube-outline',
+    roles: ['Product Manager', 'Associate Product Manager', 'Product Owner']
+  },
+  {
+    name: 'Data & AI',
+    icon: 'analytics-outline',
+    roles: ['Data Scientist', 'Data Analyst', 'Machine Learning Engineer', 'AI Researcher']
+  },
+  {
+    name: 'Sales',
+    icon: 'trending-up-outline',
+    roles: ['Account Executive', 'Business Development Rep', 'Sales Manager']
+  },
+  {
+    name: 'Security',
+    icon: 'shield-checkmark-outline',
+    roles: ['Security Analyst', 'Penetration Tester', 'Security Architect']
+  },
+  {
+    name: 'Consulting',
+    icon: 'people-outline',
+    roles: ['Management Consultant', 'Strategy Consultant', 'IT Consultant']
+  },
+  {
+    name: 'Human Resources',
+    icon: 'person-add-outline',
+    roles: ['HR Manager', 'Talent Acquisition', 'Recruiter']
+  },
+  {
+    name: 'Customer Support',
+    icon: 'headset-outline',
+    roles: ['Customer Support Specialist', 'Technical Support Agent']
+  },
+  {
+    name: 'Misc. Engineering',
+    icon: 'build-outline',
+    roles: ['Hardware Engineer', 'Mechanical Engineer', 'Electrical Engineer']
+  },
+  {
+    name: 'Finance',
+    icon: 'cash-outline',
+    roles: ['Financial Analyst', 'Accountant', 'Investment Analyst']
+  },
+  {
+    name: 'Legal',
+    icon: 'briefcase-outline',
+    roles: ['Legal Counsel', 'Compliance Officer']
+  },
+  {
+    name: 'Healthcare & Medical',
+    icon: 'medical-outline',
+    roles: ['Medical Advisor', 'Health Analyst']
+  }
+];
+
+const INTERESTS_DATA = [
+  { label: 'Flexible Hours', emoji: '⏱️' },
+  { label: 'Innovative Tech', emoji: '🧠' },
+  { label: 'Cool Startup', emoji: '😎' },
+  { label: 'Job stability', emoji: '🧘' },
+  { label: 'Challenging Work', emoji: '🔥' },
+  { label: 'High salary', emoji: '💸' },
+  { label: 'Company culture', emoji: '👥' },
+  { label: 'Remote work', emoji: '✈️' },
+  { label: 'Career growth', emoji: '🚀' }
+];
+
 export default function Onboarding() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { login, guestId } = useAuth();
   
-  // Screen Step flow: intro -> welcome -> engineered -> name -> email
-  const [step, setStep] = useState<'intro' | 'welcome' | 'engineered' | 'name' | 'email'>('intro');
+  // Navigation Flow State
+  const [step, setStep] = useState<'intro' | 'welcome' | 'referral' | 'engineered' | 'name' | 'email' | 'jobs' | 'interests'>('intro');
   const [loading, setLoading] = useState(false);
 
-  // Profile data collection states
+  // Referral State
+  const [referralCode, setReferralCode] = useState('');
+  const referralInputRef = useRef<TextInput>(null);
+
+  // Profile data states
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
-  // Slider State for Step 3
+  // Accordion status mapping category name to expanded boolean
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+
+  // Slide carousel state
   const [activeSlide, setActiveSlide] = useState(0);
 
-  // Google OAuth Request Setup
+  // Google Sign-In Setup
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: 'YOUR_GOOGLE_IOS_CLIENT_ID', 
     androidClientId: 'YOUR_GOOGLE_ANDROID_CLIENT_ID',
@@ -94,7 +207,6 @@ export default function Onboarding() {
 
       const googleUser = await userInfoResponse.json();
       
-      // Submit to backend /api/auth/google
       const authRes = await fetch(`${API_URL}/api/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -117,12 +229,11 @@ export default function Onboarding() {
           accessToken: data.token,
         });
 
-        // Pre-fill fields with social info
         if (googleUser.given_name) setFirstName(googleUser.given_name);
         if (googleUser.family_name) setLastName(googleUser.family_name);
         if (googleUser.email) setEmail(googleUser.email);
 
-        setStep('engineered');
+        setStep('referral');
       }
     } catch (err: any) {
       console.error('Google login error:', err);
@@ -149,7 +260,6 @@ export default function Onboarding() {
       });
 
       if (credential.identityToken) {
-        // Send to backend /api/auth/apple
         const authRes = await fetch(`${API_URL}/api/auth/apple`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -174,12 +284,11 @@ export default function Onboarding() {
             accessToken: data.token,
           });
 
-          // Pre-fill profile fields
           if (credential.fullName?.givenName) setFirstName(credential.fullName.givenName);
           if (credential.fullName?.familyName) setLastName(credential.fullName.familyName);
           if (credential.email) setEmail(credential.email);
 
-          setStep('engineered');
+          setStep('referral');
         }
       }
     } catch (err: any) {
@@ -192,17 +301,46 @@ export default function Onboarding() {
     }
   };
 
+  const handleReferralSubmit = async () => {
+    if (!referralCode.trim()) {
+      setStep('engineered');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/guest/${guestId}/referral`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ referralCode: referralCode.trim().toUpperCase() })
+      });
+      const data = await response.json();
+      if (data.success) {
+        Alert.alert("Success", "Referral code applied successfully!");
+        setStep('engineered');
+      } else {
+        Alert.alert("Error", data.error || "This referral code is invalid.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Network connection issue. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const saveProfileData = async () => {
     try {
       const path = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
       const profile = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        email: email.trim()
+        email: email.trim(),
+        skills: selectedRoles,
+        interests: selectedInterests
       };
       await FileSystem.writeAsStringAsync(path, JSON.stringify(profile));
 
-      // Also update name on server if user is logged in
+      // Sync name with server if logged in
       const session = await FileSystem.getInfoAsync(`${FileSystem.documentDirectory}session.json`);
       if (session.exists) {
         const text = await FileSystem.readAsStringAsync(`${FileSystem.documentDirectory}session.json`);
@@ -238,9 +376,36 @@ export default function Onboarding() {
 
   const handleBack = () => {
     if (step === 'welcome') setStep('intro');
-    else if (step === 'engineered') setStep('welcome');
+    else if (step === 'referral') setStep('welcome');
+    else if (step === 'engineered') setStep('referral');
     else if (step === 'name') setStep('engineered');
     else if (step === 'email') setStep('name');
+    else if (step === 'jobs') setStep('email');
+    else if (step === 'interests') setStep('jobs');
+  };
+
+  const toggleCategory = (catName: string) => {
+    if (expandedCategory === catName) {
+      setExpandedCategory(null);
+    } else {
+      setExpandedCategory(catName);
+    }
+  };
+
+  const toggleRoleSelection = (role: string) => {
+    if (selectedRoles.includes(role)) {
+      setSelectedRoles(prev => prev.filter(r => r !== role));
+    } else {
+      setSelectedRoles(prev => [...prev, role]);
+    }
+  };
+
+  const toggleInterestSelection = (interest: string) => {
+    if (selectedInterests.includes(interest)) {
+      setSelectedInterests(prev => prev.filter(i => i !== interest));
+    } else {
+      setSelectedInterests(prev => [...prev, interest]);
+    }
   };
 
   const handleScroll = (event: any) => {
@@ -249,17 +414,42 @@ export default function Onboarding() {
     setActiveSlide(index);
   };
 
-  // Helper progress calculations
-  const totalSteps = 3; // engineered, name, email
-  const currentProgressStep = step === 'engineered' ? 1 : step === 'name' ? 2 : 3;
+  const renderReferralDashes = () => {
+    const chars = referralCode.padEnd(6, ' ').split('');
+    return (
+      <TouchableOpacity
+        style={styles.dashesRow}
+        activeOpacity={0.8}
+        onPress={() => referralInputRef.current?.focus()}
+      >
+        {chars.map((char, index) => (
+          <View key={index} style={styles.dashBox}>
+            <Text style={styles.dashText}>{char === ' ' ? '_' : char}</Text>
+          </View>
+        ))}
+      </TouchableOpacity>
+    );
+  };
+
+  // Questionnaire navigation metrics
+  const totalSteps = 6;
+  const currentProgressStep = 
+    step === 'referral' ? 1 
+    : step === 'engineered' ? 2 
+    : step === 'name' ? 3 
+    : step === 'email' ? 4 
+    : step === 'jobs' ? 5 
+    : 6;
   const progressPercentage = (currentProgressStep / totalSteps) * 100;
 
   const isNameValid = firstName.trim().length > 0 && lastName.trim().length > 0;
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const isReferralValid = referralCode.trim().length === 6;
+  const isJobsValid = selectedRoles.length >= 3;
+  const isInterestsValid = selectedInterests.length >= 3;
 
   return (
     <View style={styles.container}>
-      {/* Intro and Welcome use the sunset background. Others use a pure white layout. */}
       {(step === 'intro' || step === 'welcome') ? (
         <>
           <Image
@@ -273,7 +463,7 @@ export default function Onboarding() {
         <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#FFFFFF' }]} />
       )}
 
-      {/* Dynamic Questionnaire Navigation Header */}
+      {/* Dynamic Header Progress Bar */}
       {step !== 'intro' && step !== 'welcome' && (
         <View style={[styles.headerContainer, { marginTop: insets.top + 10 }]}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
@@ -346,7 +536,7 @@ export default function Onboarding() {
                   <Text style={styles.authBtnText}>Continue with Google</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.skipBtnLink} onPress={() => setStep('engineered')}>
+                <TouchableOpacity style={styles.skipBtnLink} onPress={() => setStep('referral')}>
                   <Text style={styles.skipBtnText}>Skip for now</Text>
                 </TouchableOpacity>
               </View>
@@ -372,6 +562,62 @@ export default function Onboarding() {
         </View>
       )}
 
+      {step === 'referral' && (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardContainer}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
+              <View style={styles.questionHeadingContainer}>
+                <Text style={styles.questionTitle}>Do you have a referral{"\n"}code?</Text>
+              </View>
+
+              {/* Hidden absolute TextInput */}
+              <TextInput
+                ref={referralInputRef}
+                style={styles.hiddenTextInput}
+                maxLength={6}
+                value={referralCode}
+                onChangeText={(t) => setReferralCode(t.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                keyboardType="default"
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
+
+              {/* Interactive Dash Fields */}
+              <View style={styles.referralMiddleArea}>
+                {renderReferralDashes()}
+                <Image
+                  source={require('../assets/images/laptop.png')}
+                  style={styles.laptopAsset}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <View style={styles.referralActions}>
+                <TouchableOpacity
+                  style={[styles.actionBtnBlack, !isReferralValid ? styles.actionBtnDisabled : null]}
+                  activeOpacity={isReferralValid ? 0.9 : 1}
+                  disabled={!isReferralValid || loading}
+                  onPress={handleReferralSubmit}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.actionBtnTextWhite}>Continue</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('engineered')}>
+                  <Text style={styles.skipBtnTextBlack}>Skip for now</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      )}
+
       {step === 'engineered' && (
         <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
           <View style={styles.engineeredHeadingContainer}>
@@ -380,7 +626,6 @@ export default function Onboarding() {
             <Text style={styles.engineeredHeadingSub}>for today's hiring process.</Text>
           </View>
 
-          {/* Sliding horizontal company grid images */}
           <View style={styles.engineeredCarouselOuter}>
             <ScrollView
               horizontal
@@ -407,7 +652,6 @@ export default function Onboarding() {
               />
             </ScrollView>
 
-            {/* Slider Dots */}
             <View style={styles.slideIndicatorsRow}>
               {[0, 1, 2].map((idx) => (
                 <View
@@ -421,7 +665,6 @@ export default function Onboarding() {
             </View>
           </View>
 
-          {/* Companies Count Pill */}
           <View style={styles.companiesPill}>
             <Text style={styles.companiesPillText}>+1200 Companies</Text>
           </View>
@@ -511,13 +754,149 @@ export default function Onboarding() {
                 style={[styles.actionBtnBlack, !isEmailValid ? styles.actionBtnDisabled : null]}
                 activeOpacity={isEmailValid ? 0.9 : 1}
                 disabled={!isEmailValid}
-                onPress={finishOnboarding}
+                onPress={() => setStep('jobs')}
               >
                 <Text style={styles.actionBtnTextWhite}>Continue</Text>
               </TouchableOpacity>
             </View>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
+      )}
+
+      {step === 'jobs' && (
+        <View style={styles.accordionContainer}>
+          <View style={[styles.questionHeadingContainer, { paddingHorizontal: 24, marginBottom: 10 }]}>
+            <Text style={styles.questionTitle}>What job are you{"\n"}targeting?</Text>
+            <Text style={styles.questionSubtitle}>We calibrate your matches, At least 3 Interests.</Text>
+          </View>
+
+          <ScrollView 
+            style={styles.accordionScrollView}
+            contentContainerStyle={styles.accordionScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {CATEGORIES_DATA.map((category) => {
+              const isExpanded = expandedCategory === category.name;
+              
+              // Count how many roles under this category are selected
+              const selectedInCategory = category.roles.filter(role => selectedRoles.includes(role)).length;
+
+              return (
+                <View key={category.name} style={styles.accordionSection}>
+                  <TouchableOpacity
+                    style={styles.accordionHeader}
+                    activeOpacity={0.7}
+                    onPress={() => toggleCategory(category.name)}
+                  >
+                    <View style={styles.accordionHeaderLeft}>
+                      <Ionicons name={category.icon as any} size={20} color="#000000" style={{ marginRight: 10 }} />
+                      <View>
+                        <Text style={styles.accordionCategoryTitle}>{category.name}</Text>
+                        <Text style={styles.accordionCategorySubtitle}>
+                          21 Role {selectedInCategory > 0 ? `(${selectedInCategory} Roles Selected)` : ''}
+                        </Text>
+                      </View>
+                    </View>
+                    <Ionicons 
+                      name={isExpanded ? "chevron-up" : "chevron-down"} 
+                      size={18} 
+                      color="#000000" 
+                    />
+                  </TouchableOpacity>
+
+                  {isExpanded && (
+                    <View style={styles.accordionContent}>
+                      {category.roles.map((role) => {
+                        const isSelected = selectedRoles.includes(role);
+                        return (
+                          <TouchableOpacity
+                            key={role}
+                            style={[
+                              styles.roleBadge,
+                              isSelected ? styles.roleBadgeSelected : null
+                            ]}
+                            activeOpacity={0.8}
+                            onPress={() => toggleRoleSelection(role)}
+                          >
+                            <Text style={[
+                              styles.roleBadgeText,
+                              isSelected ? styles.roleBadgeTextSelected : null
+                            ]}>
+                              {role}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </ScrollView>
+
+          <View style={styles.accordionActions}>
+            <TouchableOpacity
+              style={[styles.actionBtnBlack, !isJobsValid ? styles.actionBtnDisabled : null]}
+              activeOpacity={isJobsValid ? 0.9 : 1}
+              disabled={!isJobsValid}
+              onPress={() => setStep('interests')}
+            >
+              <Text style={styles.actionBtnTextWhite}>
+                {selectedRoles.length > 0 
+                  ? `Continue With (${selectedRoles.length} Roles)` 
+                  : 'Continue'
+                }
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {step === 'interests' && (
+        <View style={styles.accordionContainer}>
+          <View style={[styles.questionHeadingContainer, { paddingHorizontal: 24, marginBottom: 30 }]}>
+            <Text style={styles.questionTitle}>What's most important{"\n"}in your next job?</Text>
+            <Text style={styles.questionSubtitle}>We calibrate your matches, Select 3 Interests.</Text>
+          </View>
+
+          <View style={styles.interestsGridOuter}>
+            <View style={styles.interestsGrid}>
+              {INTERESTS_DATA.map((item) => {
+                const isSelected = selectedInterests.includes(item.label);
+                return (
+                  <TouchableOpacity
+                    key={item.label}
+                    style={[
+                      styles.interestBadge,
+                      isSelected ? styles.interestBadgeSelected : null
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={() => toggleInterestSelection(item.label)}
+                  >
+                    <Text style={styles.interestBadgeEmoji}>{item.emoji}</Text>
+                    <Text style={[
+                      styles.interestBadgeText,
+                      isSelected ? styles.interestBadgeTextSelected : null
+                    ]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.accordionActions}>
+            <TouchableOpacity
+              style={[styles.actionBtnBlack, !isInterestsValid ? styles.actionBtnDisabled : null]}
+              activeOpacity={isInterestsValid ? 0.9 : 1}
+              disabled={!isInterestsValid}
+              onPress={finishOnboarding}
+            >
+              <Text style={styles.actionBtnTextWhite}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
     </View>
   );
@@ -550,7 +929,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  // Header Navigation Progress Bar
+  // Progress Header
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -718,7 +1097,60 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     fontWeight: '600',
   },
-  // STEP 3 - ENGINEERED
+  // STEP 3 - REFERRAL
+  hiddenTextInput: {
+    position: 'absolute',
+    width: 0,
+    height: 0,
+    opacity: 0,
+  },
+  referralMiddleArea: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    width: '100%',
+    marginVertical: 15,
+  },
+  dashesRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 30,
+    width: '100%',
+  },
+  dashBox: {
+    width: 38,
+    height: 44,
+    backgroundColor: '#F3F3F3',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  dashText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  laptopAsset: {
+    width: width * 0.75,
+    height: 180,
+  },
+  referralActions: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  skipBtnLinkBlack: {
+    marginTop: 20,
+    paddingVertical: 10,
+  },
+  skipBtnTextBlack: {
+    color: 'rgba(0,0,0,0.5)',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // STEP 4 - ENGINEERED
   engineeredHeadingContainer: {
     alignItems: 'center',
     marginTop: 40,
@@ -775,9 +1207,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  // QUESTION STEPS (NAME/EMAIL)
+  // QUESTION GENERAL
   questionHeadingContainer: {
-    marginTop: 60,
+    marginTop: 40,
     alignItems: 'center',
   },
   questionTitle: {
@@ -786,6 +1218,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
     lineHeight: 38,
+  },
+  questionSubtitle: {
+    color: 'rgba(0,0,0,0.5)',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 10,
   },
   inputCenteringGroup: {
     width: '100%',
@@ -822,5 +1261,122 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  // STEP 7 - JOBS ACCORDION
+  accordionContainer: {
+    flex: 1,
+    width: '100%',
+  },
+  accordionScrollView: {
+    flex: 1,
+    width: '100%',
+    marginTop: 15,
+  },
+  accordionScrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  accordionSection: {
+    width: '100%',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    paddingVertical: 14,
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  accordionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  accordionCategoryTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  accordionCategorySubtitle: {
+    fontSize: 11,
+    color: 'rgba(0,0,0,0.4)',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  accordionContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+    paddingLeft: 30,
+  },
+  roleBadge: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  roleBadgeSelected: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+  },
+  roleBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  roleBadgeTextSelected: {
+    color: '#FFFFFF',
+  },
+  accordionActions: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F5F5F5',
+  },
+  // STEP 8 - INTERESTS GRID
+  interestsGridOuter: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  interestsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  interestBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E2E2',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 22,
+    margin: 6,
+  },
+  interestBadgeSelected: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+  },
+  interestBadgeEmoji: {
+    fontSize: 15,
+    marginRight: 6,
+  },
+  interestBadgeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  interestBadgeTextSelected: {
+    color: '#FFFFFF',
   },
 });
