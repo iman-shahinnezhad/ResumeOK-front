@@ -14,7 +14,8 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  Animated
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,7 +23,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import * as FileSystem from 'expo-file-system/legacy';
-import Svg, { Path, G } from 'react-native-svg';
+import Svg, { Path, G, Circle } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
 import { useAuth, API_URL } from '../context/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -49,6 +50,40 @@ const LaurelWreathRight = () => (
       <Path d="M5 8C8.5 9 13.5 12.5 15 18C16.2 22.5 15.5 26.5 14 29.5C13.5 30.5 12.5 30 13 29C14.5 26 15 21.5 11.5 16.5C9.5 13.8 6.5 10.5 4.5 9C4 8.8 4 8.2 5 8Z" fill="#FFFFFF" />
       <Path d="M8 14C11 15 15 18.5 16 23.5C16.8 27.5 16.2 30.5 15 33C14.5 34 13.8 33.5 14.2 32.5C15.2 29.8 15.5 25.8 12.5 21C10.8 18.3 8.5 15.5 7 14.5C6.5 14.2 7 13.8 8 14Z" fill="#FFFFFF" />
     </G>
+  </Svg>
+);
+
+// High Five SVG representation for "Help us grow" rating page
+const HighFiveGraphic = () => (
+  <Svg width={200} height={200} viewBox="0 0 200 200" fill="none">
+    {/* Yellow rays of energy */}
+    <Path d="M100 20 V40 M60 30 L75 45 M140 30 L125 45 M40 70 L60 75 M160 70 L140 75 M50 130 L70 120 M150 130 L130 120" stroke="#FFCC00" strokeWidth={4} strokeLinecap="round" />
+    
+    {/* Left hand (Blue trim sleeve) */}
+    <Path d="M70 150 L85 105 C88 95 80 65 80 55 C80 50 85 50 85 55 C85 45 90 45 90 55 C90 42 95 42 95 55 C95 46 100 46 100 60 C100 68 105 78 100 88 C95 98 105 108 105 118 C105 128 90 150 90 150" stroke="#0C2340" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+    <Path d="M70 150 L50 165" stroke="#2F5496" strokeWidth={5} strokeLinecap="round" />
+    <Path d="M75 145 L85 152" stroke="#2F5496" strokeWidth={5} strokeLinecap="round" />
+
+    {/* Right hand (Red trim sleeve) */}
+    <Path d="M130 150 L115 105 C112 95 120 65 120 55 C120 50 115 50 115 55 C115 45 110 45 110 55 C110 42 105 42 105 55 C105 46 100 46 100 60 C100 68 95 78 100 88 C105 98 95 108 95 118 C95 128 110 150 110 150" stroke="#0C2340" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+    <Path d="M130 150 L150 165" stroke="#C00000" strokeWidth={5} strokeLinecap="round" />
+    <Path d="M125 145 L115 152" stroke="#C00000" strokeWidth={5} strokeLinecap="round" />
+  </Svg>
+);
+
+// Ringing Bell SVG representation for "Stay on top of job search" notifications page
+const RingingBellGraphic = () => (
+  <Svg width={180} height={180} viewBox="0 0 100 100" fill="none">
+    {/* Yellow bell ringing rays */}
+    <Path d="M25 35 Q15 45 25 55 M15 30 Q3 45 15 60 M75 35 Q85 45 75 55 M85 30 Q97 45 85 60" stroke="#FFCC00" strokeWidth={3.5} strokeLinecap="round" />
+    {/* Loop Handle */}
+    <Path d="M50 20 C46 20 46 8 50 8 C54 8 54 20 50 20 Z" stroke="#0C2340" strokeWidth={4} strokeLinecap="round" />
+    {/* Bell Body */}
+    <Path d="M50 20 C32 20 30 65 20 70 C20 75 80 75 80 70 C70 65 68 20 50 20 Z" fill="#FFFFFF" stroke="#0C2340" strokeWidth={4} strokeLinejoin="round" strokeLinecap="round" />
+    {/* Red dynamic shadow indicator */}
+    <Path d="M58 74 C63 74 71 73 74 70" stroke="#FF3B30" strokeWidth={3} strokeLinecap="round" />
+    {/* Bell Clapper */}
+    <Path d="M45 75 C45 81 55 81 55 75" stroke="#0C2340" strokeWidth={4} strokeLinecap="round" />
   </Svg>
 );
 
@@ -172,6 +207,15 @@ const EXPERIENCE_LIST = [
   'Expert & Leadership (10+ years)'
 ];
 
+const HEAR_ABOUT_LIST = [
+  'Friend / Family',
+  'App Store',
+  'Tiktok',
+  'Instagram',
+  'AI Response',
+  'Other'
+];
+
 const CITIES_LIST = [
   'Dallas, TX, United States',
   'San Francisco, CA, United States',
@@ -196,7 +240,7 @@ export default function Onboarding() {
   
   // Navigation Flow Steps
   const [step, setStep] = useState<
-    'intro' | 'welcome' | 'referral' | 'engineered' | 'name' | 'email' | 'jobs' | 'interests' | 'challenge' | 'location' | 'experience' | 'salary'
+    'intro' | 'welcome' | 'referral' | 'engineered' | 'name' | 'email' | 'jobs' | 'interests' | 'challenge' | 'location' | 'experience' | 'salary' | 'hearAbout' | 'rateUs' | 'notifications' | 'loading'
   >('intro');
   const [loading, setLoading] = useState(false);
 
@@ -216,12 +260,40 @@ export default function Onboarding() {
   const [selectedExperience, setSelectedExperience] = useState<string | null>(null);
   const [minSalary, setMinSalary] = useState(120000);
   const [maxSalary, setMaxSalary] = useState(320000);
+  const [selectedHearAbout, setSelectedHearAbout] = useState<string | null>(null);
 
   // Accordion status mapping category name to expanded boolean
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   // Slide carousel state
   const [activeSlide, setActiveSlide] = useState(0);
+
+  // Spinning Loader Animation Refs
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  // Trigger spinning loop and automatic redirect on loading step mount
+  useEffect(() => {
+    if (step === 'loading') {
+      Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 1200,
+          useNativeDriver: true
+        })
+      ).start();
+
+      const timer = setTimeout(() => {
+        finishOnboarding();
+      }, 2500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
+
+  const spinRotation = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg']
+  });
 
   // Google Sign-In Setup
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -382,7 +454,8 @@ export default function Onboarding() {
         challenge: selectedChallenge,
         city: selectedCity,
         experience: selectedExperience,
-        expectedSalary: { min: minSalary, max: maxSalary }
+        expectedSalary: { min: minSalary, max: maxSalary },
+        hearAbout: selectedHearAbout
       };
       await FileSystem.writeAsStringAsync(path, JSON.stringify(profile));
 
@@ -431,6 +504,9 @@ export default function Onboarding() {
     else if (step === 'location') setStep('challenge');
     else if (step === 'experience') setStep('location');
     else if (step === 'salary') setStep('experience');
+    else if (step === 'hearAbout') setStep('salary');
+    else if (step === 'rateUs') setStep('hearAbout');
+    else if (step === 'notifications') setStep('rateUs');
   };
 
   const toggleCategory = (catName: string) => {
@@ -484,8 +560,8 @@ export default function Onboarding() {
     ? []
     : CITIES_LIST.filter(c => c.toLowerCase().includes(citySearch.toLowerCase()));
 
-  // Questionnaire navigation metrics
-  const totalSteps = 10;
+  // Questionnaire navigation metrics (13 visible steps before loading screen)
+  const totalSteps = 13;
   const currentProgressStep = 
     step === 'referral' ? 1 
     : step === 'engineered' ? 2 
@@ -496,7 +572,10 @@ export default function Onboarding() {
     : step === 'challenge' ? 7
     : step === 'location' ? 8
     : step === 'experience' ? 9
-    : 10;
+    : step === 'salary' ? 10
+    : step === 'hearAbout' ? 11
+    : step === 'rateUs' ? 12
+    : 13;
   const progressPercentage = (currentProgressStep / totalSteps) * 100;
 
   const isNameValid = firstName.trim().length > 0 && lastName.trim().length > 0;
@@ -507,6 +586,7 @@ export default function Onboarding() {
   const isChallengeValid = selectedChallenge !== null;
   const isLocationValid = selectedCity !== null;
   const isExperienceValid = selectedExperience !== null;
+  const isHearAboutValid = selectedHearAbout !== null;
 
   return (
     <View style={styles.container}>
@@ -524,7 +604,7 @@ export default function Onboarding() {
       )}
 
       {/* Dynamic Header Progress Bar */}
-      {step !== 'intro' && step !== 'welcome' && (
+      {step !== 'intro' && step !== 'welcome' && step !== 'loading' && (
         <View style={[styles.headerContainer, { marginTop: insets.top + 10 }]}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
             <Ionicons name="chevron-back" size={24} color="#000000" />
@@ -1139,10 +1219,123 @@ export default function Onboarding() {
           <TouchableOpacity
             style={styles.actionBtnBlack}
             activeOpacity={0.9}
-            onPress={finishOnboarding}
+            onPress={() => setStep('hearAbout')}
           >
             <Text style={styles.actionBtnTextWhite}>Continue</Text>
           </TouchableOpacity>
+        </View>
+      )}
+
+      {step === 'hearAbout' && (
+        <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
+          <View style={styles.questionHeadingContainer}>
+            <Text style={styles.questionTitle}>How did you hear{"\n"}about ResumeOK?</Text>
+          </View>
+
+          <View style={styles.optionsListGroup}>
+            {HEAR_ABOUT_LIST.map((opt) => {
+              const isSelected = selectedHearAbout === opt;
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.radioItemBox,
+                    isSelected ? styles.radioItemBoxSelected : null
+                  ]}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedHearAbout(opt)}
+                >
+                  <Text style={styles.radioItemText}>{opt}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.actionBtnBlack, !isHearAboutValid ? styles.actionBtnDisabled : null]}
+            activeOpacity={isHearAboutValid ? 0.9 : 1}
+            disabled={!isHearAboutValid}
+            onPress={() => setStep('rateUs')}
+          >
+            <Text style={styles.actionBtnTextWhite}>Continue</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {step === 'rateUs' && (
+        <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
+          <View style={styles.questionHeadingContainer}>
+            <Text style={styles.questionTitle}>Help us grow!</Text>
+            <Text style={styles.questionSubtitle}>We’re a small team, we’d really appreciate a quick rating.</Text>
+          </View>
+
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <HighFiveGraphic />
+          </View>
+
+          <View style={styles.referralActions}>
+            <TouchableOpacity
+              style={styles.actionBtnBlack}
+              activeOpacity={0.9}
+              onPress={() => {
+                Alert.alert(
+                  'Thank You!',
+                  'Redirecting you to the App Store to rate us.',
+                  [{ text: 'OK', onPress: () => setStep('notifications') }]
+                );
+              }}
+            >
+              <Text style={styles.actionBtnTextWhite}>Leave a rating!</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('notifications')}>
+              <Text style={styles.skipBtnTextBlack}>I rated!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {step === 'notifications' && (
+        <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
+          <View style={styles.questionHeadingContainer}>
+            <Text style={styles.questionTitle}>Stay on top of job{"\n"}search.</Text>
+            <Text style={styles.questionSubtitle}>Never miss personalized job opportunities.</Text>
+          </View>
+
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <RingingBellGraphic />
+          </View>
+
+          <View style={styles.referralActions}>
+            <TouchableOpacity
+              style={styles.actionBtnBlack}
+              activeOpacity={0.9}
+              onPress={() => {
+                Alert.alert(
+                  'Notifications Enabled',
+                  'You will now receive matching jobs notifications.',
+                  [{ text: 'OK', onPress: () => setStep('loading') }]
+                );
+              }}
+            >
+              <Text style={styles.actionBtnTextWhite}>Allow Notifications</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('loading')}>
+              <Text style={styles.skipBtnTextBlack}>I enabled!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {step === 'loading' && (
+        <View style={styles.loadingScreenContainer}>
+          <Animated.View style={{ transform: [{ rotate: spinRotation }], marginBottom: 30 }}>
+            <Ionicons name="sync-outline" size={60} color="#000000" />
+          </Animated.View>
+          <Text style={styles.loadingText}>Building your</Text>
+          <Text style={styles.loadingText}>personalized career</Text>
+          <Text style={styles.loadingText}>journey</Text>
         </View>
       )}
     </View>
@@ -1396,6 +1589,7 @@ const styles = StyleSheet.create({
     color: 'rgba(0,0,0,0.5)',
     fontSize: 16,
     fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   // STEP 4 - ENGINEERED
   engineeredHeadingContainer: {
@@ -1626,7 +1820,7 @@ const styles = StyleSheet.create({
   interestBadgeTextSelected: {
     color: '#FFFFFF',
   },
-  // RADIO LIST GROUP (CHALLENGE / EXPERIENCE)
+  // RADIO LIST GROUP (CHALLENGE / EXPERIENCE / HEARABOUT)
   optionsListGroup: {
     width: '100%',
     paddingHorizontal: 20,
@@ -1742,5 +1936,20 @@ const styles = StyleSheet.create({
   sliderBar: {
     width: '100%',
     height: 40,
+  },
+  // FINAL TRANSITION LOADING PAGE
+  loadingScreenContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    width: '100%',
+  },
+  loadingText: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#000000',
+    textAlign: 'center',
+    lineHeight: 34,
   },
 });
