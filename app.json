@@ -61,9 +61,12 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#05070c",
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/images/RESUME-OK.png",
+          "resizeMode": "contain",
           "dark": {
-            "backgroundColor": "#05070c"
+            "backgroundColor": "#FFFFFF",
+            "image": "./assets/images/RESUME-OK.png"
           }
         }
       ],
