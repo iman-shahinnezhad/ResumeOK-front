@@ -23,6 +23,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import * as FileSystem from 'expo-file-system/legacy';
 import Svg, { Path, G } from 'react-native-svg';
+import Slider from '@react-native-community/slider';
 import { useAuth, API_URL } from '../context/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -155,13 +156,48 @@ const INTERESTS_DATA = [
   { label: 'Career growth', emoji: '🚀' }
 ];
 
+const CHALLENGES_LIST = [
+  'Not applying enough',
+  'Can’t land interviews',
+  'Not ready yet',
+  'Lack of great job offers'
+];
+
+const EXPERIENCE_LIST = [
+  'Internship',
+  'Entry level & Graduate',
+  'Junior (1-2 years)',
+  'Mid Level (3-5 years)',
+  'Senior (6-9 years)',
+  'Expert & Leadership (10+ years)'
+];
+
+const CITIES_LIST = [
+  'Dallas, TX, United States',
+  'San Francisco, CA, United States',
+  'New York, NY, United States',
+  'Los Angeles, CA, United States',
+  'Chicago, IL, United States',
+  'Austin, TX, United States',
+  'Seattle, WA, United States',
+  'Boston, MA, United States',
+  'Denver, CO, United States',
+  'London, United Kingdom',
+  'Toronto, ON, Canada',
+  'Berlin, Germany',
+  'Paris, France',
+  'Sydney, NSW, Australia'
+];
+
 export default function Onboarding() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { login, guestId } = useAuth();
   
-  // Navigation Flow State
-  const [step, setStep] = useState<'intro' | 'welcome' | 'referral' | 'engineered' | 'name' | 'email' | 'jobs' | 'interests'>('intro');
+  // Navigation Flow Steps
+  const [step, setStep] = useState<
+    'intro' | 'welcome' | 'referral' | 'engineered' | 'name' | 'email' | 'jobs' | 'interests' | 'challenge' | 'location' | 'experience' | 'salary'
+  >('intro');
   const [loading, setLoading] = useState(false);
 
   // Referral State
@@ -174,6 +210,12 @@ export default function Onboarding() {
   const [email, setEmail] = useState('');
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null);
+  const [citySearch, setCitySearch] = useState('');
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [selectedExperience, setSelectedExperience] = useState<string | null>(null);
+  const [minSalary, setMinSalary] = useState(120000);
+  const [maxSalary, setMaxSalary] = useState(320000);
 
   // Accordion status mapping category name to expanded boolean
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -336,11 +378,14 @@ export default function Onboarding() {
         lastName: lastName.trim(),
         email: email.trim(),
         skills: selectedRoles,
-        interests: selectedInterests
+        interests: selectedInterests,
+        challenge: selectedChallenge,
+        city: selectedCity,
+        experience: selectedExperience,
+        expectedSalary: { min: minSalary, max: maxSalary }
       };
       await FileSystem.writeAsStringAsync(path, JSON.stringify(profile));
 
-      // Sync name with server if logged in
       const session = await FileSystem.getInfoAsync(`${FileSystem.documentDirectory}session.json`);
       if (session.exists) {
         const text = await FileSystem.readAsStringAsync(`${FileSystem.documentDirectory}session.json`);
@@ -382,6 +427,10 @@ export default function Onboarding() {
     else if (step === 'email') setStep('name');
     else if (step === 'jobs') setStep('email');
     else if (step === 'interests') setStep('jobs');
+    else if (step === 'challenge') setStep('interests');
+    else if (step === 'location') setStep('challenge');
+    else if (step === 'experience') setStep('location');
+    else if (step === 'salary') setStep('experience');
   };
 
   const toggleCategory = (catName: string) => {
@@ -431,15 +480,23 @@ export default function Onboarding() {
     );
   };
 
+  const filteredCities = citySearch.trim() === ''
+    ? []
+    : CITIES_LIST.filter(c => c.toLowerCase().includes(citySearch.toLowerCase()));
+
   // Questionnaire navigation metrics
-  const totalSteps = 6;
+  const totalSteps = 10;
   const currentProgressStep = 
     step === 'referral' ? 1 
     : step === 'engineered' ? 2 
     : step === 'name' ? 3 
     : step === 'email' ? 4 
     : step === 'jobs' ? 5 
-    : 6;
+    : step === 'interests' ? 6
+    : step === 'challenge' ? 7
+    : step === 'location' ? 8
+    : step === 'experience' ? 9
+    : 10;
   const progressPercentage = (currentProgressStep / totalSteps) * 100;
 
   const isNameValid = firstName.trim().length > 0 && lastName.trim().length > 0;
@@ -447,6 +504,9 @@ export default function Onboarding() {
   const isReferralValid = referralCode.trim().length === 6;
   const isJobsValid = selectedRoles.length >= 3;
   const isInterestsValid = selectedInterests.length >= 3;
+  const isChallengeValid = selectedChallenge !== null;
+  const isLocationValid = selectedCity !== null;
+  const isExperienceValid = selectedExperience !== null;
 
   return (
     <View style={styles.container}>
@@ -573,7 +633,6 @@ export default function Onboarding() {
                 <Text style={styles.questionTitle}>Do you have a referral{"\n"}code?</Text>
               </View>
 
-              {/* Hidden absolute TextInput */}
               <TextInput
                 ref={referralInputRef}
                 style={styles.hiddenTextInput}
@@ -585,7 +644,6 @@ export default function Onboarding() {
                 autoCorrect={false}
               />
 
-              {/* Interactive Dash Fields */}
               <View style={styles.referralMiddleArea}>
                 {renderReferralDashes()}
                 <Image
@@ -777,8 +835,6 @@ export default function Onboarding() {
           >
             {CATEGORIES_DATA.map((category) => {
               const isExpanded = expandedCategory === category.name;
-              
-              // Count how many roles under this category are selected
               const selectedInCategory = category.roles.filter(role => selectedRoles.includes(role)).length;
 
               return (
@@ -891,11 +947,202 @@ export default function Onboarding() {
               style={[styles.actionBtnBlack, !isInterestsValid ? styles.actionBtnDisabled : null]}
               activeOpacity={isInterestsValid ? 0.9 : 1}
               disabled={!isInterestsValid}
-              onPress={finishOnboarding}
+              onPress={() => setStep('challenge')}
             >
               <Text style={styles.actionBtnTextWhite}>Continue</Text>
             </TouchableOpacity>
           </View>
+        </View>
+      )}
+
+      {step === 'challenge' && (
+        <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
+          <View style={styles.questionHeadingContainer}>
+            <Text style={styles.questionTitle}>Where do you want to{"\n"}work?</Text>
+            <Text style={styles.questionSubtitle}>Don't worry, you can change it later.</Text>
+          </View>
+
+          <View style={styles.optionsListGroup}>
+            {CHALLENGES_LIST.map((opt) => {
+              const isSelected = selectedChallenge === opt;
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.radioItemBox,
+                    isSelected ? styles.radioItemBoxSelected : null
+                  ]}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedChallenge(opt)}
+                >
+                  <Text style={styles.radioItemText}>{opt}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.actionBtnBlack, !isChallengeValid ? styles.actionBtnDisabled : null]}
+            activeOpacity={isChallengeValid ? 0.9 : 1}
+            disabled={!isChallengeValid}
+            onPress={() => setStep('location')}
+          >
+            <Text style={styles.actionBtnTextWhite}>Continue</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {step === 'location' && (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardContainer}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
+              <View style={styles.questionHeadingContainer}>
+                <Text style={styles.questionTitle}>Where do you want to{"\n"}work?</Text>
+                <Text style={styles.questionSubtitle}>Don't worry, you can change it later.</Text>
+              </View>
+
+              <View style={styles.locationContainer}>
+                {selectedCity ? (
+                  <View style={styles.selectedCityPill}>
+                    <Text style={styles.selectedCityText}>{selectedCity}</Text>
+                    <TouchableOpacity onPress={() => setSelectedCity(null)}>
+                      <Ionicons name="close-circle" size={20} color="rgba(0,0,0,0.4)" style={{ marginLeft: 8 }} />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={{ width: '100%', alignItems: 'center' }}>
+                    <TextInput
+                      style={styles.citySearchInput}
+                      placeholder="Search for a city..."
+                      placeholderTextColor="rgba(0,0,0,0.3)"
+                      value={citySearch}
+                      onChangeText={setCitySearch}
+                      autoFocus
+                    />
+                    {filteredCities.length > 0 && (
+                      <View style={styles.suggestionsContainer}>
+                        {filteredCities.map((c) => (
+                          <TouchableOpacity
+                            key={c}
+                            style={styles.suggestionItem}
+                            onPress={() => {
+                              setSelectedCity(c);
+                              setCitySearch('');
+                            }}
+                          >
+                            <Ionicons name="location-outline" size={16} color="#666666" style={{ marginRight: 8 }} />
+                            <Text style={styles.suggestionText}>{c}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+
+              <TouchableOpacity
+                style={[styles.actionBtnBlack, !isLocationValid ? styles.actionBtnDisabled : null]}
+                activeOpacity={isLocationValid ? 0.9 : 1}
+                disabled={!isLocationValid}
+                onPress={() => setStep('experience')}
+              >
+                <Text style={styles.actionBtnTextWhite}>Continue</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      )}
+
+      {step === 'experience' && (
+        <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
+          <View style={styles.questionHeadingContainer}>
+            <Text style={styles.questionTitle}>How much experience{"\n"}do you have?</Text>
+          </View>
+
+          <View style={styles.optionsListGroup}>
+            {EXPERIENCE_LIST.map((opt) => {
+              const isSelected = selectedExperience === opt;
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.radioItemBox,
+                    isSelected ? styles.radioItemBoxSelected : null
+                  ]}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedExperience(opt)}
+                >
+                  <Text style={styles.radioItemText}>{opt}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.actionBtnBlack, !isExperienceValid ? styles.actionBtnDisabled : null]}
+            activeOpacity={isExperienceValid ? 0.9 : 1}
+            disabled={!isExperienceValid}
+            onPress={() => setStep('salary')}
+          >
+            <Text style={styles.actionBtnTextWhite}>Continue</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {step === 'salary' && (
+        <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
+          <View style={styles.questionHeadingContainer}>
+            <Text style={styles.questionTitle}>Expected salary range?</Text>
+          </View>
+
+          <View style={styles.salarySlidersArea}>
+            <View style={styles.sliderGroup}>
+              <View style={styles.sliderLabelRow}>
+                <Text style={styles.sliderTitle}>Minimum Salary</Text>
+                <Text style={styles.sliderValue}>${minSalary.toLocaleString()}</Text>
+              </View>
+              <Slider
+                style={styles.sliderBar}
+                minimumValue={0}
+                maximumValue={300000}
+                step={5000}
+                value={minSalary}
+                onValueChange={setMinSalary}
+                minimumTrackTintColor="#007AFF"
+                maximumTrackTintColor="#EAEAEA"
+                thumbTintColor="#FFFFFF"
+              />
+            </View>
+
+            <View style={[styles.sliderGroup, { marginTop: 40 }]}>
+              <View style={styles.sliderLabelRow}>
+                <Text style={styles.sliderTitle}>Maximum Salary</Text>
+                <Text style={styles.sliderValue}>${maxSalary.toLocaleString()}</Text>
+              </View>
+              <Slider
+                style={styles.sliderBar}
+                minimumValue={100000}
+                maximumValue={500000}
+                step={5000}
+                value={maxSalary}
+                onValueChange={setMaxSalary}
+                minimumTrackTintColor="#007AFF"
+                maximumTrackTintColor="#EAEAEA"
+                thumbTintColor="#FFFFFF"
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.actionBtnBlack}
+            activeOpacity={0.9}
+            onPress={finishOnboarding}
+          >
+            <Text style={styles.actionBtnTextWhite}>Continue</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -1378,5 +1625,122 @@ const styles = StyleSheet.create({
   },
   interestBadgeTextSelected: {
     color: '#FFFFFF',
+  },
+  // RADIO LIST GROUP (CHALLENGE / EXPERIENCE)
+  optionsListGroup: {
+    width: '100%',
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    flex: 1,
+  },
+  radioItemBox: {
+    width: '100%',
+    height: 56,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 18,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#F5F5F5',
+  },
+  radioItemBoxSelected: {
+    borderColor: '#000000',
+    backgroundColor: '#FFFFFF',
+  },
+  radioItemText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  // LOCATION PAGE
+  locationContainer: {
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedCityPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 24,
+  },
+  selectedCityText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  citySearchInput: {
+    width: '90%',
+    height: 60,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 18,
+    paddingHorizontal: 20,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    textAlign: 'center',
+  },
+  suggestionsContainer: {
+    width: '90%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+    marginTop: 8,
+    maxHeight: 180,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8F8F8',
+  },
+  suggestionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  // SALARY SLIDERS
+  salarySlidersArea: {
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+  },
+  sliderGroup: {
+    width: '100%',
+  },
+  sliderLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sliderTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666666',
+  },
+  sliderValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  sliderBar: {
+    width: '100%',
+    height: 40,
   },
 });
