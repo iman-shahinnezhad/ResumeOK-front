@@ -271,16 +271,42 @@ export default function Onboarding() {
 
   // Spinning Loader Animation Refs
   const rotateAnim = useRef(new Animated.Value(0)).current;
-  const scrollYAnim = useRef(new Animated.Value(0)).current;
+  const scrollX1 = useRef(new Animated.Value(0)).current;
+  const scrollX2 = useRef(new Animated.Value(-600)).current;
+  const scrollX3 = useRef(new Animated.Value(0)).current;
 
-  // Trigger vertical logos ticker animation on engineered step mount
+  // Trigger horizontal logo ticker animations with different speeds/directions
   useEffect(() => {
     if (step === 'engineered') {
-      scrollYAnim.setValue(0);
+      scrollX1.setValue(0);
+      scrollX2.setValue(-600);
+      scrollX3.setValue(0);
+
+      // Row 1 (scrolls left)
       Animated.loop(
-        Animated.timing(scrollYAnim, {
-          toValue: -300, // 3 rows * 100px (80px height + 20px vertical margins)
-          duration: 9000, // 9 seconds for smooth slow scroll
+        Animated.timing(scrollX1, {
+          toValue: -600,
+          duration: 12000,
+          easing: Easing.linear,
+          useNativeDriver: true
+        })
+      ).start();
+
+      // Row 2 (scrolls right)
+      Animated.loop(
+        Animated.timing(scrollX2, {
+          toValue: 0,
+          duration: 16000,
+          easing: Easing.linear,
+          useNativeDriver: true
+        })
+      ).start();
+
+      // Row 3 (scrolls left, faster)
+      Animated.loop(
+        Animated.timing(scrollX3, {
+          toValue: -600,
+          duration: 9000,
           easing: Easing.linear,
           useNativeDriver: true
         })
@@ -781,39 +807,53 @@ export default function Onboarding() {
           </View>
 
           <View style={styles.engineeredLoopContainer}>
-            <Animated.View style={[styles.engineeredLoopView, { transform: [{ translateY: scrollYAnim }] }]}>
-              <Image
-                source={require('../assets/images/Engineered1.png')}
-                style={styles.engineeredRowImage}
-                resizeMode="contain"
-              />
-              <Image
-                source={require('../assets/images/Engineered2.png')}
-                style={styles.engineeredRowImage}
-                resizeMode="contain"
-              />
-              <Image
-                source={require('../assets/images/Engineered3.png')}
-                style={styles.engineeredRowImage}
-                resizeMode="contain"
-              />
-              {/* Duplicate for seamless looping */}
-              <Image
-                source={require('../assets/images/Engineered1.png')}
-                style={styles.engineeredRowImage}
-                resizeMode="contain"
-              />
-              <Image
-                source={require('../assets/images/Engineered2.png')}
-                style={styles.engineeredRowImage}
-                resizeMode="contain"
-              />
-              <Image
-                source={require('../assets/images/Engineered3.png')}
-                style={styles.engineeredRowImage}
-                resizeMode="contain"
-              />
-            </Animated.View>
+            {/* Row 1 */}
+            <View style={styles.tickerRow}>
+              <Animated.View style={[styles.tickerWrapper, { transform: [{ translateX: scrollX1 }] }]}>
+                <Image
+                  source={require('../assets/images/Engineered1.png')}
+                  style={styles.tickerImage}
+                  resizeMode="contain"
+                />
+                <Image
+                  source={require('../assets/images/Engineered1.png')}
+                  style={styles.tickerImage}
+                  resizeMode="contain"
+                />
+              </Animated.View>
+            </View>
+
+            {/* Row 2 */}
+            <View style={styles.tickerRow}>
+              <Animated.View style={[styles.tickerWrapper, { transform: [{ translateX: scrollX2 }] }]}>
+                <Image
+                  source={require('../assets/images/Engineered2.png')}
+                  style={styles.tickerImage}
+                  resizeMode="contain"
+                />
+                <Image
+                  source={require('../assets/images/Engineered2.png')}
+                  style={styles.tickerImage}
+                  resizeMode="contain"
+                />
+              </Animated.View>
+            </View>
+
+            {/* Row 3 */}
+            <View style={styles.tickerRow}>
+              <Animated.View style={[styles.tickerWrapper, { transform: [{ translateX: scrollX3 }] }]}>
+                <Image
+                  source={require('../assets/images/Engineered3.png')}
+                  style={styles.tickerImage}
+                  resizeMode="contain"
+                />
+                <Image
+                  source={require('../assets/images/Engineered3.png')}
+                  style={styles.tickerImage}
+                  resizeMode="contain"
+                />
+              </Animated.View>
+            </View>
           </View>
 
           <View style={styles.companiesPill}>
@@ -1631,21 +1671,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   engineeredLoopContainer: {
-    width: width - 48,
-    height: 320,
+    width: '100%',
+    height: 300,
     overflow: 'hidden',
-    alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 15,
   },
-  engineeredLoopView: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  engineeredRowImage: {
+  tickerRow: {
     width: '100%',
     height: 80,
-    marginVertical: 10,
+    marginVertical: 6,
+    overflow: 'hidden',
+  },
+  tickerWrapper: {
+    flexDirection: 'row',
+    width: 1200,
+  },
+  tickerImage: {
+    width: 600,
+    height: 80,
   },
   companiesPill: {
     backgroundColor: '#F5F5F5',
