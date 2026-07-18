@@ -594,7 +594,7 @@ export default function Onboarding() {
         <>
           <Image
             source={require('../assets/images/onboarding.png')}
-            style={StyleSheet.absoluteFillObject}
+            style={styles.backgroundImage}
             resizeMode="cover"
           />
           <View style={styles.overlay} />
@@ -616,24 +616,23 @@ export default function Onboarding() {
       )}
 
       {step === 'intro' && (
-        <View style={[styles.inner, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 30 }]}>
-          <View style={styles.badgeContainer}>
-            <LaurelWreathLeft />
-            <View style={styles.badgeTextCol}>
-              <Text style={styles.badgeNumber}>+8,000</Text>
-              <Text style={styles.badgeLabel}>Hired Professional</Text>
-            </View>
-            <LaurelWreathRight />
+        <View style={[styles.inner, { paddingTop: insets.top + 15, paddingBottom: insets.bottom + 30 }]}>
+          <View style={styles.laurelContainer}>
+            <Image
+              source={require('../assets/images/customer-info.png')}
+              style={styles.laurelImage}
+              resizeMode="contain"
+            />
           </View>
 
           <View style={styles.centerTextContainer}>
-            <Text style={styles.largeTitleText}>10X</Text>
-            <Text style={styles.largeTitleText}>FASTER</Text>
-            <Text style={styles.largeTitleText}>INTERVIEW</Text>
+            <Text style={[styles.largeTitleText, styles.staircase1]}>10X</Text>
+            <Text style={[styles.largeTitleText, styles.staircase2]}>FASTER</Text>
+            <Text style={[styles.largeTitleText, styles.staircase3]}>INTERVIEW</Text>
             <View style={styles.subTitleBlock}>
-              <Text style={styles.mediumTitleText}>WITH</Text>
-              <Text style={styles.mediumTitleText}>TAILORED</Text>
-              <Text style={styles.mediumTitleText}>RESUME</Text>
+              <Text style={[styles.mediumTitleText, styles.staircase4]}>WITH</Text>
+              <Text style={[styles.mediumTitleText, styles.staircase5]}>TAILORED</Text>
+              <Text style={[styles.mediumTitleText, styles.staircase6]}>RESUME</Text>
             </View>
           </View>
 
@@ -1406,54 +1405,62 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   // STEP 1 - INTRO
-  badgeContainer: {
-    flexDirection: 'row',
+  backgroundImage: {
+    position: 'absolute',
+    width: width,
+    height: height * 1.28,
+    bottom: 0,
+  },
+  laurelContainer: {
+    width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginTop: 20,
+    marginTop: 15,
   },
-  badgeTextCol: {
-    alignItems: 'center',
-    marginHorizontal: 10,
-  },
-  badgeNumber: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  badgeLabel: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 2,
-    opacity: 0.9,
+  laurelImage: {
+    width: 250,
+    height: 60,
   },
   centerTextContainer: {
     alignSelf: 'flex-start',
     width: '100%',
-    paddingLeft: 10,
-    marginTop: -40,
+    marginTop: -30,
   },
   largeTitleText: {
     color: '#FFFFFF',
-    fontSize: 42,
+    fontSize: 38,
     fontWeight: '900',
     letterSpacing: 1.5,
-    lineHeight: 48,
+    lineHeight: 44,
     textTransform: 'uppercase',
   },
   subTitleBlock: {
-    marginTop: 35,
+    marginTop: 25,
   },
   mediumTitleText: {
     color: '#FFFFFF',
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '800',
     letterSpacing: 1,
-    lineHeight: 38,
+    lineHeight: 36,
     textTransform: 'uppercase',
+  },
+  staircase1: {
+    marginLeft: width * 0.05,
+  },
+  staircase2: {
+    marginLeft: width * 0.16,
+  },
+  staircase3: {
+    marginLeft: width * 0.32,
+  },
+  staircase4: {
+    marginLeft: width * 0.36,
+  },
+  staircase5: {
+    marginLeft: width * 0.46,
+  },
+  staircase6: {
+    marginLeft: width * 0.60,
   },
   continueBtn: {
     width: '100%',
