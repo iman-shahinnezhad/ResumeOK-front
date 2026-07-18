@@ -1161,7 +1161,7 @@ export default function Onboarding() {
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
               <View style={styles.questionHeadingContainer}>
-                <Text style={styles.questionTitle}>Where do you want to{"\n"}work?</Text>
+                <Text style={styles.questionTitle}>Where do you want to work?</Text>
                 <Text style={styles.questionSubtitle}>Don't worry, you can change it later.</Text>
               </View>
 
@@ -1351,7 +1351,11 @@ export default function Onboarding() {
           </View>
 
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <HighFiveGraphic />
+            <Image
+              source={require('../assets/images/leave-rate.png')}
+              style={styles.ratingImage}
+              resizeMode="contain"
+            />
           </View>
 
           <View style={styles.referralActions}>
@@ -1384,7 +1388,11 @@ export default function Onboarding() {
           </View>
 
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <RingingBellGraphic />
+            <Image
+              source={require('../assets/images/bell.png')}
+              style={styles.bellImage}
+              resizeMode="contain"
+            />
           </View>
 
           <View style={styles.referralActions}>
@@ -1417,7 +1425,7 @@ export default function Onboarding() {
           </View>
 
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%' }}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
                 styles.uploadBoxContainer,
                 selectedResume ? styles.uploadBoxActive : null
@@ -1434,8 +1442,8 @@ export default function Onboarding() {
                       {(selectedResume.size / 1024).toFixed(1)} KB
                     </Text>
                   )}
-                  <TouchableOpacity 
-                    style={styles.removeFileBtn} 
+                  <TouchableOpacity
+                    style={styles.removeFileBtn}
                     onPress={(e) => {
                       e.stopPropagation();
                       setSelectedResume(null);
@@ -1934,27 +1942,27 @@ const styles = StyleSheet.create({
   interestsGridOuter: {
     flex: 1,
     width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
     paddingHorizontal: 20,
   },
   interestsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
     width: '100%',
   },
   interestBadge: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E2E2',
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 22,
-    margin: 6,
+    margin: 3,
   },
   interestBadgeSelected: {
     backgroundColor: '#000000',
@@ -2162,5 +2170,13 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     fontSize: 12,
     fontWeight: '700',
+  },
+  ratingImage: {
+    width: 220,
+    height: 220,
+  },
+  bellImage: {
+    width: 220,
+    height: 220,
   },
 });
