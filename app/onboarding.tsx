@@ -1405,61 +1405,56 @@ export default function Onboarding() {
       {step === 'upload' && (
         <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
           <View style={styles.questionHeadingContainer}>
-            <Text style={styles.questionTitle}>Upload your resume</Text>
-            <Text style={styles.questionSubtitle}>We will auto-fill your profile and optimize your resume.</Text>
+            <Text style={styles.questionTitle}>Upload your resume{"\n"}or create one.</Text>
           </View>
 
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+            {selectedResume ? (
+              <View style={styles.selectedFileCol}>
+                <Ionicons name="checkmark-circle" size={56} color="#34C759" />
+                <Text style={styles.fileNameText} numberOfLines={1}>{selectedResume.name}</Text>
+                {selectedResume.size && (
+                  <Text style={styles.fileSizeText}>
+                    {(selectedResume.size / 1024).toFixed(1)} KB
+                  </Text>
+                )}
+                <TouchableOpacity 
+                  style={styles.removeFileBtn} 
+                  onPress={() => setSelectedResume(null)}
+                >
+                  <Text style={styles.removeFileText}>Remove file</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Image
+                source={require('../assets/images/file.png')}
+                style={styles.uploadFolderImage}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+
+          <View style={styles.uploadActionsArea}>
+            <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('loading')}>
+              <Text style={styles.skipBtnTextBlack}>Skip for now</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
-              style={[
-                styles.uploadBoxContainer,
-                selectedResume ? styles.uploadBoxActive : null
-              ]}
+              style={styles.uploadOutlineBtn}
               activeOpacity={0.8}
               onPress={handlePickResume}
             >
-              {selectedResume ? (
-                <View style={styles.selectedFileCol}>
-                  <Ionicons name="checkmark-circle" size={48} color="#34C759" />
-                  <Text style={styles.fileNameText} numberOfLines={1}>{selectedResume.name}</Text>
-                  {selectedResume.size && (
-                    <Text style={styles.fileSizeText}>
-                      {(selectedResume.size / 1024).toFixed(1)} KB
-                    </Text>
-                  )}
-                  <TouchableOpacity
-                    style={styles.removeFileBtn}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      setSelectedResume(null);
-                    }}
-                  >
-                    <Text style={styles.removeFileText}>Remove file</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={styles.uploadPromptCol}>
-                  <Ionicons name="document-text-outline" size={48} color="rgba(0,0,0,0.4)" style={{ marginBottom: 12 }} />
-                  <Text style={styles.uploadPromptMain}>Tap to upload resume</Text>
-                  <Text style={styles.uploadPromptSub}>Supports PDF, DOCX, or TXT up to 10MB</Text>
-                </View>
-              )}
+              <Text style={styles.uploadOutlineBtnText}>
+                {selectedResume ? 'Change resume' : 'Upload resume'}
+              </Text>
             </TouchableOpacity>
-          </View>
 
-          <View style={styles.referralActions}>
             <TouchableOpacity
               style={styles.actionBtnBlack}
               activeOpacity={0.9}
               onPress={() => setStep('loading')}
             >
-              <Text style={styles.actionBtnTextWhite}>
-                {selectedResume ? 'Upload & Continue' : 'Continue'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('loading')}>
-              <Text style={styles.skipBtnTextBlack}>Skip for now</Text>
+              <Text style={styles.actionBtnTextWhite}>Start building a resume</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1467,9 +1462,11 @@ export default function Onboarding() {
 
       {step === 'loading' && (
         <View style={styles.loadingScreenContainer}>
-          <Animated.View style={{ transform: [{ rotate: spinRotation }], marginBottom: 30 }}>
-            <Ionicons name="sync-outline" size={60} color="#000000" />
-          </Animated.View>
+          <ActivityIndicator 
+            size="large" 
+            color="#000000" 
+            style={{ transform: [{ scale: 1.8 }], marginBottom: 50 }} 
+          />
           <Text style={styles.loadingText}>Building your</Text>
           <Text style={styles.loadingText}>personalized career</Text>
           <Text style={styles.loadingText}>journey</Text>
@@ -2098,34 +2095,30 @@ const styles = StyleSheet.create({
     lineHeight: 34,
   },
   // UPLOAD RESUME PAGE
-  uploadBoxContainer: {
-    width: '90%',
+  uploadFolderImage: {
+    width: 200,
     height: 180,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#CCCCCC',
-    borderRadius: 16,
+  },
+  uploadActionsArea: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 0,
+  },
+  uploadOutlineBtn: {
+    width: '100%',
+    height: 56,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FAFAFB',
+    marginBottom: 12,
   },
-  uploadBoxActive: {
-    borderColor: '#34C759',
-    backgroundColor: '#F2FBF4',
-  },
-  uploadPromptCol: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  uploadPromptMain: {
+  uploadOutlineBtnText: {
+    color: '#000000',
     fontSize: 16,
     fontWeight: '700',
-    color: '#000000',
-  },
-  uploadPromptSub: {
-    fontSize: 12,
-    color: 'rgba(0,0,0,0.4)',
-    marginTop: 6,
   },
   selectedFileCol: {
     alignItems: 'center',

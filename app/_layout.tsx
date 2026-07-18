@@ -116,17 +116,16 @@ export default function RootLayout() {
     checkOnboardingStates();
   }, []);
 
-  useEffect(() => {
-    if (appReady && !checkingStorage && showOnboarding) {
-      const timer = setTimeout(() => {
-        router.replace('/onboarding');
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [appReady, checkingStorage, showOnboarding]);
-
   const handleContinue = () => {
-    setAppReady(true);
+    if (showOnboarding) {
+      router.replace('/onboarding');
+      // Wait 400ms for screen transition to complete before unmounting Splash screen
+      setTimeout(() => {
+        setAppReady(true);
+      }, 400);
+    } else {
+      setAppReady(true);
+    }
   };
 
   if (checkingStorage) {
