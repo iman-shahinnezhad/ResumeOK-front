@@ -98,12 +98,7 @@ export default function RootLayout() {
   useEffect(() => {
     const checkOnboardingStates = async () => {
       try {
-        const splashInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory + 'has_seen_splash.txt');
         const onboardingInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory + 'has_seen_onboarding.txt');
-
-        if (splashInfo.exists) {
-          setAppReady(true);
-        }
         if (!onboardingInfo.exists) {
           setShowOnboarding(true);
         }
@@ -123,16 +118,14 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (appReady && !checkingStorage && showOnboarding) {
-      router.replace('/onboarding');
+      const timer = setTimeout(() => {
+        router.replace('/onboarding');
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, [appReady, checkingStorage, showOnboarding]);
 
-  const handleContinue = async () => {
-    try {
-      await FileSystem.writeAsStringAsync(FileSystem.documentDirectory + 'has_seen_splash.txt', 'true');
-    } catch (e) {
-      console.error(e);
-    }
+  const handleContinue = () => {
     setAppReady(true);
   };
 
