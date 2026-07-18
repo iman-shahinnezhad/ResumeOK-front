@@ -130,9 +130,9 @@ export default function Library() {
     let str = input;
     let output = '';
     for (let block = 0, charCode, i = 0, map = chars;
-         str.charAt(i | 0) || (map = '=', i % 1);
-         output += map.charAt(63 & block >> 8 - i % 1 * 8)) {
-      charCode = str.charCodeAt(i += 3/4);
+      str.charAt(i | 0) || (map = '=', i % 1);
+      output += map.charAt(63 & block >> 8 - i % 1 * 8)) {
+      charCode = str.charCodeAt(i += 3 / 4);
       if (charCode > 0xFF) {
         throw new Error("'btoa' failed");
       }
@@ -149,7 +149,7 @@ export default function Library() {
 
       const configText = await FileSystem.readAsStringAsync(configPath);
       const config = JSON.parse(configText);
-      
+
       if (!config.harvestKey || !config.email) {
         return currentList;
       }
@@ -805,7 +805,7 @@ export default function Library() {
                     </View>
                   ))}
                 </View>
-                
+
                 <TouchableOpacity
                   style={styles.buildAnotherBtn}
                   activeOpacity={0.8}
@@ -1175,19 +1175,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 1.5,
     borderBottomColor: '#E2E8F0',
-    marginBottom: 16,
     paddingHorizontal: 12,
   },
   tabButton: {
-    flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     alignItems: 'center',
     position: 'relative',
   },
   tabButtonActive: {},
   tabText: {
-    fontSize: 16,
-    color: '#718096',
+    fontSize: 15,
+    color: '#64748B',
     fontWeight: '600',
   },
   tabTextActive: {
@@ -1196,12 +1195,15 @@ const styles = StyleSheet.create({
   },
   activeIndicator: {
     position: 'absolute',
-    bottom: -1.5,
+    bottom: 0,
+    left: '50%',
+    marginLeft: -40,
     width: 80,
     height: 3,
     backgroundColor: '#000000',
     borderRadius: 1.5,
   },
+
   // Resume Card Styles
   resumeCard: {
     backgroundColor: '#FFFFFF',
