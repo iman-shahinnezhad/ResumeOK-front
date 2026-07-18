@@ -286,7 +286,7 @@ export default function Onboarding() {
       Animated.loop(
         Animated.timing(scrollX1, {
           toValue: -600,
-          duration: 12000,
+          duration: 22000, // Slower
           easing: Easing.linear,
           useNativeDriver: true
         })
@@ -296,7 +296,7 @@ export default function Onboarding() {
       Animated.loop(
         Animated.timing(scrollX2, {
           toValue: 0,
-          duration: 16000,
+          duration: 28000, // Slower
           easing: Easing.linear,
           useNativeDriver: true
         })
@@ -306,7 +306,7 @@ export default function Onboarding() {
       Animated.loop(
         Animated.timing(scrollX3, {
           toValue: -600,
-          duration: 9000,
+          duration: 18000, // Slower
           easing: Easing.linear,
           useNativeDriver: true
         })
@@ -813,12 +813,12 @@ export default function Onboarding() {
                 <Image
                   source={require('../assets/images/Engineered1.png')}
                   style={styles.tickerImage}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
                 <Image
                   source={require('../assets/images/Engineered1.png')}
                   style={styles.tickerImage}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
               </Animated.View>
             </View>
@@ -829,12 +829,12 @@ export default function Onboarding() {
                 <Image
                   source={require('../assets/images/Engineered2.png')}
                   style={styles.tickerImage}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
                 <Image
                   source={require('../assets/images/Engineered2.png')}
                   style={styles.tickerImage}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
               </Animated.View>
             </View>
@@ -845,12 +845,12 @@ export default function Onboarding() {
                 <Image
                   source={require('../assets/images/Engineered3.png')}
                   style={styles.tickerImage}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
                 <Image
                   source={require('../assets/images/Engineered3.png')}
                   style={styles.tickerImage}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
               </Animated.View>
             </View>
@@ -1672,15 +1672,15 @@ const styles = StyleSheet.create({
   },
   engineeredLoopContainer: {
     width: '100%',
-    height: 300,
+    height: 250,
     overflow: 'hidden',
     justifyContent: 'center',
-    marginVertical: 15,
+    marginVertical: 10,
   },
   tickerRow: {
     width: '100%',
-    height: 80,
-    marginVertical: 6,
+    height: 65,
+    marginVertical: 3,
     overflow: 'hidden',
   },
   tickerWrapper: {
@@ -1689,7 +1689,7 @@ const styles = StyleSheet.create({
   },
   tickerImage: {
     width: 600,
-    height: 80,
+    height: 65,
   },
   companiesPill: {
     backgroundColor: '#F5F5F5',
