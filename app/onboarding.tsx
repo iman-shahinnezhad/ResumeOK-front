@@ -30,65 +30,13 @@ import { useAuth, API_URL } from '../context/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as StoreReview from 'expo-store-review';
+import * as Notifications from 'expo-notifications';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const { width, height } = Dimensions.get('window');
 
-// Custom Laurel Wreath SVG for Hired Professionals badge
-const LaurelWreathLeft = () => (
-  <Svg width={30} height={40} viewBox="0 0 24 32" fill="none">
-    <G opacity={0.9}>
-      <Path d="M22 2C18 3 12 7 10 13C8.5 17.5 9 22 10.5 25C11 26 12 25.5 11.5 24.5C9.5 20.5 9 15 13 9.5C15 6.8 19 4 21.5 3C22 2.8 22.2 2.2 22 2Z" fill="#FFFFFF" />
-      <Path d="M19 8C15.5 9 10.5 12.5 9 18C7.8 22.5 8.5 26.5 10 29.5C10.5 30.5 11.5 30 11 29C9.5 26 9 21.5 12.5 16.5C14.5 13.8 17.5 10.5 19.5 9C20 8.8 20 8.2 19 8Z" fill="#FFFFFF" />
-      <Path d="M16 14C13 15 9 18.5 8 23.5C7.2 27.5 7.8 30.5 9 33C9.5 34 10.2 33.5 9.8 32.5C8.8 29.8 8.5 25.8 11.5 21C13.2 18.3 15.5 15.5 17 14.5C17.5 14.2 17 13.8 16 14Z" fill="#FFFFFF" />
-    </G>
-  </Svg>
-);
 
-const LaurelWreathRight = () => (
-  <Svg width={30} height={40} viewBox="0 0 24 32" fill="none">
-    <G opacity={0.9}>
-      <Path d="M2 2C6 3 12 7 14 13C15.5 17.5 15 22 13.5 25C13 26 12 25.5 12.5 24.5C14.5 20.5 15 15 11 9.5C9 6.8 5 4 2.5 3C2 2.8 1.8 2.2 2 2Z" fill="#FFFFFF" />
-      <Path d="M5 8C8.5 9 13.5 12.5 15 18C16.2 22.5 15.5 26.5 14 29.5C13.5 30.5 12.5 30 13 29C14.5 26 15 21.5 11.5 16.5C9.5 13.8 6.5 10.5 4.5 9C4 8.8 4 8.2 5 8Z" fill="#FFFFFF" />
-      <Path d="M8 14C11 15 15 18.5 16 23.5C16.8 27.5 16.2 30.5 15 33C14.5 34 13.8 33.5 14.2 32.5C15.2 29.8 15.5 25.8 12.5 21C10.8 18.3 8.5 15.5 7 14.5C6.5 14.2 7 13.8 8 14Z" fill="#FFFFFF" />
-    </G>
-  </Svg>
-);
-
-// High Five SVG representation for "Help us grow" rating page
-const HighFiveGraphic = () => (
-  <Svg width={200} height={200} viewBox="0 0 200 200" fill="none">
-    {/* Yellow rays of energy */}
-    <Path d="M100 20 V40 M60 30 L75 45 M140 30 L125 45 M40 70 L60 75 M160 70 L140 75 M50 130 L70 120 M150 130 L130 120" stroke="#FFCC00" strokeWidth={4} strokeLinecap="round" />
-
-    {/* Left hand (Blue trim sleeve) */}
-    <Path d="M70 150 L85 105 C88 95 80 65 80 55 C80 50 85 50 85 55 C85 45 90 45 90 55 C90 42 95 42 95 55 C95 46 100 46 100 60 C100 68 105 78 100 88 C95 98 105 108 105 118 C105 128 90 150 90 150" stroke="#0C2340" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-    <Path d="M70 150 L50 165" stroke="#2F5496" strokeWidth={5} strokeLinecap="round" />
-    <Path d="M75 145 L85 152" stroke="#2F5496" strokeWidth={5} strokeLinecap="round" />
-
-    {/* Right hand (Red trim sleeve) */}
-    <Path d="M130 150 L115 105 C112 95 120 65 120 55 C120 50 115 50 115 55 C115 45 110 45 110 55 C110 42 105 42 105 55 C105 46 100 46 100 60 C100 68 95 78 100 88 C105 98 95 108 95 118 C95 128 110 150 110 150" stroke="#0C2340" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-    <Path d="M130 150 L150 165" stroke="#C00000" strokeWidth={5} strokeLinecap="round" />
-    <Path d="M125 145 L115 152" stroke="#C00000" strokeWidth={5} strokeLinecap="round" />
-  </Svg>
-);
-
-// Ringing Bell SVG representation for "Stay on top of job search" notifications page
-const RingingBellGraphic = () => (
-  <Svg width={180} height={180} viewBox="0 0 100 100" fill="none">
-    {/* Yellow bell ringing rays */}
-    <Path d="M25 35 Q15 45 25 55 M15 30 Q3 45 15 60 M75 35 Q85 45 75 55 M85 30 Q97 45 85 60" stroke="#FFCC00" strokeWidth={3.5} strokeLinecap="round" />
-    {/* Loop Handle */}
-    <Path d="M50 20 C46 20 46 8 50 8 C54 8 54 20 50 20 Z" stroke="#0C2340" strokeWidth={4} strokeLinecap="round" />
-    {/* Bell Body */}
-    <Path d="M50 20 C32 20 30 65 20 70 C20 75 80 75 80 70 C70 65 68 20 50 20 Z" fill="#FFFFFF" stroke="#0C2340" strokeWidth={4} strokeLinejoin="round" strokeLinecap="round" />
-    {/* Red dynamic shadow indicator */}
-    <Path d="M58 74 C63 74 71 73 74 70" stroke="#FF3B30" strokeWidth={3} strokeLinecap="round" />
-    {/* Bell Clapper */}
-    <Path d="M45 75 C45 81 55 81 55 75" stroke="#0C2340" strokeWidth={4} strokeLinecap="round" />
-  </Svg>
-);
 
 const CATEGORIES_DATA = [
   {
@@ -372,6 +320,17 @@ export default function Onboarding() {
       console.log('Store review error:', err);
     } finally {
       setStep('notifications');
+    }
+  };
+
+  const handleRequestNotifications = async () => {
+    try {
+      const { status } = await Notifications.requestPermissionsAsync();
+      console.log('Notification permission status:', status);
+    } catch (err) {
+      console.log('Error requesting notification permission:', err);
+    } finally {
+      setStep('referral');
     }
   };
 
@@ -1409,13 +1368,7 @@ export default function Onboarding() {
             <TouchableOpacity
               style={styles.actionBtnBlack}
               activeOpacity={0.9}
-              onPress={() => {
-                Alert.alert(
-                  'Notifications Enabled',
-                  'You will now receive matching jobs notifications.',
-                  [{ text: 'OK', onPress: () => setStep('referral') }]
-                );
-              }}
+              onPress={handleRequestNotifications}
             >
               <Text style={styles.actionBtnTextWhite}>Allow Notifications</Text>
             </TouchableOpacity>
@@ -2182,8 +2135,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   ratingImage: {
-    width: 220,
-    height: 220,
+    width: 330,
+    height: 330,
   },
   bellImage: {
     width: 220,
