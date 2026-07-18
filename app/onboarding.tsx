@@ -312,13 +312,17 @@ export default function Onboarding() {
     try {
       if (await StoreReview.hasAction()) {
         await StoreReview.requestReview();
+        // Delay step transition slightly so the native review popup presents smoothly on top
+        setTimeout(() => {
+          setStep('notifications');
+        }, 1200);
       } else {
         // Fallback to writing store review manually
         Linking.openURL('https://apps.apple.com/app/idYOUR_APP_ID?action=write-review');
+        setStep('notifications');
       }
     } catch (err) {
       console.log('Store review error:', err);
-    } finally {
       setStep('notifications');
     }
   };
@@ -2139,7 +2143,7 @@ const styles = StyleSheet.create({
     height: 330,
   },
   bellImage: {
-    width: 220,
-    height: 220,
+    width: 330,
+    height: 330,
   },
 });
