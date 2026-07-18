@@ -347,7 +347,7 @@ export default function Onboarding() {
         if (googleUser.family_name) setLastName(googleUser.family_name);
         if (googleUser.email) setEmail(googleUser.email);
 
-        setStep('referral');
+        setStep('engineered');
       }
     } catch (err: any) {
       console.error('Google login error:', err);
@@ -402,7 +402,7 @@ export default function Onboarding() {
           if (credential.fullName?.familyName) setLastName(credential.fullName.familyName);
           if (credential.email) setEmail(credential.email);
 
-          setStep('referral');
+          setStep('engineered');
         }
       }
     } catch (err: any) {
@@ -417,7 +417,7 @@ export default function Onboarding() {
 
   const handleReferralSubmit = async () => {
     if (!referralCode.trim()) {
-      setStep('engineered');
+      setStep('name');
       return;
     }
 
@@ -431,7 +431,7 @@ export default function Onboarding() {
       const data = await response.json();
       if (data.success) {
         Alert.alert("Success", "Referral code applied successfully!");
-        setStep('engineered');
+        setStep('name');
       } else {
         Alert.alert("Error", data.error || "This referral code is invalid.");
       }
@@ -494,9 +494,9 @@ export default function Onboarding() {
 
   const handleBack = () => {
     if (step === 'welcome') setStep('intro');
-    else if (step === 'referral') setStep('welcome');
-    else if (step === 'engineered') setStep('referral');
-    else if (step === 'name') setStep('engineered');
+    else if (step === 'engineered') setStep('welcome');
+    else if (step === 'referral') setStep('engineered');
+    else if (step === 'name') setStep('referral');
     else if (step === 'email') setStep('name');
     else if (step === 'jobs') setStep('email');
     else if (step === 'interests') setStep('jobs');
@@ -563,8 +563,8 @@ export default function Onboarding() {
   // Questionnaire navigation metrics (13 visible steps before loading screen)
   const totalSteps = 13;
   const currentProgressStep =
-    step === 'referral' ? 1
-      : step === 'engineered' ? 2
+    step === 'engineered' ? 1
+      : step === 'referral' ? 2
         : step === 'name' ? 3
           : step === 'email' ? 4
             : step === 'jobs' ? 5
@@ -675,7 +675,7 @@ export default function Onboarding() {
                   <Text style={styles.authBtnText}>Continue with Google</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.skipBtnLink} onPress={() => setStep('referral')}>
+                <TouchableOpacity style={styles.skipBtnLink} onPress={() => setStep('engineered')}>
                   <Text style={styles.skipBtnText}>Skip for now</Text>
                 </TouchableOpacity>
               </View>
@@ -746,7 +746,7 @@ export default function Onboarding() {
                   )}
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('engineered')}>
+                <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('name')}>
                   <Text style={styles.skipBtnTextBlack}>Skip for now</Text>
                 </TouchableOpacity>
               </View>
@@ -809,7 +809,7 @@ export default function Onboarding() {
           <TouchableOpacity
             style={styles.actionBtnBlack}
             activeOpacity={0.9}
-            onPress={() => setStep('name')}
+            onPress={() => setStep('referral')}
           >
             <Text style={styles.actionBtnTextWhite}>Continue</Text>
           </TouchableOpacity>
