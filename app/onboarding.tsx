@@ -1454,7 +1454,9 @@ export default function Onboarding() {
               activeOpacity={0.9}
               onPress={() => setStep('loading')}
             >
-              <Text style={styles.actionBtnTextWhite}>Start building a resume</Text>
+              <Text style={styles.actionBtnTextWhite}>
+                {selectedResume ? 'Continue' : 'Start building a resume'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
