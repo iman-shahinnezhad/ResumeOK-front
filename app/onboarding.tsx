@@ -29,6 +29,7 @@ import Slider from '@react-native-community/slider';
 import { useAuth, API_URL } from '../context/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as DocumentPicker from 'expo-document-picker';
+import * as StoreReview from 'expo-store-review';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -356,6 +357,21 @@ export default function Onboarding() {
       }
     } catch (err) {
       console.log('Error picking document:', err);
+    }
+  };
+
+  const handleRateApp = async () => {
+    try {
+      if (await StoreReview.hasAction()) {
+        await StoreReview.requestReview();
+      } else {
+        // Fallback to writing store review manually
+        Linking.openURL('https://apps.apple.com/app/idYOUR_APP_ID?action=write-review');
+      }
+    } catch (err) {
+      console.log('Store review error:', err);
+    } finally {
+      setStep('notifications');
     }
   };
 
@@ -1362,13 +1378,7 @@ export default function Onboarding() {
             <TouchableOpacity
               style={styles.actionBtnBlack}
               activeOpacity={0.9}
-              onPress={() => {
-                Alert.alert(
-                  'Thank You!',
-                  'Redirecting you to the App Store to rate us.',
-                  [{ text: 'OK', onPress: () => setStep('notifications') }]
-                );
-              }}
+              onPress={handleRateApp}
             >
               <Text style={styles.actionBtnTextWhite}>Leave a rating!</Text>
             </TouchableOpacity>
