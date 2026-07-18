@@ -664,7 +664,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
         ) : currentIndex >= filteredJobs.length ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="sparkles" size={48} color="#7C3AED" style={{ marginBottom: 12 }} />
-            <Text style={styles.emptyText}>You've swiped through all jobs!</Text>
+            <Text style={styles.emptyText}>{"You've swiped through all jobs!"}</Text>
             <TouchableOpacity
               style={styles.resetSwipesBtn}
               onPress={() => { setCurrentIndex(0); }}
@@ -1506,4 +1506,5 @@ const JobCardContent = React.memo(({ item, isActive, likeStyle, nopeStyle }: Job
     </View>
   );
 });
+JobCardContent.displayName = 'JobCardContent';
 

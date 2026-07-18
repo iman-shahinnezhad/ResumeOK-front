@@ -828,7 +828,7 @@ export default function Onboarding() {
           <View style={styles.engineeredHeadingContainer}>
             <Text style={styles.engineeredHeadingSub}>More than AI.</Text>
             <Text style={styles.engineeredHeadingMain}>Engineered</Text>
-            <Text style={styles.engineeredHeadingSub}>for today's hiring process.</Text>
+            <Text style={styles.engineeredHeadingSub}>{"for today's hiring process."}</Text>
           </View>
 
           <View style={styles.engineeredLoopContainer}>
@@ -949,7 +949,7 @@ export default function Onboarding() {
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
               <View style={styles.questionHeadingContainer}>
-                <Text style={styles.questionTitle}>What's the best work{"\n"}email to reach you?</Text>
+                <Text style={styles.questionTitle}>{"What's the best work"}{"\n"}email to reach you?</Text>
               </View>
 
               <View style={styles.inputCenteringGroup}>
@@ -1069,7 +1069,7 @@ export default function Onboarding() {
       {step === 'interests' && (
         <View style={styles.accordionContainer}>
           <View style={[styles.questionHeadingContainer, { paddingHorizontal: 24, marginBottom: 30 }]}>
-            <Text style={styles.questionTitle}>What's most important{"\n"}in your next job?</Text>
+            <Text style={styles.questionTitle}>{"What's most important"}{"\n"}in your next job?</Text>
             <Text style={styles.questionSubtitle}>We calibrate your matches, Select 3 Interests.</Text>
           </View>
 
@@ -1159,7 +1159,7 @@ export default function Onboarding() {
             <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
               <View style={styles.questionHeadingContainer}>
                 <Text style={styles.questionTitle}>Where do you want to work?</Text>
-                <Text style={styles.questionSubtitle}>Don't worry, you can change it later.</Text>
+                <Text style={styles.questionSubtitle}>{"Don't worry, you can change it later."}</Text>
               </View>
 
               <View style={styles.locationContainer}>
