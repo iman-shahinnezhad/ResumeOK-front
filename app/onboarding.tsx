@@ -15,7 +15,8 @@ import {
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
   Keyboard,
-  Animated
+  Animated,
+  Easing
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -270,6 +271,22 @@ export default function Onboarding() {
 
   // Spinning Loader Animation Refs
   const rotateAnim = useRef(new Animated.Value(0)).current;
+  const scrollYAnim = useRef(new Animated.Value(0)).current;
+
+  // Trigger vertical logos ticker animation on engineered step mount
+  useEffect(() => {
+    if (step === 'engineered') {
+      scrollYAnim.setValue(0);
+      Animated.loop(
+        Animated.timing(scrollYAnim, {
+          toValue: -300, // 3 rows * 100px (80px height + 20px vertical margins)
+          duration: 9000, // 9 seconds for smooth slow scroll
+          easing: Easing.linear,
+          useNativeDriver: true
+        })
+      ).start();
+    }
+  }, [step]);
 
   // Trigger spinning loop and automatic redirect on loading step mount
   useEffect(() => {
@@ -763,43 +780,40 @@ export default function Onboarding() {
             <Text style={styles.engineeredHeadingSub}>for today's hiring process.</Text>
           </View>
 
-          <View style={styles.engineeredCarouselOuter}>
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onScroll={handleScroll}
-              scrollEventThrottle={16}
-              contentContainerStyle={{ alignItems: 'center' }}
-            >
+          <View style={styles.engineeredLoopContainer}>
+            <Animated.View style={[styles.engineeredLoopView, { transform: [{ translateY: scrollYAnim }] }]}>
               <Image
                 source={require('../assets/images/Engineered1.png')}
-                style={styles.engineeredImage}
+                style={styles.engineeredRowImage}
                 resizeMode="contain"
               />
               <Image
                 source={require('../assets/images/Engineered2.png')}
-                style={styles.engineeredImage}
+                style={styles.engineeredRowImage}
                 resizeMode="contain"
               />
               <Image
                 source={require('../assets/images/Engineered3.png')}
-                style={styles.engineeredImage}
+                style={styles.engineeredRowImage}
                 resizeMode="contain"
               />
-            </ScrollView>
-
-            <View style={styles.slideIndicatorsRow}>
-              {[0, 1, 2].map((idx) => (
-                <View
-                  key={idx}
-                  style={[
-                    styles.slideIndicatorDot,
-                    activeSlide === idx ? styles.slideIndicatorDotActive : null
-                  ]}
-                />
-              ))}
-            </View>
+              {/* Duplicate for seamless looping */}
+              <Image
+                source={require('../assets/images/Engineered1.png')}
+                style={styles.engineeredRowImage}
+                resizeMode="contain"
+              />
+              <Image
+                source={require('../assets/images/Engineered2.png')}
+                style={styles.engineeredRowImage}
+                resizeMode="contain"
+              />
+              <Image
+                source={require('../assets/images/Engineered3.png')}
+                style={styles.engineeredRowImage}
+                resizeMode="contain"
+              />
+            </Animated.View>
           </View>
 
           <View style={styles.companiesPill}>
@@ -1616,32 +1630,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
-  engineeredCarouselOuter: {
+  engineeredLoopContainer: {
     width: width - 48,
-    height: 250,
-    justifyContent: 'center',
+    height: 320,
+    overflow: 'hidden',
     alignItems: 'center',
-    marginVertical: 20,
-  },
-  engineeredImage: {
-    width: width - 48,
-    height: 220,
-  },
-  slideIndicatorsRow: {
-    flexDirection: 'row',
     justifyContent: 'center',
+    marginVertical: 15,
+  },
+  engineeredLoopView: {
+    width: '100%',
     alignItems: 'center',
-    marginTop: 10,
   },
-  slideIndicatorDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#CCCCCC',
-    marginHorizontal: 4,
-  },
-  slideIndicatorDotActive: {
-    backgroundColor: '#000000',
+  engineeredRowImage: {
+    width: '100%',
+    height: 80,
+    marginVertical: 10,
   },
   companiesPill: {
     backgroundColor: '#F5F5F5',
