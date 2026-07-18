@@ -220,6 +220,22 @@ export default function Onboarding() {
   // Slide carousel state
   const [activeSlide, setActiveSlide] = useState(0);
 
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
   // Spinning Loader Animation Refs
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const scrollX1 = useRef(new Animated.Value(0)).current;
@@ -775,11 +791,13 @@ export default function Onboarding() {
 
               <View style={styles.referralMiddleArea}>
                 {renderReferralDashes()}
-                <Image
-                  source={require('../assets/images/laptop.png')}
-                  style={styles.laptopAsset}
-                  resizeMode="contain"
-                />
+                {!isKeyboardVisible && (
+                  <Image
+                    source={require('../assets/images/laptop.png')}
+                    style={styles.laptopAsset}
+                    resizeMode="contain"
+                  />
+                )}
               </View>
 
               <View style={styles.referralActions}>
