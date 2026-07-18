@@ -28,6 +28,7 @@ import Svg, { Path, G, Circle } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
 import { useAuth, API_URL } from '../context/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as DocumentPicker from 'expo-document-picker';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -241,7 +242,7 @@ export default function Onboarding() {
 
   // Navigation Flow Steps
   const [step, setStep] = useState<
-    'intro' | 'welcome' | 'referral' | 'engineered' | 'name' | 'email' | 'jobs' | 'interests' | 'challenge' | 'location' | 'experience' | 'salary' | 'hearAbout' | 'rateUs' | 'notifications' | 'loading'
+    'intro' | 'welcome' | 'referral' | 'engineered' | 'name' | 'email' | 'jobs' | 'interests' | 'challenge' | 'location' | 'experience' | 'salary' | 'hearAbout' | 'rateUs' | 'notifications' | 'upload' | 'loading'
   >('intro');
   const [loading, setLoading] = useState(false);
 
@@ -262,6 +263,7 @@ export default function Onboarding() {
   const [minSalary, setMinSalary] = useState(120000);
   const [maxSalary, setMaxSalary] = useState(320000);
   const [selectedHearAbout, setSelectedHearAbout] = useState<string | null>(null);
+  const [selectedResume, setSelectedResume] = useState<{ name: string; uri: string; size?: number } | null>(null);
 
   // Accordion status mapping category name to expanded boolean
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -306,7 +308,7 @@ export default function Onboarding() {
       Animated.loop(
         Animated.timing(scrollX3, {
           toValue: -600,
-          duration: 18000, // Slower
+          duration: 9000, // Slower
           easing: Easing.linear,
           useNativeDriver: true
         })
@@ -337,6 +339,25 @@ export default function Onboarding() {
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg']
   });
+
+  const handlePickResume = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'],
+        copyToCacheDirectory: true
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const file = res.assets[0];
+        setSelectedResume({
+          name: file.name,
+          uri: file.uri,
+          size: file.size
+        });
+      }
+    } catch (err) {
+      console.log('Error picking document:', err);
+    }
+  };
 
   // Google Sign-In Setup
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -460,7 +481,7 @@ export default function Onboarding() {
 
   const handleReferralSubmit = async () => {
     if (!referralCode.trim()) {
-      setStep('name');
+      setStep('upload');
       return;
     }
 
@@ -474,7 +495,7 @@ export default function Onboarding() {
       const data = await response.json();
       if (data.success) {
         Alert.alert("Success", "Referral code applied successfully!");
-        setStep('name');
+        setStep('upload');
       } else {
         Alert.alert("Error", data.error || "This referral code is invalid.");
       }
@@ -498,7 +519,12 @@ export default function Onboarding() {
         city: selectedCity,
         experience: selectedExperience,
         expectedSalary: { min: minSalary, max: maxSalary },
-        hearAbout: selectedHearAbout
+        hearAbout: selectedHearAbout,
+        resumeFile: selectedResume ? {
+          name: selectedResume.name,
+          uri: selectedResume.uri,
+          size: selectedResume.size
+        } : null
       };
       await FileSystem.writeAsStringAsync(path, JSON.stringify(profile));
 
@@ -538,18 +564,19 @@ export default function Onboarding() {
   const handleBack = () => {
     if (step === 'welcome') setStep('intro');
     else if (step === 'engineered') setStep('welcome');
-    else if (step === 'referral') setStep('engineered');
-    else if (step === 'name') setStep('referral');
+    else if (step === 'name') setStep('engineered');
     else if (step === 'email') setStep('name');
-    else if (step === 'jobs') setStep('email');
-    else if (step === 'interests') setStep('jobs');
-    else if (step === 'challenge') setStep('interests');
-    else if (step === 'location') setStep('challenge');
-    else if (step === 'experience') setStep('location');
-    else if (step === 'salary') setStep('experience');
-    else if (step === 'hearAbout') setStep('salary');
+    else if (step === 'interests') setStep('email');
+    else if (step === 'jobs') setStep('interests');
+    else if (step === 'experience') setStep('jobs');
+    else if (step === 'location') setStep('experience');
+    else if (step === 'salary') setStep('location');
+    else if (step === 'challenge') setStep('salary');
+    else if (step === 'hearAbout') setStep('challenge');
     else if (step === 'rateUs') setStep('hearAbout');
     else if (step === 'notifications') setStep('rateUs');
+    else if (step === 'referral') setStep('notifications');
+    else if (step === 'upload') setStep('referral');
   };
 
   const toggleCategory = (catName: string) => {
@@ -603,22 +630,23 @@ export default function Onboarding() {
     ? []
     : CITIES_LIST.filter(c => c.toLowerCase().includes(citySearch.toLowerCase()));
 
-  // Questionnaire navigation metrics (13 visible steps before loading screen)
-  const totalSteps = 13;
+  // Questionnaire navigation metrics (14 visible steps before loading screen)
+  const totalSteps = 14;
   const currentProgressStep =
     step === 'engineered' ? 1
-      : step === 'referral' ? 2
-        : step === 'name' ? 3
-          : step === 'email' ? 4
+      : step === 'name' ? 2
+        : step === 'email' ? 3
+          : step === 'interests' ? 4
             : step === 'jobs' ? 5
-              : step === 'interests' ? 6
-                : step === 'challenge' ? 7
-                  : step === 'location' ? 8
-                    : step === 'experience' ? 9
-                      : step === 'salary' ? 10
-                        : step === 'hearAbout' ? 11
-                          : step === 'rateUs' ? 12
-                            : 13;
+              : step === 'experience' ? 6
+                : step === 'location' ? 7
+                  : step === 'salary' ? 8
+                    : step === 'challenge' ? 9
+                      : step === 'hearAbout' ? 10
+                        : step === 'rateUs' ? 11
+                          : step === 'notifications' ? 12
+                            : step === 'referral' ? 13
+                              : 14;
   const progressPercentage = (currentProgressStep / totalSteps) * 100;
 
   const isNameValid = firstName.trim().length > 0 && lastName.trim().length > 0;
@@ -789,7 +817,7 @@ export default function Onboarding() {
                   )}
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('name')}>
+                <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('upload')}>
                   <Text style={styles.skipBtnTextBlack}>Skip for now</Text>
                 </TouchableOpacity>
               </View>
@@ -811,12 +839,12 @@ export default function Onboarding() {
             <View style={styles.tickerRow}>
               <Animated.View style={[styles.tickerWrapper, { transform: [{ translateX: scrollX1 }] }]}>
                 <Image
-                  source={require('../assets/images/Engineered1.png')}
+                  source={require('../assets/images/Engineered2.png')}
                   style={styles.tickerImage}
                   resizeMode="cover"
                 />
                 <Image
-                  source={require('../assets/images/Engineered1.png')}
+                  source={require('../assets/images/Engineered2.png')}
                   style={styles.tickerImage}
                   resizeMode="cover"
                 />
@@ -827,13 +855,13 @@ export default function Onboarding() {
             <View style={styles.tickerRow}>
               <Animated.View style={[styles.tickerWrapper, { transform: [{ translateX: scrollX2 }] }]}>
                 <Image
-                  source={require('../assets/images/Engineered2.png')}
-                  style={styles.tickerImage}
+                  source={require('../assets/images/Engineered1.png')}
+                  style={styles.tickerImage1}
                   resizeMode="cover"
                 />
                 <Image
-                  source={require('../assets/images/Engineered2.png')}
-                  style={styles.tickerImage}
+                  source={require('../assets/images/Engineered1.png')}
+                  style={styles.tickerImage1}
                   resizeMode="cover"
                 />
               </Animated.View>
@@ -863,7 +891,7 @@ export default function Onboarding() {
           <TouchableOpacity
             style={styles.actionBtnBlack}
             activeOpacity={0.9}
-            onPress={() => setStep('referral')}
+            onPress={() => setStep('name')}
           >
             <Text style={styles.actionBtnTextWhite}>Continue</Text>
           </TouchableOpacity>
@@ -945,7 +973,7 @@ export default function Onboarding() {
                 style={[styles.actionBtnBlack, !isEmailValid ? styles.actionBtnDisabled : null]}
                 activeOpacity={isEmailValid ? 0.9 : 1}
                 disabled={!isEmailValid}
-                onPress={() => setStep('jobs')}
+                onPress={() => setStep('interests')}
               >
                 <Text style={styles.actionBtnTextWhite}>Continue</Text>
               </TouchableOpacity>
@@ -1028,7 +1056,7 @@ export default function Onboarding() {
               style={[styles.actionBtnBlack, !isJobsValid ? styles.actionBtnDisabled : null]}
               activeOpacity={isJobsValid ? 0.9 : 1}
               disabled={!isJobsValid}
-              onPress={() => setStep('interests')}
+              onPress={() => setStep('experience')}
             >
               <Text style={styles.actionBtnTextWhite}>
                 {selectedRoles.length > 0
@@ -1080,7 +1108,7 @@ export default function Onboarding() {
               style={[styles.actionBtnBlack, !isInterestsValid ? styles.actionBtnDisabled : null]}
               activeOpacity={isInterestsValid ? 0.9 : 1}
               disabled={!isInterestsValid}
-              onPress={() => setStep('challenge')}
+              onPress={() => setStep('jobs')}
             >
               <Text style={styles.actionBtnTextWhite}>Continue</Text>
             </TouchableOpacity>
@@ -1091,8 +1119,8 @@ export default function Onboarding() {
       {step === 'challenge' && (
         <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
           <View style={styles.questionHeadingContainer}>
-            <Text style={styles.questionTitle}>Where do you want to{"\n"}work?</Text>
-            <Text style={styles.questionSubtitle}>Don't worry, you can change it later.</Text>
+            <Text style={styles.questionTitle}>What is your biggest{"\n"}challenge?</Text>
+            <Text style={styles.questionSubtitle}>We will help you overcome it.</Text>
           </View>
 
           <View style={styles.optionsListGroup}>
@@ -1118,7 +1146,7 @@ export default function Onboarding() {
             style={[styles.actionBtnBlack, !isChallengeValid ? styles.actionBtnDisabled : null]}
             activeOpacity={isChallengeValid ? 0.9 : 1}
             disabled={!isChallengeValid}
-            onPress={() => setStep('location')}
+            onPress={() => setStep('hearAbout')}
           >
             <Text style={styles.actionBtnTextWhite}>Continue</Text>
           </TouchableOpacity>
@@ -1180,7 +1208,7 @@ export default function Onboarding() {
                 style={[styles.actionBtnBlack, !isLocationValid ? styles.actionBtnDisabled : null]}
                 activeOpacity={isLocationValid ? 0.9 : 1}
                 disabled={!isLocationValid}
-                onPress={() => setStep('experience')}
+                onPress={() => setStep('salary')}
               >
                 <Text style={styles.actionBtnTextWhite}>Continue</Text>
               </TouchableOpacity>
@@ -1218,7 +1246,7 @@ export default function Onboarding() {
             style={[styles.actionBtnBlack, !isExperienceValid ? styles.actionBtnDisabled : null]}
             activeOpacity={isExperienceValid ? 0.9 : 1}
             disabled={!isExperienceValid}
-            onPress={() => setStep('salary')}
+            onPress={() => setStep('location')}
           >
             <Text style={styles.actionBtnTextWhite}>Continue</Text>
           </TouchableOpacity>
@@ -1272,7 +1300,7 @@ export default function Onboarding() {
           <TouchableOpacity
             style={styles.actionBtnBlack}
             activeOpacity={0.9}
-            onPress={() => setStep('hearAbout')}
+            onPress={() => setStep('challenge')}
           >
             <Text style={styles.actionBtnTextWhite}>Continue</Text>
           </TouchableOpacity>
@@ -1367,15 +1395,78 @@ export default function Onboarding() {
                 Alert.alert(
                   'Notifications Enabled',
                   'You will now receive matching jobs notifications.',
-                  [{ text: 'OK', onPress: () => setStep('loading') }]
+                  [{ text: 'OK', onPress: () => setStep('referral') }]
                 );
               }}
             >
               <Text style={styles.actionBtnTextWhite}>Allow Notifications</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('loading')}>
+            <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('referral')}>
               <Text style={styles.skipBtnTextBlack}>I enabled!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {step === 'upload' && (
+        <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
+          <View style={styles.questionHeadingContainer}>
+            <Text style={styles.questionTitle}>Upload your resume</Text>
+            <Text style={styles.questionSubtitle}>We will auto-fill your profile and optimize your resume.</Text>
+          </View>
+
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+            <TouchableOpacity 
+              style={[
+                styles.uploadBoxContainer,
+                selectedResume ? styles.uploadBoxActive : null
+              ]}
+              activeOpacity={0.8}
+              onPress={handlePickResume}
+            >
+              {selectedResume ? (
+                <View style={styles.selectedFileCol}>
+                  <Ionicons name="checkmark-circle" size={48} color="#34C759" />
+                  <Text style={styles.fileNameText} numberOfLines={1}>{selectedResume.name}</Text>
+                  {selectedResume.size && (
+                    <Text style={styles.fileSizeText}>
+                      {(selectedResume.size / 1024).toFixed(1)} KB
+                    </Text>
+                  )}
+                  <TouchableOpacity 
+                    style={styles.removeFileBtn} 
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setSelectedResume(null);
+                    }}
+                  >
+                    <Text style={styles.removeFileText}>Remove file</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.uploadPromptCol}>
+                  <Ionicons name="document-text-outline" size={48} color="rgba(0,0,0,0.4)" style={{ marginBottom: 12 }} />
+                  <Text style={styles.uploadPromptMain}>Tap to upload resume</Text>
+                  <Text style={styles.uploadPromptSub}>Supports PDF, DOCX, or TXT up to 10MB</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.referralActions}>
+            <TouchableOpacity
+              style={styles.actionBtnBlack}
+              activeOpacity={0.9}
+              onPress={() => setStep('loading')}
+            >
+              <Text style={styles.actionBtnTextWhite}>
+                {selectedResume ? 'Upload & Continue' : 'Continue'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('loading')}>
+              <Text style={styles.skipBtnTextBlack}>Skip for now</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1688,8 +1779,14 @@ const styles = StyleSheet.create({
     width: 1200,
   },
   tickerImage: {
-    width: 600,
+    objectFit: "contain",
     height: 65,
+    width: 800,
+  },
+  tickerImage1: {
+    objectFit: "contain",
+    height: 65,
+    width: 550,
   },
   companiesPill: {
     backgroundColor: '#F5F5F5',
@@ -2006,5 +2103,64 @@ const styles = StyleSheet.create({
     color: '#000000',
     textAlign: 'center',
     lineHeight: 34,
+  },
+  // UPLOAD RESUME PAGE
+  uploadBoxContainer: {
+    width: '90%',
+    height: 180,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#CCCCCC',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFB',
+  },
+  uploadBoxActive: {
+    borderColor: '#34C759',
+    backgroundColor: '#F2FBF4',
+  },
+  uploadPromptCol: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadPromptMain: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  uploadPromptSub: {
+    fontSize: 12,
+    color: 'rgba(0,0,0,0.4)',
+    marginTop: 6,
+  },
+  selectedFileCol: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  fileNameText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#000000',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  fileSizeText: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 4,
+  },
+  removeFileBtn: {
+    marginTop: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#FFE5E5',
+    borderRadius: 8,
+  },
+  removeFileText: {
+    color: '#FF3B30',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
