@@ -58,7 +58,7 @@ const HighFiveGraphic = () => (
   <Svg width={200} height={200} viewBox="0 0 200 200" fill="none">
     {/* Yellow rays of energy */}
     <Path d="M100 20 V40 M60 30 L75 45 M140 30 L125 45 M40 70 L60 75 M160 70 L140 75 M50 130 L70 120 M150 130 L130 120" stroke="#FFCC00" strokeWidth={4} strokeLinecap="round" />
-    
+
     {/* Left hand (Blue trim sleeve) */}
     <Path d="M70 150 L85 105 C88 95 80 65 80 55 C80 50 85 50 85 55 C85 45 90 45 90 55 C90 42 95 42 95 55 C95 46 100 46 100 60 C100 68 105 78 100 88 C95 98 105 108 105 118 C105 128 90 150 90 150" stroke="#0C2340" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
     <Path d="M70 150 L50 165" stroke="#2F5496" strokeWidth={5} strokeLinecap="round" />
@@ -237,7 +237,7 @@ export default function Onboarding() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { login, guestId } = useAuth();
-  
+
   // Navigation Flow Steps
   const [step, setStep] = useState<
     'intro' | 'welcome' | 'referral' | 'engineered' | 'name' | 'email' | 'jobs' | 'interests' | 'challenge' | 'location' | 'experience' | 'salary' | 'hearAbout' | 'rateUs' | 'notifications' | 'loading'
@@ -297,7 +297,7 @@ export default function Onboarding() {
 
   // Google Sign-In Setup
   const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: 'YOUR_GOOGLE_IOS_CLIENT_ID', 
+    iosClientId: 'YOUR_GOOGLE_IOS_CLIENT_ID',
     androidClientId: 'YOUR_GOOGLE_ANDROID_CLIENT_ID',
     webClientId: 'YOUR_GOOGLE_WEB_CLIENT_ID',
   });
@@ -314,13 +314,13 @@ export default function Onboarding() {
       const userInfoResponse = await fetch('https://www.googleapis.com/userinfo/v2/me', {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      
+
       if (!userInfoResponse.ok) {
         throw new Error('Failed to fetch user info from Google');
       }
 
       const googleUser = await userInfoResponse.json();
-      
+
       const authRes = await fetch(`${API_URL}/api/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -562,20 +562,20 @@ export default function Onboarding() {
 
   // Questionnaire navigation metrics (13 visible steps before loading screen)
   const totalSteps = 13;
-  const currentProgressStep = 
-    step === 'referral' ? 1 
-    : step === 'engineered' ? 2 
-    : step === 'name' ? 3 
-    : step === 'email' ? 4 
-    : step === 'jobs' ? 5 
-    : step === 'interests' ? 6
-    : step === 'challenge' ? 7
-    : step === 'location' ? 8
-    : step === 'experience' ? 9
-    : step === 'salary' ? 10
-    : step === 'hearAbout' ? 11
-    : step === 'rateUs' ? 12
-    : 13;
+  const currentProgressStep =
+    step === 'referral' ? 1
+      : step === 'engineered' ? 2
+        : step === 'name' ? 3
+          : step === 'email' ? 4
+            : step === 'jobs' ? 5
+              : step === 'interests' ? 6
+                : step === 'challenge' ? 7
+                  : step === 'location' ? 8
+                    : step === 'experience' ? 9
+                      : step === 'salary' ? 10
+                        : step === 'hearAbout' ? 11
+                          : step === 'rateUs' ? 12
+                            : 13;
   const progressPercentage = (currentProgressStep / totalSteps) * 100;
 
   const isNameValid = firstName.trim().length > 0 && lastName.trim().length > 0;
@@ -907,7 +907,7 @@ export default function Onboarding() {
             <Text style={styles.questionSubtitle}>We calibrate your matches, At least 3 Interests.</Text>
           </View>
 
-          <ScrollView 
+          <ScrollView
             style={styles.accordionScrollView}
             contentContainerStyle={styles.accordionScrollContent}
             showsVerticalScrollIndicator={false}
@@ -932,10 +932,10 @@ export default function Onboarding() {
                         </Text>
                       </View>
                     </View>
-                    <Ionicons 
-                      name={isExpanded ? "chevron-up" : "chevron-down"} 
-                      size={18} 
-                      color="#000000" 
+                    <Ionicons
+                      name={isExpanded ? "chevron-up" : "chevron-down"}
+                      size={18}
+                      color="#000000"
                     />
                   </TouchableOpacity>
 
@@ -977,8 +977,8 @@ export default function Onboarding() {
               onPress={() => setStep('interests')}
             >
               <Text style={styles.actionBtnTextWhite}>
-                {selectedRoles.length > 0 
-                  ? `Continue With (${selectedRoles.length} Roles)` 
+                {selectedRoles.length > 0
+                  ? `Continue With (${selectedRoles.length} Roles)`
                   : 'Continue'
                 }
               </Text>
@@ -1428,18 +1428,18 @@ const styles = StyleSheet.create({
   largeTitleText: {
     color: '#FFFFFF',
     fontSize: 32,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 1.5,
     lineHeight: 36,
     textTransform: 'uppercase',
   },
   subTitleBlock: {
-    marginTop: 12,
+    marginTop: 200,
   },
   mediumTitleText: {
     color: '#FFFFFF',
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 1,
     lineHeight: 28,
     textTransform: 'uppercase',
@@ -1454,13 +1454,13 @@ const styles = StyleSheet.create({
     marginLeft: width * 0.32,
   },
   staircase4: {
-    marginLeft: width * 0.36,
+    marginLeft: width * 0.28,
   },
   staircase5: {
-    marginLeft: width * 0.46,
+    marginLeft: width * 0.39,
   },
   staircase6: {
-    marginLeft: width * 0.60,
+    marginLeft: width * 0.55,
   },
   continueBtn: {
     width: '100%',
@@ -1487,8 +1487,8 @@ const styles = StyleSheet.create({
   },
   welcomeTitle: {
     color: '#FFFFFF',
-    fontSize: 36,
-    fontWeight: '900',
+    fontSize: 30,
+    fontWeight: '700',
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -1524,14 +1524,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   skipBtnLink: {
-    marginTop: 25,
-    paddingVertical: 10,
+    marginTop: 10,
+    paddingVertical: 5,
   },
   skipBtnText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    textDecorationLine: 'underline',
+    fontSize: 14,
+    fontWeight: '600',
+    textDecorationLine: 'none',
   },
   termsText: {
     color: 'rgba(255, 255, 255, 0.85)',
@@ -1589,7 +1589,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   skipBtnLinkBlack: {
-    marginTop: 20,
+    marginTop: 10,
     paddingVertical: 10,
   },
   skipBtnTextBlack: {
