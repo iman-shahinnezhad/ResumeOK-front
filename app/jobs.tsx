@@ -1319,21 +1319,7 @@ export default function JobsScreen() {
                       })}
                     </View>
                   )}
-
-                  <View style={styles.switchRow}>
-                    <View style={{ flex: 1, marginRight: 16 }}>
-                      <Text style={styles.switchLabel}>AI Tailor Resume first ✨</Text>
-                      <Text style={styles.switchDesc}>
-                        Uses Gemini AI to automatically rewrite bullet points and keyword-match the resume to this description before submitting.
-                      </Text>
-                    </View>
-                    <Switch
-                      value={tailorResume}
-                      onValueChange={setTailorResume}
-                      trackColor={{ false: '#D1D5DB', true: '#C084FC' }}
-                      thumbColor={tailorResume ? '#7C3AED' : '#F3F4F6'}
-                    />
-                  </View>
+                  {/* Switch container removed as requested */}
                 </>
               )}
             </ScrollView>
@@ -1350,7 +1336,7 @@ export default function JobsScreen() {
                   ) : (
                     <>
                       <Text style={styles.modalSubmitBtnText}>
-                        Match & Preview Application ✨
+                        Match Resume and Cover Letter
                       </Text>
                       <Ionicons name="sparkles" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
                     </>
@@ -1575,8 +1561,8 @@ export default function JobsScreen() {
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <>
-                    <Text style={styles.previewProceedBtnText}>Proceed to Apply</Text>
-                    <Ionicons name="rocket-outline" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                    <Text style={styles.previewProceedBtnText}>Apply</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
                   </>
                 )}
               </TouchableOpacity>
