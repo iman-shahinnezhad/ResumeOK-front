@@ -258,6 +258,7 @@ export default function JobsScreen() {
   const [webViewVisible, setWebViewVisible] = useState(false);
   const [selectedResumeBase64, setSelectedResumeBase64] = useState('');
   const [selectedResumeName, setSelectedResumeName] = useState('');
+  const [selectedCoverLetterText, setSelectedCoverLetterText] = useState('');
   const webViewRef = useRef<WebView>(null);
 
   // Load config, resumes, and popular jobs on mount
@@ -447,14 +448,16 @@ export default function JobsScreen() {
       phone: phone.trim(),
       resumeBase64: selectedResumeBase64,
       resumeName: selectedResumeName,
+      coverLetterText: selectedCoverLetterText,
     };
 
-    console.log("Preparing injection script with contact details:", {
+    console.log("Preparing injection script with contact details and cover letter:", {
       firstName: payload.firstName,
       lastName: payload.lastName,
       email: payload.email,
       phone: payload.phone,
-      resumeSize: payload.resumeBase64 ? payload.resumeBase64.length : 0
+      resumeSize: payload.resumeBase64 ? payload.resumeBase64.length : 0,
+      hasCoverLetter: !!payload.coverLetterText
     });
 
     const jsCode = `
@@ -549,6 +552,14 @@ export default function JobsScreen() {
               sendLog('Filled Greenhouse phone: ' + payload.phone);
             }
 
+            // Cover letter text area
+            const ghCLText = document.querySelector('textarea#cover_letter_text') || 
+                             document.querySelector('textarea[name="cover_letter"]');
+            if (ghCLText && payload.coverLetterText && !ghCLText.value) {
+              triggerInputChange(ghCLText, payload.coverLetterText);
+              sendLog('Filled Greenhouse cover letter text.');
+            }
+
             // Resume upload logic
             const fileInput = document.querySelector('input[type="file"][id="resume_file"]') || 
                               document.querySelector('input[type="file"][name="resume"]') ||
@@ -560,11 +571,48 @@ export default function JobsScreen() {
                 const file = new File([blob], payload.resumeName || 'resume.pdf', { type: 'application/pdf' });
                 const dataTransfer = new DataTransfer();
                 dataTransfer.items.add(file);
-                fileInput.files = dataTransfer.files;
+                
+                // Bypass React files-setter tracker
+                const filesSetter = Object.getOwnPropertyDescriptor(fileInput, 'files')?.set;
+                const prototype = Object.getPrototypeOf(fileInput);
+                const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
+                if (prototypeFilesSetter) {
+                  prototypeFilesSetter.call(fileInput, dataTransfer.files);
+                } else {
+                  fileInput.files = dataTransfer.files;
+                }
+                
                 fileInput.dispatchEvent(new Event('change', { bubbles: true }));
                 sendLog('Resume attached to Greenhouse form.');
               } catch(e) {
                 sendLog('Failed to attach resume to Greenhouse: ' + e.message);
+              }
+            }
+
+            // Cover letter file input
+            const ghCLFile = document.querySelector('input[type="file"][id="cover_letter_file"]') || 
+                             document.querySelector('input[type="file"][name="cover_letter"]');
+            if (ghCLFile && payload.coverLetterText && (!ghCLFile.files || !ghCLFile.files.length)) {
+              try {
+                const blob = new Blob([payload.coverLetterText], { type: 'text/plain' });
+                const file = new File([blob], 'cover_letter.txt', { type: 'text/plain' });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                
+                // Bypass React files-setter tracker
+                const filesSetter = Object.getOwnPropertyDescriptor(ghCLFile, 'files')?.set;
+                const prototype = Object.getPrototypeOf(ghCLFile);
+                const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
+                if (prototypeFilesSetter) {
+                  prototypeFilesSetter.call(ghCLFile, dataTransfer.files);
+                } else {
+                  ghCLFile.files = dataTransfer.files;
+                }
+                
+                ghCLFile.dispatchEvent(new Event('change', { bubbles: true }));
+                sendLog('Cover letter attached to Greenhouse form.');
+              } catch(e) {
+                sendLog('Failed to attach cover letter to Greenhouse: ' + e.message);
               }
             }
           }
@@ -590,6 +638,14 @@ export default function JobsScreen() {
               sendLog('Filled Lever phone.');
             }
 
+            // Cover letter text area / comments
+            const leverCLText = document.querySelector('textarea[name="comments"]') || 
+                                document.querySelector('textarea#additional-information');
+            if (leverCLText && payload.coverLetterText && !leverCLText.value) {
+              triggerInputChange(leverCLText, payload.coverLetterText);
+              sendLog('Filled Lever cover letter comments.');
+            }
+
             // Resume upload logic
             const fileInput = document.querySelector('input[type="file"][id="resume-upload-input"]') || 
                               document.querySelector('input[type="file"]');
@@ -600,11 +656,48 @@ export default function JobsScreen() {
                 const file = new File([blob], payload.resumeName || 'resume.pdf', { type: 'application/pdf' });
                 const dataTransfer = new DataTransfer();
                 dataTransfer.items.add(file);
-                fileInput.files = dataTransfer.files;
+                
+                // Bypass React files-setter tracker
+                const filesSetter = Object.getOwnPropertyDescriptor(fileInput, 'files')?.set;
+                const prototype = Object.getPrototypeOf(fileInput);
+                const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
+                if (prototypeFilesSetter) {
+                  prototypeFilesSetter.call(fileInput, dataTransfer.files);
+                } else {
+                  fileInput.files = dataTransfer.files;
+                }
+                
                 fileInput.dispatchEvent(new Event('change', { bubbles: true }));
                 sendLog('Resume attached to Lever form.');
               } catch(e) {
                 sendLog('Failed to attach resume to Lever: ' + e.message);
+              }
+            }
+
+            // Cover letter file input
+            const leverCLFile = document.querySelector('input[type="file"][id="cover-letter-upload-input"]') || 
+                                document.querySelector('input[type="file"][name="cover_letter"]');
+            if (leverCLFile && payload.coverLetterText && (!leverCLFile.files || !leverCLFile.files.length)) {
+              try {
+                const blob = new Blob([payload.coverLetterText], { type: 'text/plain' });
+                const file = new File([blob], 'cover_letter.txt', { type: 'text/plain' });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                
+                // Bypass React files-setter tracker
+                const filesSetter = Object.getOwnPropertyDescriptor(leverCLFile, 'files')?.set;
+                const prototype = Object.getPrototypeOf(leverCLFile);
+                const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
+                if (prototypeFilesSetter) {
+                  prototypeFilesSetter.call(leverCLFile, dataTransfer.files);
+                } else {
+                  leverCLFile.files = dataTransfer.files;
+                }
+                
+                leverCLFile.dispatchEvent(new Event('change', { bubbles: true }));
+                sendLog('Cover letter attached to Lever form.');
+              } catch(e) {
+                sendLog('Failed to attach cover letter to Lever: ' + e.message);
               }
             }
           }
@@ -852,6 +945,31 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
         const base64Content = await FileSystem.readAsStringAsync(finalResumeUri, { encoding: 'base64' });
         setSelectedResumeBase64(base64Content);
         setSelectedResumeName(finalResumeName);
+
+        // Load cover letters to find the one matching this job or the most recent one
+        const coverLettersPath = `${FileSystem.documentDirectory}cover_letters.json`;
+        let latestCoverLetterText = '';
+        try {
+          const clInfo = await FileSystem.getInfoAsync(coverLettersPath);
+          if (clInfo.exists) {
+            const clContent = await FileSystem.readAsStringAsync(coverLettersPath);
+            const clList = JSON.parse(clContent);
+            if (Array.isArray(clList) && clList.length > 0) {
+              const matchingCl = clList.find((c: any) => 
+                (c.company && c.company.toLowerCase() === targetCompany.toLowerCase()) || 
+                (c.jobTitle && c.jobTitle.toLowerCase() === selectedJob?.title.toLowerCase())
+              );
+              if (matchingCl) {
+                latestCoverLetterText = matchingCl.coverLetterText;
+              } else {
+                latestCoverLetterText = clList[0].coverLetterText;
+              }
+            }
+          }
+        } catch (err) {
+          console.log('Error reading cover letters:', err);
+        }
+        setSelectedCoverLetterText(latestCoverLetterText);
 
         // Log application locally in applied_jobs.json for tracking
         const appliedPath = `${FileSystem.documentDirectory}applied_jobs.json`;
@@ -1272,6 +1390,11 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
             style={{ flex: 1 }}
             domStorageEnabled={true}
             javaScriptEnabled={true}
+            allowFileAccess={true}
+            allowFileAccessFromFileURLs={true}
+            allowUniversalAccessFromFileURLs={true}
+            originWhitelist={['*']}
+            mixedContentMode="always"
             startInLoadingState={true}
             renderLoading={() => (
               <ActivityIndicator 
