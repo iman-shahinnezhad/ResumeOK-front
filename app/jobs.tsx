@@ -406,6 +406,9 @@ export default function JobsScreen() {
   const viewJobDetails = (job: GreenhouseJob) => {
     setSelectedJob(job);
     setJobDetailsHtml(job.content || "No description provided.");
+    setPreviewResumeUri('');
+    setPreviewResumeName('');
+    setPreviewCoverLetter('');
   };
 
   const stripHtml = (html: string) => {
@@ -1261,6 +1264,37 @@ export default function JobsScreen() {
                       })}
                     </View>
                   )}
+                  
+                  {previewResumeUri && previewCoverLetter ? (
+                    <View style={styles.previewLinksContainer}>
+                      <Text style={styles.previewLinksTitle}>AI Matched Documents</Text>
+                      <View style={styles.previewLinksRow}>
+                        <TouchableOpacity
+                          style={styles.previewLinkBtn}
+                          onPress={() => {
+                            setPreviewTab('resume');
+                            setShowMatchPreviewModal(true);
+                          }}
+                        >
+                          <Ionicons name="document-text" size={20} color="#7C3AED" />
+                          <Text style={styles.previewLinkBtnText}>Tailored Resume</Text>
+                          <Ionicons name="eye-outline" size={14} color="#6B7280" style={{ marginLeft: 'auto' }} />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.previewLinkBtn}
+                          onPress={() => {
+                            setPreviewTab('cover_letter');
+                            setShowMatchPreviewModal(true);
+                          }}
+                        >
+                          <Ionicons name="mail" size={20} color="#7C3AED" />
+                          <Text style={styles.previewLinkBtnText}>Cover Letter</Text>
+                          <Ionicons name="eye-outline" size={14} color="#6B7280" style={{ marginLeft: 'auto' }} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : null}
                   {/* Switch container removed as requested */}
                 </>
               )}
@@ -1268,22 +1302,41 @@ export default function JobsScreen() {
 
             <View style={styles.modalFooter}>
               {selectedJob?.canApplyDirectly !== false ? (
-                <TouchableOpacity
-                  style={[styles.modalSubmitBtn, (isSubmitting || resumesList.length === 0) && styles.modalSubmitBtnDisabled]}
-                  onPress={handleStartAiMatch}
-                  disabled={isSubmitting || resumesList.length === 0}
-                >
-                  {isSubmitting ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <Text style={styles.modalSubmitBtnText}>
-                        Match Resume and Cover Letter
-                      </Text>
-                      <Ionicons name="sparkles" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
-                    </>
-                  )}
-                </TouchableOpacity>
+                previewResumeUri && previewCoverLetter ? (
+                  <TouchableOpacity
+                    style={[styles.modalSubmitBtn, styles.modalApplyNowBtn, isSubmitting && styles.modalSubmitBtnDisabled]}
+                    onPress={handleApply}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Text style={styles.modalSubmitBtnText}>
+                          Apply
+                        </Text>
+                        <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                      </>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.modalSubmitBtn, (isSubmitting || resumesList.length === 0) && styles.modalSubmitBtnDisabled]}
+                    onPress={handleStartAiMatch}
+                    disabled={isSubmitting || resumesList.length === 0}
+                  >
+                    {isSubmitting ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Text style={styles.modalSubmitBtnText}>
+                          Match Resume and Cover Letter
+                        </Text>
+                        <Ionicons name="sparkles" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )
               ) : (
                 <TouchableOpacity
                   style={styles.modalSubmitBtn}
@@ -2270,6 +2323,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  previewLinksContainer: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  previewLinksTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  previewLinksRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  previewLinkBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  previewLinkBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  modalApplyNowBtn: {
+    backgroundColor: '#10B981',
   },
 });
 
