@@ -259,6 +259,13 @@ export default function JobsScreen() {
   const [selectedResumeBase64, setSelectedResumeBase64] = useState('');
   const [selectedResumeName, setSelectedResumeName] = useState('');
   const [selectedCoverLetterText, setSelectedCoverLetterText] = useState('');
+  const [isMatchingWithAI, setIsMatchingWithAI] = useState(false);
+  const [matchLoadingStep, setMatchLoadingStep] = useState('');
+  const [showMatchPreviewModal, setShowMatchPreviewModal] = useState(false);
+  const [previewCoverLetter, setPreviewCoverLetter] = useState('');
+  const [previewResumeUri, setPreviewResumeUri] = useState('');
+  const [previewResumeName, setPreviewResumeName] = useState('');
+  const [previewTab, setPreviewTab] = useState<'cover_letter' | 'resume'>('cover_letter');
   const webViewRef = useRef<WebView>(null);
 
   // Load config, resumes, and popular jobs on mount
@@ -725,6 +732,174 @@ export default function JobsScreen() {
     webViewRef.current.injectJavaScript(jsCode);
   };
 
+  const handleStartAiMatch = async () => {
+    if (!selectedResumeId) {
+      Alert.alert("Resume Required", "Please select a resume first.");
+      return;
+    }
+    const baseResume = resumesList.find(r => r.id === selectedResumeId);
+    if (!baseResume || !baseResume.uri) {
+      Alert.alert("Error", "Selected resume file path is invalid.");
+      return;
+    }
+
+    setIsMatchingWithAI(true);
+    setMatchLoadingStep("Analyzing job details...");
+
+    try {
+      const targetCompany = selectedJob?.companyName || 'Company';
+      const jobTitle = selectedJob?.title || 'Position';
+      const cleanJobDesc = stripHtml(jobDetailsHtml);
+
+      setMatchLoadingStep("Matching resume and cover letter with AI...");
+      const base64Resume = await FileSystem.readAsStringAsync(baseResume.uri, {
+        encoding: 'base64',
+      });
+
+      const promptText = `
+Here is a job description for a "${jobTitle}" position at "${targetCompany}":
+[JOB_DESCRIPTION]
+${cleanJobDesc}
+[END_JOB_DESCRIPTION]
+
+Please rewrite and tailor my attached resume to match this job description. Optimize keywords and achievement phrasing naturally.
+Also, write a professional matching cover letter for this position. Do not use generic AI opening phrases.
+
+Output format:
+Please return the tailored resume and the cover letter enclosed in tags strictly as follows:
+
+[START_TAILORED_RESUME]
+(Write the tailored resume strictly in clean HTML format, starting with <div> and ending with </div>. Do NOT use markdown symbols or markdown code block formatting.)
+[END_TAILORED_RESUME]
+
+[START_COVER_LETTER]
+(Write the actual matching Cover Letter text here. Keep it professional, standard, and clean. Do NOT use markdown symbols.)
+[END_COVER_LETTER]
+`;
+
+      const geminiRes = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-goog-api-key': 'AQ.Ab8RN6LjiOKxvxO8J1J0MWsp3Wrbo5emB0MOb6JFXsWKYIlqhw'
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { inlineData: { mimeType: 'application/pdf', data: base64Resume } },
+                { text: promptText }
+              ]
+            }]
+          })
+        }
+      );
+
+      if (!geminiRes.ok) {
+        throw new Error("Failed to tailor assets with Gemini API.");
+      }
+
+      const geminiData = await geminiRes.json();
+      const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+      const resumeMatch = rawText.match(/\[START_TAILORED_RESUME\]([\s\S]*?)\[END_TAILORED_RESUME\]/);
+      const clMatch = rawText.match(/\[START_COVER_LETTER\]([\s\S]*?)\[END_COVER_LETTER\]/);
+
+      let tailoredHtml = "";
+      let generatedCL = "";
+
+      if (resumeMatch) {
+        tailoredHtml = resumeMatch[1].trim().replace(/```html/gi, '').replace(/```/gi, '');
+      } else {
+        tailoredHtml = rawText.replace(/\[START_COVER_LETTER\][\s\S]*?\[END_COVER_LETTER\]/g, '').trim();
+      }
+
+      if (clMatch) {
+        generatedCL = clMatch[1].trim();
+      } else {
+        generatedCL = "Dear Hiring Manager,\n\nI am writing to express my strong interest in the " + jobTitle + " position at " + targetCompany + ". My background and skills align well with the qualifications you are looking for...";
+      }
+
+      setMatchLoadingStep("Generating tailored PDF document...");
+
+      const cleanTitleForFile = jobTitle.replace(/[^a-zA-Z0-9]/g, '_');
+      const formattedResumeName = `Resume_${targetCompany.replace(/\s+/g, '_')}_${cleanTitleForFile}.pdf`;
+      const cleanResumeUri = `${FileSystem.documentDirectory}${formattedResumeName}`;
+
+      const formattedHtml = `
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; margin: 40px; color: #2E1A8E; line-height: 1.5; font-size: 11pt; }
+              h1, h2, h3 { color: #7C3AED; margin-top: 16px; margin-bottom: 6px; }
+              p { margin-bottom: 12px; text-align: justify; }
+              ul { padding-left: 20px; margin-top: 4px; }
+              li { margin-bottom: 4px; }
+            </style>
+          </head>
+          <body>
+            ${tailoredHtml}
+          </body>
+        </html>
+      `;
+
+      const printResult = await Print.printToFileAsync({ html: formattedHtml });
+      await FileSystem.copyAsync({ from: printResult.uri, to: cleanResumeUri });
+
+      setPreviewResumeUri(cleanResumeUri);
+      setPreviewResumeName(formattedResumeName);
+      setPreviewCoverLetter(generatedCL);
+
+      // Save tailored resume back to local Resumes list
+      const newResumeEntry: SelectedResumeFile = {
+        id: `tailored_${Date.now()}`,
+        name: formattedResumeName,
+        date: new Date().toLocaleDateString(),
+        uri: cleanResumeUri,
+        mimeType: 'application/pdf',
+        isBuilt: true
+      };
+
+      const updatedList = [newResumeEntry, ...resumesList];
+      const resumesJsonPath = `${FileSystem.documentDirectory}resumes.json`;
+      await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(updatedList));
+      setResumesList(updatedList);
+      setSelectedResumeId(newResumeEntry.id);
+
+      // Save generated cover letter to local cover_letters.json
+      const coverLettersPath = `${FileSystem.documentDirectory}cover_letters.json`;
+      let currentLetters: any[] = [];
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(coverLettersPath);
+        if (fileInfo.exists) {
+          const content = await FileSystem.readAsStringAsync(coverLettersPath);
+          currentLetters = JSON.parse(content);
+        }
+      } catch (e) {}
+
+      const newLetter = {
+        id: Date.now().toString(),
+        company: targetCompany,
+        jobTitle: jobTitle,
+        date: new Date().toLocaleDateString(),
+        coverLetterText: generatedCL,
+        jobUrl: selectedJob?.absolute_url || '',
+        resumeName: formattedResumeName
+      };
+
+      const updatedLetters = [newLetter, ...currentLetters];
+      await FileSystem.writeAsStringAsync(coverLettersPath, JSON.stringify(updatedLetters));
+
+      setIsMatchingWithAI(false);
+      setShowMatchPreviewModal(true);
+    } catch (err: any) {
+      setIsMatchingWithAI(false);
+      Alert.alert("AI Match Failed", err.message || "Failed to tailor resume and cover letter.");
+    }
+  };
+
   const handleApply = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
       Alert.alert("Missing Fields", "First name, last name, and email are required to apply.");
@@ -743,108 +918,17 @@ export default function JobsScreen() {
 
     setIsSubmitting(true);
     try {
-      let finalResumeUri = baseResume.uri;
-      let finalResumeName = baseResume.name;
+      const finalResumeUri = baseResume.uri;
+      const finalResumeName = baseResume.name;
 
       const targetCompany = selectedJob?.companyName || 'COMPANY';
       const targetToken = (selectedJob?.boardToken || 'stripe').toLowerCase();
-
-      if (tailorResume) {
-        // Step 1: Tailor resume to job description via Gemini API
-        console.log("Tailoring resume to job description...");
-        const base64Resume = await FileSystem.readAsStringAsync(baseResume.uri, {
-          encoding: 'base64',
-        });
-
-        const promptText = `
-Here is a job description for a "${selectedJob?.title}" position at "${targetCompany}":
-[JOB_DESCRIPTION]
-${stripHtml(jobDetailsHtml)}
-[END_JOB_DESCRIPTION]
-
-Please rewrite and tailor my attached resume to match this job description. Optimize keywords and achievement phrasing naturally.
-Output the tailored resume strictly in clean HTML format (start with <div> and end with </div>). Do NOT wrap in \`\`\`html or markdown formatters. Use clean structure.
-`;
-
-        const geminiRes = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-goog-api-key': 'AQ.Ab8RN6LjiOKxvxO8J1J0MWsp3Wrbo5emB0MOb6JFXsWKYIlqhw'
-            },
-            body: JSON.stringify({
-              contents: [{
-                parts: [
-                  { inlineData: { mimeType: 'application/pdf', data: base64Resume } },
-                  { text: promptText }
-                ]
-              }]
-            })
-          }
-        );
-
-        if (!geminiRes.ok) {
-          throw new Error("Failed to tailor resume with AI. Please try again.");
-        }
-
-        const geminiData = await geminiRes.json();
-        const tailoredBody = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        const cleanBody = tailoredBody.replace(/```html/gi, '').replace(/```/gi, '').trim();
-
-        const formattedHtml = `
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <style>
-                body { font-family: Arial, sans-serif; margin: 40px; color: #2E1A8E; line-height: 1.5; font-size: 11pt; }
-                h1, h2, h3 { color: #7C3AED; margin-top: 16px; margin-bottom: 6px; }
-                p { margin-bottom: 12px; text-align: justify; }
-                ul { padding-left: 20px; margin-top: 4px; }
-                li { margin-bottom: 4px; }
-              </style>
-            </head>
-            <body>
-              ${cleanBody}
-            </body>
-          </html>
-        `;
-
-        const printResult = await Print.printToFileAsync({ html: formattedHtml });
-        finalResumeUri = printResult.uri;
-        finalResumeName = `${selectedJob?.title.replace(/[^a-zA-Z0-9]/g, '_')}_Tailored_Resume.pdf`;
-
-        // Save tailored resume back to local Resumes list
-        const newResumeEntry: SelectedResumeFile = {
-          id: `tailored_${Date.now()}`,
-          name: finalResumeName,
-          date: new Date().toLocaleDateString(),
-          uri: finalResumeUri,
-          mimeType: 'application/pdf',
-          isBuilt: true
-        };
-
-        const updatedList = [newResumeEntry, ...resumesList];
-        const resumesJsonPath = `${FileSystem.documentDirectory}resumes.json`;
-        await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(updatedList));
-        setResumesList(updatedList);
-        setSelectedResumeId(newResumeEntry.id);
-      }
 
       // Check if user has their own Greenhouse API key configured for the target board token
       const hasDirectApiKey = !!(config.jobBoardKey && config.boardToken?.toLowerCase() === targetToken);
 
       if (hasDirectApiKey) {
         // Submit Application via unified backend endpoint
-        console.log("Submitting application parameters:", {
-          jobId: selectedJob?.id,
-          companySlug: targetToken,
-          sourceType: selectedJob?.sourceType || 'greenhouse',
-          configBoardToken: config.boardToken,
-          hasJobBoardKey: true,
-          isKeyAppended: true
-        });
         console.log("Submitting application to backend...");
         const formData = new FormData();
         formData.append('jobId', String(selectedJob?.id));
@@ -922,9 +1006,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
 
         Alert.alert(
           "Application Submitted",
-          tailorResume
-            ? "Your resume has been tailored with AI and successfully applied! You can view it under the Your Doc tab."
-            : "Your application has been successfully submitted! Track its status in Your Doc tab.",
+          "Your application has been successfully submitted! Track its status in Your Doc tab.",
           [
             {
               text: "View Status",
@@ -945,31 +1027,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
         const base64Content = await FileSystem.readAsStringAsync(finalResumeUri, { encoding: 'base64' });
         setSelectedResumeBase64(base64Content);
         setSelectedResumeName(finalResumeName);
-
-        // Load cover letters to find the one matching this job or the most recent one
-        const coverLettersPath = `${FileSystem.documentDirectory}cover_letters.json`;
-        let latestCoverLetterText = '';
-        try {
-          const clInfo = await FileSystem.getInfoAsync(coverLettersPath);
-          if (clInfo.exists) {
-            const clContent = await FileSystem.readAsStringAsync(coverLettersPath);
-            const clList = JSON.parse(clContent);
-            if (Array.isArray(clList) && clList.length > 0) {
-              const matchingCl = clList.find((c: any) => 
-                (c.company && c.company.toLowerCase() === targetCompany.toLowerCase()) || 
-                (c.jobTitle && c.jobTitle.toLowerCase() === selectedJob?.title.toLowerCase())
-              );
-              if (matchingCl) {
-                latestCoverLetterText = matchingCl.coverLetterText;
-              } else {
-                latestCoverLetterText = clList[0].coverLetterText;
-              }
-            }
-          }
-        } catch (err) {
-          console.log('Error reading cover letters:', err);
-        }
-        setSelectedCoverLetterText(latestCoverLetterText);
+        setSelectedCoverLetterText(previewCoverLetter);
 
         // Log application locally in applied_jobs.json for tracking
         const appliedPath = `${FileSystem.documentDirectory}applied_jobs.json`;
@@ -1016,6 +1074,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
       Alert.alert("Application Error", err.message || "Failed to submit application.");
     } finally {
       setIsSubmitting(false);
+      setShowMatchPreviewModal(false);
     }
   };
 
@@ -1312,7 +1371,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
               {selectedJob?.canApplyDirectly !== false ? (
                 <TouchableOpacity
                   style={[styles.modalSubmitBtn, (isSubmitting || resumesList.length === 0) && styles.modalSubmitBtnDisabled]}
-                  onPress={handleApply}
+                  onPress={handleStartAiMatch}
                   disabled={isSubmitting || resumesList.length === 0}
                 >
                   {isSubmitting ? (
@@ -1320,9 +1379,9 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
                   ) : (
                     <>
                       <Text style={styles.modalSubmitBtnText}>
-                        {tailorResume ? "Tailor & Apply Now" : "Apply Now"}
+                        Match & Preview Application ✨
                       </Text>
-                      <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                      <Ionicons name="sparkles" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
                     </>
                   )}
                 </TouchableOpacity>
@@ -1433,6 +1492,126 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
             </TouchableOpacity>
           </View>
         </SafeAreaView>
+      </Modal>
+
+      {/* AI Matching Loading Modal */}
+      <Modal
+        transparent={true}
+        visible={isMatchingWithAI}
+        animationType="fade"
+      >
+        <View style={styles.loaderOverlay}>
+          <View style={styles.loaderCard}>
+            <ActivityIndicator size="large" color="#7C3AED" />
+            <Text style={styles.loaderTitle}>AI Matching Active</Text>
+            <Text style={styles.loaderText}>{matchLoadingStep}</Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Match Preview Modal */}
+      <Modal
+        visible={showMatchPreviewModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowMatchPreviewModal(false)}
+      >
+        <View style={styles.previewOverlay}>
+          <View style={styles.previewContent}>
+            <View style={styles.previewHeader}>
+              <Text style={styles.previewHeaderTitle}>AI Matching Preview</Text>
+              <Text style={styles.previewHeaderSubtitle}>
+                Review customized assets for {selectedJob?.companyName || 'Company'}
+              </Text>
+            </View>
+
+            <View style={styles.tabContainer}>
+              <TouchableOpacity
+                style={[styles.tabButton, previewTab === 'cover_letter' && styles.tabButtonActive]}
+                onPress={() => setPreviewTab('cover_letter')}
+              >
+                <Ionicons 
+                  name="mail-outline" 
+                  size={18} 
+                  color={previewTab === 'cover_letter' ? '#7C3AED' : '#64748B'} 
+                  style={{ marginRight: 6 }} 
+                />
+                <Text style={[styles.tabText, previewTab === 'cover_letter' && styles.tabTextActive]}>
+                  Cover Letter
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.tabButton, previewTab === 'resume' && styles.tabButtonActive]}
+                onPress={() => setPreviewTab('resume')}
+              >
+                <Ionicons 
+                  name="document-text-outline" 
+                  size={18} 
+                  color={previewTab === 'resume' ? '#7C3AED' : '#64748B'} 
+                  style={{ marginRight: 6 }} 
+                />
+                <Text style={[styles.tabText, previewTab === 'resume' && styles.tabTextActive]}>
+                  Tailored Resume
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.previewBody}>
+              {previewTab === 'cover_letter' ? (
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.bodyInstruction}>
+                    Edit the matched cover letter text below if needed:
+                  </Text>
+                  <TextInput
+                    style={styles.coverLetterEditor}
+                    multiline={true}
+                    value={previewCoverLetter}
+                    onChangeText={setPreviewCoverLetter}
+                    textAlignVertical="top"
+                    placeholder="Write cover letter..."
+                  />
+                </View>
+              ) : (
+                <View style={styles.resumePreviewCard}>
+                  <Ionicons name="document-text" size={64} color="#7C3AED" style={{ marginBottom: 16 }} />
+                  <Text style={styles.resumePreviewName}>{previewResumeName}</Text>
+                  <Text style={styles.resumePreviewDesc}>
+                    This tailored PDF resume has been optimized with target keywords matching the "{selectedJob?.title}" description.
+                  </Text>
+                  <View style={styles.badgeRow}>
+                    <View style={styles.keywordBadge}><Text style={styles.keywordBadgeText}>Keywords Optimized</Text></View>
+                    <View style={styles.keywordBadge}><Text style={styles.keywordBadgeText}>ATS Checked</Text></View>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.previewFooter}>
+              <TouchableOpacity
+                style={styles.previewCancelBtn}
+                onPress={() => setShowMatchPreviewModal(false)}
+              >
+                <Text style={styles.previewCancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.previewProceedBtn}
+                onPress={handleApply}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Text style={styles.previewProceedBtnText}>Proceed to Apply</Text>
+                    <Ionicons name="rocket-outline" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -2002,6 +2181,196 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 13,
+  },
+  loaderOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loaderCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    width: 280,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  loaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 16,
+    marginBottom: 6,
+  },
+  loaderText: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  previewOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  previewContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    height: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  previewHeader: {
+    marginBottom: 16,
+  },
+  previewHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  previewHeaderSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 4,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  tabButtonActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  tabTextActive: {
+    color: '#7C3AED',
+    fontWeight: '700',
+  },
+  previewBody: {
+    flex: 1,
+    marginBottom: 16,
+  },
+  bodyInstruction: {
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 8,
+  },
+  coverLetterEditor: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    fontSize: 13,
+    color: '#1E293B',
+    lineHeight: 18,
+  },
+  resumePreviewCard: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  resumePreviewName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  resumePreviewDesc: {
+    fontSize: 12,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 17,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  keywordBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  keywordBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
+  previewFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 16,
+    marginBottom: 20,
+  },
+  previewCancelBtn: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 14,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewCancelBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  previewProceedBtn: {
+    flex: 2,
+    backgroundColor: '#7C3AED',
+    paddingVertical: 14,
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewProceedBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
 
