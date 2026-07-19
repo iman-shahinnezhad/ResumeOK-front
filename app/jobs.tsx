@@ -441,6 +441,8 @@ export default function JobsScreen() {
     const jsCode = `
       (function() {
         const payload = ${JSON.stringify(payload)};
+        let attempts = 0;
+        const maxAttempts = 15; // Poll for 7.5 seconds (15 * 500ms)
         
         function base64ToBlob(base64, mimeType) {
           const byteCharacters = atob(base64);
@@ -460,66 +462,98 @@ export default function JobsScreen() {
           element.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
-        // 1. GREENHOUSE AUTOFILL
-        if (window.location.host.includes('greenhouse.io')) {
-          console.log('Greenhouse page detected. Autofilling...');
-          triggerInputChange(document.querySelector('input#first_name'), payload.firstName);
-          triggerInputChange(document.querySelector('input#last_name'), payload.lastName);
-          triggerInputChange(document.querySelector('input#email'), payload.email);
-          triggerInputChange(document.querySelector('input#phone'), payload.phone);
+        function tryAutofill() {
+          attempts++;
 
-          // Resume upload logic
-          const fileInput = document.querySelector('input[type="file"][id="resume_file"]') || 
-                            document.querySelector('input[type="file"][name="resume"]') ||
-                            document.querySelector('input[type="file"]');
-          if (fileInput && payload.resumeBase64) {
-            try {
-              const blob = base64ToBlob(payload.resumeBase64, 'application/pdf');
-              const file = new File([blob], payload.resumeName || 'resume.pdf', { type: 'application/pdf' });
-              const dataTransfer = new DataTransfer();
-              dataTransfer.items.add(file);
-              fileInput.files = dataTransfer.files;
-              fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-              console.log('Resume attached to Greenhouse form.');
-            } catch(e) {
-              console.error('Failed to attach resume:', e);
+          // 1. GREENHOUSE AUTOFILL
+          const ghFirstName = document.querySelector('input#first_name');
+          const ghLastName = document.querySelector('input#last_name');
+          const ghEmail = document.querySelector('input#email');
+          const ghPhone = document.querySelector('input#phone');
+
+          if (ghFirstName || ghLastName || window.location.host.includes('greenhouse.io')) {
+            console.log('Greenhouse page detected. Autofilling fields...');
+            if (ghFirstName && !ghFirstName.value) {
+              triggerInputChange(ghFirstName, payload.firstName);
+            }
+            if (ghLastName && !ghLastName.value) {
+              triggerInputChange(ghLastName, payload.lastName);
+            }
+            if (ghEmail && !ghEmail.value) {
+              triggerInputChange(ghEmail, payload.email);
+            }
+            if (ghPhone && !ghPhone.value) {
+              triggerInputChange(ghPhone, payload.phone);
+            }
+
+            // Resume upload logic
+            const fileInput = document.querySelector('input[type="file"][id="resume_file"]') || 
+                              document.querySelector('input[type="file"][name="resume"]') ||
+                              document.querySelector('input[type="file"]');
+            if (fileInput && payload.resumeBase64 && (!fileInput.files || !fileInput.files.length)) {
+              try {
+                const blob = base64ToBlob(payload.resumeBase64, 'application/pdf');
+                const file = new File([blob], payload.resumeName || 'resume.pdf', { type: 'application/pdf' });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log('Resume attached to Greenhouse form.');
+              } catch(e) {
+                console.error('Failed to attach resume:', e);
+              }
             }
           }
-        }
 
-        // 2. LEVER AUTOFILL
-        if (window.location.host.includes('lever.co')) {
-          console.log('Lever page detected. Autofilling...');
-          const nameInput = document.querySelector('input[name="name"]');
-          if (nameInput) {
-            triggerInputChange(nameInput, payload.firstName + ' ' + payload.lastName);
-          }
-          triggerInputChange(document.querySelector('input[name="email"]'), payload.email);
-          triggerInputChange(document.querySelector('input[name="phone"]'), payload.phone);
+          // 2. LEVER AUTOFILL
+          const leverName = document.querySelector('input[name="name"]');
+          const leverEmail = document.querySelector('input[name="email"]');
+          const leverPhone = document.querySelector('input[name="phone"]');
 
-          // Resume upload logic
-          const fileInput = document.querySelector('input[type="file"][id="resume-upload-input"]') || 
-                            document.querySelector('input[type="file"]');
-          if (fileInput && payload.resumeBase64) {
-            try {
-              const blob = base64ToBlob(payload.resumeBase64, 'application/pdf');
-              const file = new File([blob], payload.resumeName || 'resume.pdf', { type: 'application/pdf' });
-              const dataTransfer = new DataTransfer();
-              dataTransfer.items.add(file);
-              fileInput.files = dataTransfer.files;
-              fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-              console.log('Resume attached to Lever form.');
-            } catch(e) {
-              console.error('Failed to attach resume:', e);
+          if (leverName || leverEmail || window.location.host.includes('lever.co')) {
+            console.log('Lever page detected. Autofilling fields...');
+            if (leverName && !leverName.value) {
+              triggerInputChange(leverName, payload.firstName + ' ' + payload.lastName);
+            }
+            if (leverEmail && !leverEmail.value) {
+              triggerInputChange(leverEmail, payload.email);
+            }
+            if (leverPhone && !leverPhone.value) {
+              triggerInputChange(leverPhone, payload.phone);
+            }
+
+            // Resume upload logic
+            const fileInput = document.querySelector('input[type="file"][id="resume-upload-input"]') || 
+                              document.querySelector('input[type="file"]');
+            if (fileInput && payload.resumeBase64 && (!fileInput.files || !fileInput.files.length)) {
+              try {
+                const blob = base64ToBlob(payload.resumeBase64, 'application/pdf');
+                const file = new File([blob], payload.resumeName || 'resume.pdf', { type: 'application/pdf' });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log('Resume attached to Lever form.');
+              } catch(e) {
+                console.error('Failed to attach resume:', e);
+              }
             }
           }
+
+          // 3. GENERIC FALLBACK FOR OTHER BOARDS
+          const genericEmail = document.querySelector('input[type="email"]');
+          if (genericEmail && !genericEmail.value) {
+            triggerInputChange(genericEmail, payload.email);
+          }
+
+          if (attempts >= maxAttempts) {
+            clearInterval(autofillInterval);
+          }
         }
 
-        // 3. GENERIC FALLBACK FOR OTHER BOARDS
-        const genericEmail = document.querySelector('input[type="email"]');
-        if (genericEmail && !genericEmail.value) {
-          triggerInputChange(genericEmail, payload.email);
-        }
+        // Start polling
+        const autofillInterval = setInterval(tryAutofill, 500);
+        tryAutofill();
       })();
     `;
 
