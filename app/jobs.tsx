@@ -257,17 +257,37 @@ export default function JobsScreen() {
   useEffect(() => {
     async function initData() {
       try {
+        let finalFirstName = '';
+        let finalLastName = '';
+        let finalEmail = '';
+
+        // Load onboarding profile values first as a default fallback
+        const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+        const profileInfo = await FileSystem.getInfoAsync(profilePath);
+        if (profileInfo.exists) {
+          const text = await FileSystem.readAsStringAsync(profilePath);
+          const profile = JSON.parse(text);
+          if (profile.firstName) finalFirstName = profile.firstName;
+          if (profile.lastName) finalLastName = profile.lastName;
+          if (profile.email) finalEmail = profile.email;
+        }
+
+        // Load greenhouse config and override/merge
         const configPath = `${FileSystem.documentDirectory}greenhouse_config.json`;
         const configInfo = await FileSystem.getInfoAsync(configPath);
         if (configInfo.exists) {
           const text = await FileSystem.readAsStringAsync(configPath);
           const parsed = JSON.parse(text);
           setConfig(parsed);
-          if (parsed.email) setEmail(parsed.email);
-          if (parsed.firstName) setFirstName(parsed.firstName);
-          if (parsed.lastName) setLastName(parsed.lastName);
+          if (parsed.email) finalEmail = parsed.email;
+          if (parsed.firstName) finalFirstName = parsed.firstName;
+          if (parsed.lastName) finalLastName = parsed.lastName;
           if (parsed.phone) setPhone(parsed.phone);
         }
+
+        setFirstName(finalFirstName);
+        setLastName(finalLastName);
+        setEmail(finalEmail);
 
         // Load resumes
         const resumesPath = `${FileSystem.documentDirectory}resumes.json`;

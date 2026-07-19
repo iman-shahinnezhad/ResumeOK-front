@@ -523,6 +523,41 @@ export default function Onboarding() {
       };
       await FileSystem.writeAsStringAsync(path, JSON.stringify(profile));
 
+      // Save resume to resumes.json if selected
+      if (selectedResume) {
+        const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
+        let resumesList: any[] = [];
+        try {
+          const resumesInfo = await FileSystem.getInfoAsync(resumesPath);
+          if (resumesInfo.exists) {
+            const content = await FileSystem.readAsStringAsync(resumesPath);
+            resumesList = JSON.parse(content);
+          }
+        } catch (err) {
+          console.log('Error reading resumes from storage in onboarding:', err);
+        }
+
+        // Avoid adding duplicate URIs
+        const exists = resumesList.some((r: any) => r.uri === selectedResume.uri);
+        if (!exists) {
+          const newResumeEntry = {
+            id: `onboarding-${Date.now()}`,
+            name: selectedResume.name,
+            date: new Date().toLocaleDateString('en-US', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric'
+            }),
+            uri: selectedResume.uri,
+            size: selectedResume.size,
+            mimeType: 'application/pdf',
+            isBuilt: false
+          };
+          resumesList.push(newResumeEntry);
+          await FileSystem.writeAsStringAsync(resumesPath, JSON.stringify(resumesList));
+        }
+      }
+
       const session = await FileSystem.getInfoAsync(`${FileSystem.documentDirectory}session.json`);
       if (session.exists) {
         const text = await FileSystem.readAsStringAsync(`${FileSystem.documentDirectory}session.json`);
