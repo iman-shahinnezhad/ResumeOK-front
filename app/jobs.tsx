@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,7 @@ import Animated, {
   runOnJS,
   Easing
 } from 'react-native-reanimated';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -268,63 +268,68 @@ export default function JobsScreen() {
   const [previewTab, setPreviewTab] = useState<'cover_letter' | 'resume'>('cover_letter');
   const webViewRef = useRef<WebView>(null);
 
-  // Load config, resumes, and popular jobs on mount
-  useEffect(() => {
-    async function initData() {
-      try {
-        let finalFirstName = '';
-        let finalLastName = '';
-        let finalEmail = '';
+  // Load config, resumes, and popular jobs on focus
+  useFocusEffect(
+    useCallback(() => {
+      async function initData() {
+        try {
+          let finalFirstName = '';
+          let finalLastName = '';
+          let finalEmail = '';
 
-        // Load onboarding profile values first as a default fallback
-        const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
-        const profileInfo = await FileSystem.getInfoAsync(profilePath);
-        if (profileInfo.exists) {
-          const text = await FileSystem.readAsStringAsync(profilePath);
-          const profile = JSON.parse(text);
-          if (profile.firstName) finalFirstName = profile.firstName;
-          if (profile.lastName) finalLastName = profile.lastName;
-          if (profile.email) finalEmail = profile.email;
-        }
+          // Load onboarding profile values first as a default fallback
+          const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+          const profileInfo = await FileSystem.getInfoAsync(profilePath);
+          if (profileInfo.exists) {
+            const text = await FileSystem.readAsStringAsync(profilePath);
+            const profile = JSON.parse(text);
+            if (profile.firstName) finalFirstName = profile.firstName;
+            if (profile.lastName) finalLastName = profile.lastName;
+            if (profile.email) finalEmail = profile.email;
+          }
 
-        // Load greenhouse config and override/merge
-        const configPath = `${FileSystem.documentDirectory}greenhouse_config.json`;
-        const configInfo = await FileSystem.getInfoAsync(configPath);
-        if (configInfo.exists) {
-          const text = await FileSystem.readAsStringAsync(configPath);
-          const parsed = JSON.parse(text);
-          setConfig(parsed);
-          if (parsed.email) finalEmail = parsed.email;
-          if (parsed.firstName) finalFirstName = parsed.firstName;
-          if (parsed.lastName) finalLastName = parsed.lastName;
-          if (parsed.phone) setPhone(parsed.phone);
-        }
+          // Load greenhouse config and override/merge
+          const configPath = `${FileSystem.documentDirectory}greenhouse_config.json`;
+          const configInfo = await FileSystem.getInfoAsync(configPath);
+          if (configInfo.exists) {
+            const text = await FileSystem.readAsStringAsync(configPath);
+            const parsed = JSON.parse(text);
+            setConfig(parsed);
+            if (parsed.email) finalEmail = parsed.email;
+            if (parsed.firstName) finalFirstName = parsed.firstName;
+            if (parsed.lastName) finalLastName = parsed.lastName;
+            if (parsed.phone) setPhone(parsed.phone);
+          }
 
-        setFirstName(finalFirstName);
-        setLastName(finalLastName);
-        setEmail(finalEmail);
+          setFirstName(finalFirstName);
+          setLastName(finalLastName);
+          setEmail(finalEmail);
 
-        // Load resumes
-        const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
-        const resumesInfo = await FileSystem.getInfoAsync(resumesPath);
-        if (resumesInfo.exists) {
-          const content = await FileSystem.readAsStringAsync(resumesPath);
-          const parsedResumes = JSON.parse(content);
-          if (Array.isArray(parsedResumes)) {
-            const valid = parsedResumes.filter(r => r.uri);
-            setResumesList(valid);
-            if (valid.length > 0) {
-              setSelectedResumeId(valid[0].id);
+          // Load resumes
+          const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
+          const resumesInfo = await FileSystem.getInfoAsync(resumesPath);
+          if (resumesInfo.exists) {
+            const content = await FileSystem.readAsStringAsync(resumesPath);
+            const parsedResumes = JSON.parse(content);
+            if (Array.isArray(parsedResumes)) {
+              const valid = parsedResumes.filter(r => r.uri);
+              setResumesList(valid);
+              if (valid.length > 0) {
+                // Keep selection if already set and valid, otherwise default to first
+                setSelectedResumeId(prev => {
+                  const stillExists = valid.some(r => r.id === prev);
+                  return stillExists ? prev : valid[0].id;
+                });
+              }
             }
           }
+        } catch (e) {
+          console.log("Error initializing jobs screen on focus:", e);
         }
-
-      } catch (e) {
-        console.log("Error initializing jobs screen:", e);
       }
-    }
-    initData();
-  }, []);
+      initData();
+    }, [])
+  );
 
   const fetchJobsFromAllBoards = async (pageToFetch = 1, append = false, queryStr = filterQuery, companyStr = selectedCompanyFilter) => {
     if (pageToFetch === 1) {
@@ -1224,69 +1229,6 @@ export default function JobsScreen() {
                 <>
                   <View style={styles.divider} />
 
-                  <Text style={styles.sectionHeading}>Quick Apply Form</Text>
-
-                  {firstName && lastName && email && !isEditingContact ? (
-                    <View style={styles.contactSummaryCard}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.contactSummaryName}>{firstName} {lastName}</Text>
-                        <Text style={styles.contactSummaryEmail}>{email} {phone ? `• ${phone}` : ''}</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={styles.editContactBtn}
-                        onPress={() => setIsEditingContact(true)}
-                      >
-                        <Ionicons name="create-outline" size={16} color="#7C3AED" style={{ marginRight: 4 }} />
-                        <Text style={styles.editContactBtnText}>Edit Info</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View>
-                      <TextInput
-                        style={styles.formInput}
-                        placeholder="First Name"
-                        placeholderTextColor="rgba(0,0,0,0.3)"
-                        value={firstName}
-                        onChangeText={setFirstName}
-                      />
-
-                      <TextInput
-                        style={styles.formInput}
-                        placeholder="Last Name"
-                        placeholderTextColor="rgba(0,0,0,0.3)"
-                        value={lastName}
-                        onChangeText={setLastName}
-                      />
-
-                      <TextInput
-                        style={styles.formInput}
-                        placeholder="Email Address"
-                        placeholderTextColor="rgba(0,0,0,0.3)"
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                      />
-
-                      <TextInput
-                        style={styles.formInput}
-                        placeholder="Phone Number"
-                        placeholderTextColor="rgba(0,0,0,0.3)"
-                        value={phone}
-                        onChangeText={setPhone}
-                        keyboardType="phone-pad"
-                      />
-                      {firstName && lastName && email && (
-                        <TouchableOpacity
-                          style={styles.saveContactEditBtn}
-                          onPress={() => setIsEditingContact(false)}
-                        >
-                          <Text style={styles.saveContactEditBtnText}>Done Editing</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  )}
-
                   <Text style={styles.inputLabel}>Select Resume to Apply</Text>
                   {resumesList.length === 0 ? (
                     <Text style={styles.noResumesWarning}>
@@ -1295,12 +1237,12 @@ export default function JobsScreen() {
                   ) : (
                     <View style={styles.dropdownContainer}>
                       {resumesList.map((r) => {
-                        const isSelected = r.id === selectedResumeId;
+                        const isSelected = String(r.id) === String(selectedResumeId);
                         return (
                           <TouchableOpacity
                             key={r.id}
                             style={[styles.dropdownItem, isSelected && styles.dropdownItemSelected]}
-                            onPress={() => setSelectedResumeId(r.id)}
+                            onPress={() => setSelectedResumeId(String(r.id))}
                           >
                             <Ionicons
                               name={isSelected ? "checkbox" : "square-outline"}
