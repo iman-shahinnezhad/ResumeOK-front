@@ -1407,8 +1407,30 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
           
           <View style={styles.webViewFooter}>
             <Text style={styles.webViewFooterText}>
-              ⚡ Autofilled your contact details and resume. Please check for any company-specific questions and tap Submit!
+              ⚡ اطلاعات تماس شما با موفقیت پر شد! به دلیل امنیت آیفون، آپلود فایل خودکار امکان‌پذیر نیست. لطفاً روی دکمهٔ اشتراک‌گذاری زیر بزنید و رزومه را ذخیره (Save to Files) کنید، سپس دکمهٔ Attach را در صفحه زده و آن را انتخاب کنید.
             </Text>
+            <TouchableOpacity 
+              style={styles.webViewShareBtn}
+              onPress={async () => {
+                try {
+                  const Sharing = require('expo-sharing');
+                  const targetPath = `${FileSystem.documentDirectory}${selectedResumeName || 'resume.pdf'}`;
+                  const exists = await FileSystem.getInfoAsync(targetPath);
+                  if (!exists.exists && selectedResumeBase64) {
+                    await FileSystem.writeAsStringAsync(targetPath, selectedResumeBase64, { encoding: 'base64' });
+                  }
+                  await Sharing.shareAsync(targetPath, {
+                    mimeType: 'application/pdf',
+                    dialogTitle: 'Save Resume to Files'
+                  });
+                } catch(e) {
+                  console.log('Error sharing resume from webview footer:', e);
+                }
+              }}
+            >
+              <Ionicons name="share-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Text style={styles.webViewShareBtnText}>اشتراک‌گذاری و ذخیرهٔ رزومه</Text>
+            </TouchableOpacity>
           </View>
         </SafeAreaView>
       </Modal>
@@ -1954,13 +1976,32 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
     padding: 16,
+    alignItems: 'center',
   },
   webViewFooterText: {
-    fontSize: 13,
-    color: '#1E293B',
-    fontWeight: '600',
-    lineHeight: 18,
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 17,
     textAlign: 'center',
+    marginBottom: 10,
+  },
+  webViewShareBtn: {
+    backgroundColor: '#7C3AED',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  webViewShareBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
   },
 });
 
