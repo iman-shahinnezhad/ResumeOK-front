@@ -426,6 +426,17 @@ export default function JobsScreen() {
     return output;
   };
 
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'log') {
+        console.log('\x1b[33m[WebView Log]\x1b[0m', data.message);
+      }
+    } catch (e) {
+      console.log('\x1b[33m[WebView Raw Log]\x1b[0m', event.nativeEvent.data);
+    }
+  };
+
   const injectAutofillScript = () => {
     if (!webViewRef.current) return;
 
@@ -438,12 +449,28 @@ export default function JobsScreen() {
       resumeName: selectedResumeName,
     };
 
+    console.log("Preparing injection script with contact details:", {
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      email: payload.email,
+      phone: payload.phone,
+      resumeSize: payload.resumeBase64 ? payload.resumeBase64.length : 0
+    });
+
     const jsCode = `
       (function() {
         const payload = ${JSON.stringify(payload)};
         let attempts = 0;
-        const maxAttempts = 15; // Poll for 7.5 seconds (15 * 500ms)
+        const maxAttempts = 10;
         
+        function sendLog(msg) {
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'log', message: msg }));
+          }
+        }
+
+        sendLog('Script loaded on host: ' + window.location.host);
+
         function base64ToBlob(base64, mimeType) {
           const byteCharacters = atob(base64);
           const byteNumbers = new Array(byteCharacters.length);
@@ -454,7 +481,6 @@ export default function JobsScreen() {
           return new Blob([byteArray], { type: mimeType });
         }
 
-        // Helper to trigger input changes
         function triggerInputChange(element, value) {
           if (!element) return;
           element.value = value;
@@ -464,6 +490,22 @@ export default function JobsScreen() {
 
         function tryAutofill() {
           attempts++;
+          sendLog('Autofill attempt #' + attempts);
+
+          // 0. IFRAME REDIRECT (to bypass Cross-Origin restrictions on custom domains)
+          const greenhouseIframe = document.querySelector('iframe[src*="greenhouse.io"]');
+          if (greenhouseIframe && greenhouseIframe.src && !window.location.href.includes('embed/job_app')) {
+            sendLog('Found Greenhouse iframe. Redirecting top window to: ' + greenhouseIframe.src);
+            window.location.href = greenhouseIframe.src;
+            return;
+          }
+
+          const leverIframe = document.querySelector('iframe[src*="lever.co"]');
+          if (leverIframe && leverIframe.src && !window.location.href.includes('embed/job_app')) {
+            sendLog('Found Lever iframe. Redirecting top window to: ' + leverIframe.src);
+            window.location.href = leverIframe.src;
+            return;
+          }
 
           // 1. GREENHOUSE AUTOFILL
           const ghFirstName = document.querySelector('input#first_name');
@@ -471,25 +513,31 @@ export default function JobsScreen() {
           const ghEmail = document.querySelector('input#email');
           const ghPhone = document.querySelector('input#phone');
 
+          sendLog('Greenhouse inputs state: firstName=' + !!ghFirstName + ', lastName=' + !!ghLastName + ', email=' + !!ghEmail + ', phone=' + !!ghPhone);
+
           if (ghFirstName || ghLastName || window.location.host.includes('greenhouse.io')) {
-            console.log('Greenhouse page detected. Autofilling fields...');
             if (ghFirstName && !ghFirstName.value) {
               triggerInputChange(ghFirstName, payload.firstName);
+              sendLog('Filled Greenhouse first_name: ' + payload.firstName);
             }
             if (ghLastName && !ghLastName.value) {
               triggerInputChange(ghLastName, payload.lastName);
+              sendLog('Filled Greenhouse last_name: ' + payload.lastName);
             }
             if (ghEmail && !ghEmail.value) {
               triggerInputChange(ghEmail, payload.email);
+              sendLog('Filled Greenhouse email: ' + payload.email);
             }
             if (ghPhone && !ghPhone.value) {
               triggerInputChange(ghPhone, payload.phone);
+              sendLog('Filled Greenhouse phone: ' + payload.phone);
             }
 
             // Resume upload logic
             const fileInput = document.querySelector('input[type="file"][id="resume_file"]') || 
                               document.querySelector('input[type="file"][name="resume"]') ||
                               document.querySelector('input[type="file"]');
+            sendLog('Greenhouse file input found: ' + !!fileInput);
             if (fileInput && payload.resumeBase64 && (!fileInput.files || !fileInput.files.length)) {
               try {
                 const blob = base64ToBlob(payload.resumeBase64, 'application/pdf');
@@ -498,9 +546,9 @@ export default function JobsScreen() {
                 dataTransfer.items.add(file);
                 fileInput.files = dataTransfer.files;
                 fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-                console.log('Resume attached to Greenhouse form.');
+                sendLog('Resume attached to Greenhouse form.');
               } catch(e) {
-                console.error('Failed to attach resume:', e);
+                sendLog('Failed to attach resume to Greenhouse: ' + e.message);
               }
             }
           }
@@ -510,21 +558,26 @@ export default function JobsScreen() {
           const leverEmail = document.querySelector('input[name="email"]');
           const leverPhone = document.querySelector('input[name="phone"]');
 
+          sendLog('Lever inputs state: name=' + !!leverName + ', email=' + !!leverEmail + ', phone=' + !!leverPhone);
+
           if (leverName || leverEmail || window.location.host.includes('lever.co')) {
-            console.log('Lever page detected. Autofilling fields...');
             if (leverName && !leverName.value) {
               triggerInputChange(leverName, payload.firstName + ' ' + payload.lastName);
+              sendLog('Filled Lever name.');
             }
             if (leverEmail && !leverEmail.value) {
               triggerInputChange(leverEmail, payload.email);
+              sendLog('Filled Lever email.');
             }
             if (leverPhone && !leverPhone.value) {
               triggerInputChange(leverPhone, payload.phone);
+              sendLog('Filled Lever phone.');
             }
 
             // Resume upload logic
             const fileInput = document.querySelector('input[type="file"][id="resume-upload-input"]') || 
                               document.querySelector('input[type="file"]');
+            sendLog('Lever file input found: ' + !!fileInput);
             if (fileInput && payload.resumeBase64 && (!fileInput.files || !fileInput.files.length)) {
               try {
                 const blob = base64ToBlob(payload.resumeBase64, 'application/pdf');
@@ -533,9 +586,9 @@ export default function JobsScreen() {
                 dataTransfer.items.add(file);
                 fileInput.files = dataTransfer.files;
                 fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-                console.log('Resume attached to Lever form.');
+                sendLog('Resume attached to Lever form.');
               } catch(e) {
-                console.error('Failed to attach resume:', e);
+                sendLog('Failed to attach resume to Lever: ' + e.message);
               }
             }
           }
@@ -544,10 +597,12 @@ export default function JobsScreen() {
           const genericEmail = document.querySelector('input[type="email"]');
           if (genericEmail && !genericEmail.value) {
             triggerInputChange(genericEmail, payload.email);
+            sendLog('Filled generic email.');
           }
 
           if (attempts >= maxAttempts) {
             clearInterval(autofillInterval);
+            sendLog('Finished all autofill attempts.');
           }
         }
 
@@ -555,6 +610,7 @@ export default function JobsScreen() {
         const autofillInterval = setInterval(tryAutofill, 500);
         tryAutofill();
       })();
+      true;
     `;
 
     webViewRef.current.injectJavaScript(jsCode);
@@ -1196,6 +1252,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
             ref={webViewRef}
             source={{ uri: selectedJob?.absolute_url || '' }}
             onLoadEnd={injectAutofillScript}
+            onMessage={handleWebViewMessage}
             style={{ flex: 1 }}
             domStorageEnabled={true}
             javaScriptEnabled={true}
