@@ -788,7 +788,7 @@ Please return the tailored resume and the cover letter enclosed in tags strictly
           body: JSON.stringify({
             contents: [{
               parts: [
-                { inlineData: { mimeType: 'application/pdf', data: base64Resume } },
+                { inlineData: { mimeType: baseResume.mimeType || 'application/pdf', data: base64Resume } },
                 { text: promptText }
               ]
             }]
@@ -797,7 +797,9 @@ Please return the tailored resume and the cover letter enclosed in tags strictly
       );
 
       if (!geminiRes.ok) {
-        throw new Error("Failed to tailor assets with Gemini API.");
+        const errText = await geminiRes.text();
+        console.error("Gemini API Request Failed status:", geminiRes.status, "Details:", errText);
+        throw new Error(`AI Match Failed: Gemini returned HTTP ${geminiRes.status}. Details: ${errText.slice(0, 150)}`);
       }
 
       const geminiData = await geminiRes.json();
