@@ -12,6 +12,7 @@ import {
   Switch,
   Platform,
   Linking,
+  SafeAreaView,
   PanResponder,
 } from 'react-native';
 import Animated, {
@@ -32,6 +33,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { API_URL } from '../context/AuthContext';
+import { WebView } from 'react-native-webview';
+import { getSession } from '../utils/session';
 
 const POPULAR_GREENHOUSE_COMPANIES = ['stripe', 'dropbox', 'deliveroo', 'vimeo', 'amplitude'];
 const POPULAR_LEVER_COMPANIES = ['kinsta', 'aircall', 'palantir'];
@@ -252,6 +255,10 @@ export default function JobsScreen() {
   const [selectedResumeId, setSelectedResumeId] = useState('');
   const [tailorResume, setTailorResume] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [webViewVisible, setWebViewVisible] = useState(false);
+  const [selectedResumeBase64, setSelectedResumeBase64] = useState('');
+  const [selectedResumeName, setSelectedResumeName] = useState('');
+  const webViewRef = useRef<WebView>(null);
 
   // Load config, resumes, and popular jobs on mount
   useEffect(() => {
@@ -419,6 +426,106 @@ export default function JobsScreen() {
     return output;
   };
 
+  const injectAutofillScript = () => {
+    if (!webViewRef.current) return;
+
+    const payload = {
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      resumeBase64: selectedResumeBase64,
+      resumeName: selectedResumeName,
+    };
+
+    const jsCode = `
+      (function() {
+        const payload = ${JSON.stringify(payload)};
+        
+        function base64ToBlob(base64, mimeType) {
+          const byteCharacters = atob(base64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          return new Blob([byteArray], { type: mimeType });
+        }
+
+        // Helper to trigger input changes
+        function triggerInputChange(element, value) {
+          if (!element) return;
+          element.value = value;
+          element.dispatchEvent(new Event('input', { bubbles: true }));
+          element.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        // 1. GREENHOUSE AUTOFILL
+        if (window.location.host.includes('greenhouse.io')) {
+          console.log('Greenhouse page detected. Autofilling...');
+          triggerInputChange(document.querySelector('input#first_name'), payload.firstName);
+          triggerInputChange(document.querySelector('input#last_name'), payload.lastName);
+          triggerInputChange(document.querySelector('input#email'), payload.email);
+          triggerInputChange(document.querySelector('input#phone'), payload.phone);
+
+          // Resume upload logic
+          const fileInput = document.querySelector('input[type="file"][id="resume_file"]') || 
+                            document.querySelector('input[type="file"][name="resume"]') ||
+                            document.querySelector('input[type="file"]');
+          if (fileInput && payload.resumeBase64) {
+            try {
+              const blob = base64ToBlob(payload.resumeBase64, 'application/pdf');
+              const file = new File([blob], payload.resumeName || 'resume.pdf', { type: 'application/pdf' });
+              const dataTransfer = new DataTransfer();
+              dataTransfer.items.add(file);
+              fileInput.files = dataTransfer.files;
+              fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+              console.log('Resume attached to Greenhouse form.');
+            } catch(e) {
+              console.error('Failed to attach resume:', e);
+            }
+          }
+        }
+
+        // 2. LEVER AUTOFILL
+        if (window.location.host.includes('lever.co')) {
+          console.log('Lever page detected. Autofilling...');
+          const nameInput = document.querySelector('input[name="name"]');
+          if (nameInput) {
+            triggerInputChange(nameInput, payload.firstName + ' ' + payload.lastName);
+          }
+          triggerInputChange(document.querySelector('input[name="email"]'), payload.email);
+          triggerInputChange(document.querySelector('input[name="phone"]'), payload.phone);
+
+          // Resume upload logic
+          const fileInput = document.querySelector('input[type="file"][id="resume-upload-input"]') || 
+                            document.querySelector('input[type="file"]');
+          if (fileInput && payload.resumeBase64) {
+            try {
+              const blob = base64ToBlob(payload.resumeBase64, 'application/pdf');
+              const file = new File([blob], payload.resumeName || 'resume.pdf', { type: 'application/pdf' });
+              const dataTransfer = new DataTransfer();
+              dataTransfer.items.add(file);
+              fileInput.files = dataTransfer.files;
+              fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+              console.log('Resume attached to Lever form.');
+            } catch(e) {
+              console.error('Failed to attach resume:', e);
+            }
+          }
+        }
+
+        // 3. GENERIC FALLBACK FOR OTHER BOARDS
+        const genericEmail = document.querySelector('input[type="email"]');
+        if (genericEmail && !genericEmail.value) {
+          triggerInputChange(genericEmail, payload.email);
+        }
+      })();
+    `;
+
+    webViewRef.current.injectJavaScript(jsCode);
+  };
+
   const handleApply = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
       Alert.alert("Missing Fields", "First name, last name, and email are required to apply.");
@@ -442,7 +549,6 @@ export default function JobsScreen() {
 
       const targetCompany = selectedJob?.companyName || 'COMPANY';
       const targetToken = (selectedJob?.boardToken || 'stripe').toLowerCase();
-      const isLever = selectedJob?.sourceType === 'lever';
 
       if (tailorResume) {
         // Step 1: Tailor resume to job description via Gemini API
@@ -527,104 +633,161 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
         setSelectedResumeId(newResumeEntry.id);
       }
 
-      // Step 2: Submit Application via unified backend endpoint
-      console.log("Submitting application parameters:", {
-        jobId: selectedJob?.id,
-        companySlug: targetToken,
-        sourceType: selectedJob?.sourceType || 'greenhouse',
-        configBoardToken: config.boardToken,
-        hasJobBoardKey: !!config.jobBoardKey,
-        isKeyAppended: !!(config.jobBoardKey && config.boardToken?.toLowerCase() === targetToken)
-      });
-      console.log("Submitting application to backend...");
-      const formData = new FormData();
-      formData.append('jobId', String(selectedJob?.id));
-      formData.append('companySlug', targetToken);
-      formData.append('sourceType', selectedJob?.sourceType || 'greenhouse');
-      formData.append('firstName', firstName);
-      formData.append('lastName', lastName);
-      formData.append('email', email);
-      if (phone) formData.append('phone', phone);
-      if (config.jobBoardKey && config.boardToken?.toLowerCase() === targetToken) {
-        formData.append('jobBoardKey', config.jobBoardKey);
-      }
+      // Check if user has their own Greenhouse API key configured for the target board token
+      const hasDirectApiKey = !!(config.jobBoardKey && config.boardToken?.toLowerCase() === targetToken);
 
-      const resumeFileObj: any = {
-        uri: finalResumeUri,
-        name: finalResumeName,
-        type: 'application/pdf'
-      };
-      formData.append('resume', resumeFileObj);
+      if (hasDirectApiKey) {
+        // Submit Application via unified backend endpoint
+        console.log("Submitting application parameters:", {
+          jobId: selectedJob?.id,
+          companySlug: targetToken,
+          sourceType: selectedJob?.sourceType || 'greenhouse',
+          configBoardToken: config.boardToken,
+          hasJobBoardKey: true,
+          isKeyAppended: true
+        });
+        console.log("Submitting application to backend...");
+        const formData = new FormData();
+        formData.append('jobId', String(selectedJob?.id));
+        formData.append('companySlug', targetToken);
+        formData.append('sourceType', selectedJob?.sourceType || 'greenhouse');
+        formData.append('firstName', firstName);
+        formData.append('lastName', lastName);
+        formData.append('email', email);
+        if (phone) formData.append('phone', phone);
+        if (config.jobBoardKey) formData.append('jobBoardKey', config.jobBoardKey);
 
-      const postResponse = await fetch(`${API_URL}/api/jobs/apply`, {
-        method: 'POST',
-        headers: {
+        const resumeFileObj: any = {
+          uri: finalResumeUri,
+          name: finalResumeName,
+          type: 'application/pdf'
+        };
+        formData.append('resume', resumeFileObj);
+
+        // Include user access token if logged in
+        const session = await getSession();
+        const headers: any = {
           'Accept': 'application/json',
-        },
-        body: formData
-      });
+        };
+        if (session && session.accessToken) {
+          headers['Authorization'] = `Bearer ${session.accessToken}`;
+        }
 
-      if (!postResponse.ok) {
-        const errData = await postResponse.json().catch(() => ({}));
-        throw new Error(errData.error || `Apply failed with status ${postResponse.status}`);
-      }
+        const postResponse = await fetch(`${API_URL}/api/jobs/apply`, {
+          method: 'POST',
+          headers,
+          body: formData
+        });
 
-      // Save contact info back to greenhouse_config.json so it auto-fills next time
-      const configPath = `${FileSystem.documentDirectory}greenhouse_config.json`;
-      const updatedConfig = {
-        ...config,
-        firstName,
-        lastName,
-        email,
-        phone,
-      };
-      await FileSystem.writeAsStringAsync(configPath, JSON.stringify(updatedConfig));
-      setConfig(updatedConfig);
-      setIsEditingContact(false);
+        if (!postResponse.ok) {
+          const errData = await postResponse.json().catch(() => ({}));
+          throw new Error(errData.error || `Apply failed with status ${postResponse.status}`);
+        }
 
-      // Step 3: Log application locally in applied_jobs.json
-      const appliedPath = `${FileSystem.documentDirectory}applied_jobs.json`;
-      let currentApplied: any[] = [];
-      const appliedInfo = await FileSystem.getInfoAsync(appliedPath);
-      if (appliedInfo.exists) {
-        const text = await FileSystem.readAsStringAsync(appliedPath);
-        currentApplied = JSON.parse(text);
-      }
+        // Save contact info back to greenhouse_config.json so it auto-fills next time
+        const configPath = `${FileSystem.documentDirectory}greenhouse_config.json`;
+        const updatedConfig = {
+          ...config,
+          firstName,
+          lastName,
+          email,
+          phone,
+        };
+        await FileSystem.writeAsStringAsync(configPath, JSON.stringify(updatedConfig));
+        setConfig(updatedConfig);
+        setIsEditingContact(false);
 
-      const newApp = {
-        id: `app_${Date.now()}`,
-        jobId: String(selectedJob?.id),
-        jobTitle: selectedJob?.title || '',
-        companyName: targetCompany,
-        boardToken: targetToken,
-        date: new Date().toLocaleDateString(),
-        resumeName: finalResumeName,
-        status: 'active',
-        currentStage: 'Application Review'
-      };
+        // Log application locally in applied_jobs.json
+        const appliedPath = `${FileSystem.documentDirectory}applied_jobs.json`;
+        let currentApplied: any[] = [];
+        const appliedInfo = await FileSystem.getInfoAsync(appliedPath);
+        if (appliedInfo.exists) {
+          const text = await FileSystem.readAsStringAsync(appliedPath);
+          currentApplied = JSON.parse(text);
+        }
 
-      const updatedApplied = [newApp, ...currentApplied];
-      await FileSystem.writeAsStringAsync(appliedPath, JSON.stringify(updatedApplied));
+        const newApp = {
+          id: `app_${Date.now()}`,
+          jobId: String(selectedJob?.id),
+          jobTitle: selectedJob?.title || '',
+          companyName: targetCompany,
+          boardToken: targetToken,
+          date: new Date().toLocaleDateString(),
+          resumeName: finalResumeName,
+          status: 'active',
+          currentStage: 'Application Review'
+        };
 
-      Alert.alert(
-        "Application Submitted",
-        tailorResume
-          ? "Your resume has been tailored with AI and successfully applied! You can view it under the Your Doc tab."
-          : "Your application has been successfully submitted! Track its status in Your Doc tab.",
-        [
-          {
-            text: "View Status",
-            onPress: () => {
-              setSelectedJob(null);
-              router.replace('/(tabs)/library');
+        const updatedApplied = [newApp, ...currentApplied];
+        await FileSystem.writeAsStringAsync(appliedPath, JSON.stringify(updatedApplied));
+
+        Alert.alert(
+          "Application Submitted",
+          tailorResume
+            ? "Your resume has been tailored with AI and successfully applied! You can view it under the Your Doc tab."
+            : "Your application has been successfully submitted! Track its status in Your Doc tab.",
+          [
+            {
+              text: "View Status",
+              onPress: () => {
+                setSelectedJob(null);
+                router.replace('/(tabs)/library');
+              }
+            },
+            {
+              text: "Done",
+              onPress: () => setSelectedJob(null)
             }
-          },
-          {
-            text: "Done",
-            onPress: () => setSelectedJob(null)
-          }
-        ]
-      );
+          ]
+        );
+      } else {
+        // External/Other company: launch the in-app Autofill WebView Assistant!
+        console.log("Launching in-app Autofill WebView Assistant...");
+        const base64Content = await FileSystem.readAsStringAsync(finalResumeUri, { encoding: 'base64' });
+        setSelectedResumeBase64(base64Content);
+        setSelectedResumeName(finalResumeName);
+
+        // Log application locally in applied_jobs.json for tracking
+        const appliedPath = `${FileSystem.documentDirectory}applied_jobs.json`;
+        let currentApplied: any[] = [];
+        const appliedInfo = await FileSystem.getInfoAsync(appliedPath);
+        if (appliedInfo.exists) {
+          const text = await FileSystem.readAsStringAsync(appliedPath);
+          currentApplied = JSON.parse(text);
+        }
+
+        const newApp = {
+          id: `app_${Date.now()}`,
+          jobId: String(selectedJob?.id),
+          jobTitle: selectedJob?.title || '',
+          companyName: targetCompany,
+          boardToken: targetToken,
+          date: new Date().toLocaleDateString(),
+          resumeName: finalResumeName,
+          status: 'active',
+          currentStage: 'Application Review'
+        };
+
+        const updatedApplied = [newApp, ...currentApplied];
+        await FileSystem.writeAsStringAsync(appliedPath, JSON.stringify(updatedApplied));
+
+        // Save contact info back to greenhouse_config.json so it auto-fills next time
+        const configPath = `${FileSystem.documentDirectory}greenhouse_config.json`;
+        const updatedConfig = {
+          ...config,
+          firstName,
+          lastName,
+          email,
+          phone,
+        };
+        await FileSystem.writeAsStringAsync(configPath, JSON.stringify(updatedConfig));
+        setConfig(updatedConfig);
+        setIsEditingContact(false);
+
+        // Switch modes: close job detail and show WebView modal
+        setSelectedJob(null);
+        setWebViewVisible(true);
+      }
     } catch (err: any) {
       console.log("Error applying to job:", err);
       Alert.alert("Application Error", err.message || "Failed to submit application.");
@@ -960,6 +1123,59 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Autofill Assistant WebView Modal */}
+      <Modal
+        visible={webViewVisible}
+        animationType="slide"
+        onRequestClose={() => setWebViewVisible(false)}
+      >
+        <SafeAreaView style={styles.webViewModalContainer}>
+          <View style={styles.webViewHeader}>
+            <TouchableOpacity 
+              style={styles.webViewCloseBtn} 
+              onPress={() => setWebViewVisible(false)}
+            >
+              <Ionicons name="close" size={24} color="#000000" />
+            </TouchableOpacity>
+            <View style={styles.webViewTitleContainer}>
+              <Text style={styles.webViewTitle} numberOfLines={1}>
+                {selectedJob?.companyName || 'Apply'}
+              </Text>
+              <Text style={styles.webViewSubtitle} numberOfLines={1}>
+                {selectedJob?.title || 'Job Post'}
+              </Text>
+            </View>
+            <View style={styles.webViewStatusBadge}>
+              <View style={styles.pulseDot} />
+              <Text style={styles.statusBadgeText}>Autofill Active</Text>
+            </View>
+          </View>
+
+          <WebView
+            ref={webViewRef}
+            source={{ uri: selectedJob?.absolute_url || '' }}
+            onLoadEnd={injectAutofillScript}
+            style={{ flex: 1 }}
+            domStorageEnabled={true}
+            javaScriptEnabled={true}
+            startInLoadingState={true}
+            renderLoading={() => (
+              <ActivityIndicator 
+                size="large" 
+                color="#7C3AED" 
+                style={StyleSheet.absoluteFillObject} 
+              />
+            )}
+          />
+          
+          <View style={styles.webViewFooter}>
+            <Text style={styles.webViewFooterText}>
+              ⚡ Autofilled your contact details and resume. Please check for any company-specific questions and tap Submit!
+            </Text>
+          </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );
@@ -1447,6 +1663,69 @@ const styles = StyleSheet.create({
     color: '#7C3AED',
     textAlign: 'center',
     marginTop: 8,
+  },
+  webViewModalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  webViewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  webViewCloseBtn: {
+    padding: 8,
+  },
+  webViewTitleContainer: {
+    flex: 1,
+    marginHorizontal: 12,
+  },
+  webViewTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  webViewSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  webViewStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+    marginRight: 6,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#047857',
+  },
+  webViewFooter: {
+    backgroundColor: '#F8FAFC',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    padding: 16,
+  },
+  webViewFooterText: {
+    fontSize: 13,
+    color: '#1E293B',
+    fontWeight: '600',
+    lineHeight: 18,
+    textAlign: 'center',
   },
 });
 
