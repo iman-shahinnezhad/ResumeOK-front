@@ -493,18 +493,21 @@ export default function JobsScreen() {
           sendLog('Autofill attempt #' + attempts);
 
           // 0. IFRAME REDIRECT (to bypass Cross-Origin restrictions on custom domains)
-          const greenhouseIframe = document.querySelector('iframe[src*="greenhouse.io"]');
-          if (greenhouseIframe && greenhouseIframe.src && !window.location.href.includes('embed/job_app')) {
-            sendLog('Found Greenhouse iframe. Redirecting top window to: ' + greenhouseIframe.src);
-            window.location.href = greenhouseIframe.src;
-            return;
-          }
+          const isAlreadyOnATS = window.location.host.includes('greenhouse.io') || window.location.host.includes('lever.co');
+          if (!isAlreadyOnATS) {
+            const greenhouseIframe = document.querySelector('iframe[src*="greenhouse.io"]');
+            if (greenhouseIframe && greenhouseIframe.src && !window.location.href.includes('embed/job_app')) {
+              sendLog('Found Greenhouse iframe. Redirecting top window to: ' + greenhouseIframe.src);
+              window.location.href = greenhouseIframe.src;
+              return;
+            }
 
-          const leverIframe = document.querySelector('iframe[src*="lever.co"]');
-          if (leverIframe && leverIframe.src && !window.location.href.includes('embed/job_app')) {
-            sendLog('Found Lever iframe. Redirecting top window to: ' + leverIframe.src);
-            window.location.href = leverIframe.src;
-            return;
+            const leverIframe = document.querySelector('iframe[src*="lever.co"]');
+            if (leverIframe && leverIframe.src && !window.location.href.includes('embed/job_app')) {
+              sendLog('Found Lever iframe. Redirecting top window to: ' + leverIframe.src);
+              window.location.href = leverIframe.src;
+              return;
+            }
           }
 
           // 1. GREENHOUSE AUTOFILL
