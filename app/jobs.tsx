@@ -784,8 +784,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
         setConfig(updatedConfig);
         setIsEditingContact(false);
 
-        // Switch modes: close job detail and show WebView modal
-        setSelectedJob(null);
+        // Switch modes: keep selectedJob active for WebView to read details, and show WebView modal
         setWebViewVisible(true);
       }
     } catch (err: any) {
@@ -941,7 +940,7 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
       <Modal
         animationType="slide"
         transparent={true}
-        visible={selectedJob !== null}
+        visible={selectedJob !== null && !webViewVisible}
         onRequestClose={() => setSelectedJob(null)}
       >
         <View style={styles.modalOverlay}>
@@ -1129,13 +1128,19 @@ Output the tailored resume strictly in clean HTML format (start with <div> and e
       <Modal
         visible={webViewVisible}
         animationType="slide"
-        onRequestClose={() => setWebViewVisible(false)}
+        onRequestClose={() => {
+          setWebViewVisible(false);
+          setSelectedJob(null);
+        }}
       >
         <SafeAreaView style={styles.webViewModalContainer}>
           <View style={styles.webViewHeader}>
             <TouchableOpacity 
               style={styles.webViewCloseBtn} 
-              onPress={() => setWebViewVisible(false)}
+              onPress={() => {
+                setWebViewVisible(false);
+                setSelectedJob(null);
+              }}
             >
               <Ionicons name="close" size={24} color="#000000" />
             </TouchableOpacity>
