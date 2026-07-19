@@ -483,7 +483,20 @@ export default function JobsScreen() {
 
         function triggerInputChange(element, value) {
           if (!element) return;
-          element.value = value;
+          try {
+            const valueSetter = Object.getOwnPropertyDescriptor(element, 'value')?.set;
+            const prototype = Object.getPrototypeOf(element);
+            const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+            if (prototypeValueSetter && valueSetter !== prototypeValueSetter) {
+              prototypeValueSetter.call(element, value);
+            } else if (valueSetter) {
+              valueSetter.call(element, value);
+            } else {
+              element.value = value;
+            }
+          } catch (e) {
+            element.value = value;
+          }
           element.dispatchEvent(new Event('input', { bubbles: true }));
           element.dispatchEvent(new Event('change', { bubbles: true }));
         }
