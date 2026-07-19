@@ -733,6 +733,10 @@ export default function JobsScreen() {
   };
 
   const handleStartAiMatch = async () => {
+    if (!selectedJob) {
+      Alert.alert("Error", "No job is selected to match.");
+      return;
+    }
     if (!selectedResumeId) {
       Alert.alert("Resume Required", "Please select a resume first.");
       return;
@@ -752,76 +756,41 @@ export default function JobsScreen() {
       const cleanJobDesc = stripHtml(jobDetailsHtml);
 
       setMatchLoadingStep("Matching resume and cover letter with AI...");
-      const base64Resume = await FileSystem.readAsStringAsync(baseResume.uri, {
-        encoding: 'base64',
+      const formData = new FormData();
+      const resumeFileObj: any = {
+        uri: baseResume.uri,
+        name: baseResume.name,
+        type: baseResume.mimeType || 'application/pdf'
+      };
+      formData.append('resume', resumeFileObj);
+
+      // Include user access token if logged in
+      const session = await getSession();
+      const headers: any = {
+        'Accept': 'application/json',
+      };
+      if (session && session.accessToken) {
+        headers['Authorization'] = `Bearer ${session.accessToken}`;
+      }
+
+      const matchRes = await fetch(`${API_URL}/api/jobs/${selectedJob.id}/match`, {
+        method: 'POST',
+        headers,
+        body: formData
       });
 
-      const promptText = `
-Here is a job description for a "${jobTitle}" position at "${targetCompany}":
-[JOB_DESCRIPTION]
-${cleanJobDesc}
-[END_JOB_DESCRIPTION]
-
-Please rewrite and tailor my attached resume to match this job description. Optimize keywords and achievement phrasing naturally.
-Also, write a professional matching cover letter for this position. Do not use generic AI opening phrases.
-
-Output format:
-Please return the tailored resume and the cover letter enclosed in tags strictly as follows:
-
-[START_TAILORED_RESUME]
-(Write the tailored resume strictly in clean HTML format, starting with <div> and ending with </div>. Do NOT use markdown symbols or markdown code block formatting.)
-[END_TAILORED_RESUME]
-
-[START_COVER_LETTER]
-(Write the actual matching Cover Letter text here. Keep it professional, standard, and clean. Do NOT use markdown symbols.)
-[END_COVER_LETTER]
-`;
-
-      const geminiRes = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': 'AQ.Ab8RN6LjiOKxvxO8J1J0MWsp3Wrbo5emB0MOb6JFXsWKYIlqhw'
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { inlineData: { mimeType: baseResume.mimeType || 'application/pdf', data: base64Resume } },
-                { text: promptText }
-              ]
-            }]
-          })
-        }
-      );
-
-      if (!geminiRes.ok) {
-        const errText = await geminiRes.text();
-        console.error("Gemini API Request Failed status:", geminiRes.status, "Details:", errText);
-        throw new Error(`AI Match Failed: Gemini returned HTTP ${geminiRes.status}. Details: ${errText.slice(0, 150)}`);
+      if (!matchRes.ok) {
+        const errText = await matchRes.text();
+        throw new Error(`Server match failed: ${matchRes.status} - ${errText}`);
       }
 
-      const geminiData = await geminiRes.json();
-      const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-      const resumeMatch = rawText.match(/\[START_TAILORED_RESUME\]([\s\S]*?)\[END_TAILORED_RESUME\]/);
-      const clMatch = rawText.match(/\[START_COVER_LETTER\]([\s\S]*?)\[END_COVER_LETTER\]/);
-
-      let tailoredHtml = "";
-      let generatedCL = "";
-
-      if (resumeMatch) {
-        tailoredHtml = resumeMatch[1].trim().replace(/```html/gi, '').replace(/```/gi, '');
-      } else {
-        tailoredHtml = rawText.replace(/\[START_COVER_LETTER\][\s\S]*?\[END_COVER_LETTER\]/g, '').trim();
+      const matchData = await matchRes.json();
+      if (!matchData.success) {
+        throw new Error(matchData.error || "Failed to analyze match from server.");
       }
 
-      if (clMatch) {
-        generatedCL = clMatch[1].trim();
-      } else {
-        generatedCL = "Dear Hiring Manager,\n\nI am writing to express my strong interest in the " + jobTitle + " position at " + targetCompany + ". My background and skills align well with the qualifications you are looking for...";
-      }
+      const tailoredHtml = matchData.tailoredResumeHtml || "";
+      const generatedCL = matchData.coverLetter || "";
 
       setMatchLoadingStep("Generating tailored PDF document...");
 
