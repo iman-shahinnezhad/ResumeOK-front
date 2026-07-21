@@ -2,7 +2,7 @@
   "expo": {
     "name": "ResumeOK",
     "slug": "resumeok",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "resumeok",
