@@ -98,12 +98,10 @@ export default function RootLayout() {
   useEffect(() => {
     const checkOnboardingStates = async () => {
       try {
-        const onboardingInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory + 'has_seen_onboarding.txt');
-        if (!onboardingInfo.exists) {
-          setShowOnboarding(true);
-        }
+        // Force onboarding to be skipped entirely for all users
+        setShowOnboarding(false);
       } catch (e) {
-        setShowOnboarding(true);
+        setShowOnboarding(false);
       } finally {
         setCheckingStorage(false);
         try {
