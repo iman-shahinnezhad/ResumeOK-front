@@ -27,7 +27,7 @@ const getFriendlyErrorMessage = (error: any) => {
   return msg || 'An unexpected error occurred. Please try again.';
 };
 import { copyToClipboard } from '../../utils/clipboard';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, API_URL } from '../../context/AuthContext';
 import ReferralBottomSheet from '../../components/ReferralBottomSheet';
 
 function cleanMarkdown(text: string): string {
@@ -371,12 +371,11 @@ To help us parse your response, please enclose the sections in specific tags as 
       parts.push({ text: promptText });
 
       const response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+        `${API_URL}/api/ai/generateContent`,
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': 'AQ.Ab8RN6LjiOKxvxO8J1J0MWsp3Wrbo5emB0MOb6JFXsWKYIlqhw'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             contents: [{ parts: parts }]

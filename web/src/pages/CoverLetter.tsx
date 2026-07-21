@@ -6,6 +6,7 @@ interface Props {
   credits: number;
   deductCredits: (amount: number) => Promise<boolean>;
   refundCredits: (amount: number) => Promise<void>;
+  apiUrl: string;
 }
 
 interface SavedResume {
@@ -16,7 +17,7 @@ interface SavedResume {
   date: string;
 }
 
-export default function CoverLetter({ credits, deductCredits, refundCredits }: Props) {
+export default function CoverLetter({ credits, deductCredits, refundCredits, apiUrl }: Props) {
   useSEO(
     "AI Cover Letter Generator",
     "Write highly personalized, human-sounding cover letters matching any job posting. Get interview strategies and background highlights."
@@ -140,12 +141,11 @@ Enclose the sections in tags as follows:
       parts.push({ text: promptText });
 
       const response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+        `${apiUrl}/api/ai/generateContent`,
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': 'AQ.Ab8RN6LjiOKxvxO8J1J0MWsp3Wrbo5emB0MOb6JFXsWKYIlqhw'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             contents: [{ parts }]

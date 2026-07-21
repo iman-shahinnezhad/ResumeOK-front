@@ -365,9 +365,9 @@ export default function App() {
         <div style={{ flex: 1 }}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/match" element={<Match credits={credits} deductCredits={deductCredits} refundCredits={refundCredits} />} />
+            <Route path="/match" element={<Match credits={credits} deductCredits={deductCredits} refundCredits={refundCredits} apiUrl={API_URL} />} />
             <Route path="/build" element={<Builder />} />
-            <Route path="/cover-letter" element={<CoverLetter credits={credits} deductCredits={deductCredits} refundCredits={refundCredits} />} />
+            <Route path="/cover-letter" element={<CoverLetter credits={credits} deductCredits={deductCredits} refundCredits={refundCredits} apiUrl={API_URL} />} />
             <Route path="/library" element={<Library />} />
             <Route path="/login" element={<Login onLogin={handleLogin} API_URL={API_URL} />} />
             <Route path="/profile" element={<Profile user={user} setUser={setUser} token={token} credits={credits} API_URL={API_URL} />} />

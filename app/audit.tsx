@@ -18,7 +18,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, API_URL } from '../context/AuthContext';
 import ReferralBottomSheet from '../components/ReferralBottomSheet';
 
 const getFriendlyErrorMessage = (error: any) => {
@@ -803,12 +803,11 @@ RULES:
       });
 
       const response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+        `${API_URL}/api/ai/generateContent`,
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': 'AQ.Ab8RN6LjiOKxvxO8J1J0MWsp3Wrbo5emB0MOb6JFXsWKYIlqhw'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             contents: [
@@ -1006,12 +1005,11 @@ RULES:
       parts.push({ text: promptText });
 
       const response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+        `${API_URL}/api/ai/generateContent`,
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': 'AQ.Ab8RN6LjiOKxvxO8J1J0MWsp3Wrbo5emB0MOb6JFXsWKYIlqhw'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             contents: [{ parts: parts }]
