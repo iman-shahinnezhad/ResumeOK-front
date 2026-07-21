@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink, Link } from 'react-router-dom';
-import { Sparkles, Zap, Menu, X, LogIn, Settings } from 'lucide-react';
+import { Sparkles, Zap, Menu, X } from 'lucide-react';
 import './App.css';
 
 // Import Pages
@@ -9,8 +9,6 @@ import Match from './pages/Match';
 import Builder from './pages/Builder';
 import CoverLetter from './pages/CoverLetter';
 import Library from './pages/Library';
-import Login from './pages/Login';
-import Profile from './pages/Profile';
 import Pricing from './pages/Pricing';
 import Checkout from './pages/Checkout';
 
@@ -233,122 +231,19 @@ export default function App() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {user ? (
-                <div style={{ position: 'relative' }}>
-                  <button 
-                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderRadius: '20px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--dark-border)', cursor: 'pointer', outline: 'none' }}
-                  >
-                    {user.avatar ? (
-                      <img src={user.avatar} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }} alt="" />
-                    ) : (
-                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '700' }}>
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--dark-text)', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {user.name.split(' ')[0]}
-                    </span>
-                  </button>
-
-                  {profileDropdownOpen && (
-                    <div 
-                      className="animate-fade-in"
-                      style={{
-                        position: 'absolute',
-                        right: 0,
-                        top: '44px',
-                        width: '260px',
-                        backgroundColor: 'rgba(30, 41, 59, 0.75)',
-                        backdropFilter: 'blur(20px)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
-                        borderRadius: '16px',
-                        padding: '20px',
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4)',
-                        zIndex: 1000,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '16px',
-                        textAlign: 'left'
-                      }}
-                    >
-                      {/* Dropdown Header: Profile Identity */}
-                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        {user.avatar ? (
-                          <img src={user.avatar} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid rgba(255,255,255,0.1)' }} alt="" />
-                        ) : (
-                          <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: '800' }}>
-                            {user.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: '14px', fontWeight: '800', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--dark-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>{user.email || 'OAuth Login'}</div>
-                        </div>
-                      </div>
-
-                      {/* Dropdown Credits Pill Badge */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', borderRadius: '12px', background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.12))', border: '1px solid rgba(99,102,241,0.22)', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Zap className="w-4 h-4 text-indigo-400 fill-indigo-400 animate-pulse" />
-                          <span style={{ fontSize: '12.5px', fontWeight: '750', color: '#a5b4fc' }}>{credits} Credits</span>
-                        </div>
-                        <Link 
-                          to="/pricing" 
-                          onClick={() => setProfileDropdownOpen(false)}
-                          style={{ fontSize: '11px', fontWeight: '750', color: '#fff', textDecoration: 'none', background: 'var(--primary)', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer' }}
-                        >
-                          Buy +
-                        </Link>
-                      </div>
-
-                      <div style={{ height: '1px', backgroundColor: 'rgba(255,255,255,0.06)', margin: '0 -4px' }}></div>
-
-                      {/* Dropdown Menu Items */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <Link 
-                          to="/pricing"
-                          onClick={() => setProfileDropdownOpen(false)}
-                          className="btn btn-secondary" 
-                          style={{ width: '100%', padding: '10px 12px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '10px', border: 'none', background: 'rgba(255,255,255,0.02)', textDecoration: 'none', color: 'var(--dark-text)', cursor: 'pointer', borderRadius: '8px', transition: 'all 0.15s ease' }}
-                        >
-                          <Zap className="w-4 h-4 text-indigo-400" />
-                          Buy Credits
-                        </Link>
-                        
-                        <Link 
-                          to="/profile"
-                          onClick={() => setProfileDropdownOpen(false)}
-                          className="btn btn-secondary" 
-                          style={{ width: '100%', padding: '10px 12px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '10px', border: 'none', background: 'rgba(255,255,255,0.02)', textDecoration: 'none', color: 'var(--dark-text)', cursor: 'pointer', borderRadius: '8px', transition: 'all 0.15s ease' }}
-                        >
-                          <Settings className="w-4 h-4 text-indigo-400" />
-                          Account Settings
-                        </Link>
-                        
-                        <button 
-                          onClick={() => { handleLogout(); setProfileDropdownOpen(false); }}
-                          className="btn" 
-                          style={{ width: '100%', padding: '10px 12px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '10px', color: '#f87171', background: 'rgba(239, 68, 68, 0.04)', border: 'none', cursor: 'pointer', borderRadius: '8px', transition: 'all 0.15s ease', marginTop: '6px' }}
-                        >
-                          <LogIn className="w-4 h-4" style={{ transform: 'rotate(180deg)' }} />
-                          Logout
-                        </button>
-                      </div>
-                    </div>
-                  )}
+              {/* Credits Pill Badge */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.12))', border: '1px solid rgba(99,102,241,0.22)', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Zap className="w-4 h-4 text-indigo-400 fill-indigo-400 animate-pulse" />
+                  <span style={{ fontSize: '12.5px', fontWeight: '750', color: '#a5b4fc' }}>{credits} Credits</span>
                 </div>
-              ) : (
                 <Link 
-                  to="/login" 
-                  className="btn btn-primary" 
-                  style={{ padding: '6px 14px', fontSize: '11px', borderRadius: '16px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                  onClick={() => setMenuOpen(false)}
+                  to="/pricing" 
+                  style={{ fontSize: '11px', fontWeight: '750', color: '#fff', textDecoration: 'none', background: 'var(--primary)', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', marginLeft: '10px' }}
                 >
-                  <LogIn className="w-3.5 h-3.5" />
-                  Sign In
+                  Buy +
                 </Link>
-              )}
+              </div>
 
               <button 
                 className="nav-toggle-btn"
@@ -369,8 +264,6 @@ export default function App() {
             <Route path="/build" element={<Builder />} />
             <Route path="/cover-letter" element={<CoverLetter credits={credits} deductCredits={deductCredits} refundCredits={refundCredits} apiUrl={API_URL} />} />
             <Route path="/library" element={<Library />} />
-            <Route path="/login" element={<Login onLogin={handleLogin} API_URL={API_URL} />} />
-            <Route path="/profile" element={<Profile user={user} setUser={setUser} token={token} credits={credits} API_URL={API_URL} />} />
             <Route path="/pricing" element={<Pricing user={user} setUser={setUser} token={token} API_URL={API_URL} />} />
             <Route path="/checkout" element={<Checkout user={user} setUser={setUser} token={token} API_URL={API_URL} />} />
           </Routes>

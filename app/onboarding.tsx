@@ -22,7 +22,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+// import * as Google from 'expo-auth-session/providers/google';
 import * as FileSystem from 'expo-file-system/legacy';
 import Svg, { Path, G, Circle } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
@@ -354,6 +354,7 @@ export default function Onboarding() {
     }
   };
 
+  /*
   // Google Sign-In Setup
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: 'YOUR_GOOGLE_IOS_CLIENT_ID',
@@ -415,6 +416,7 @@ export default function Onboarding() {
       setLoading(false);
     }
   };
+  */
 
   const handleAppleLogin = async () => {
     try {
@@ -593,7 +595,7 @@ export default function Onboarding() {
 
   const handleBack = () => {
     if (step === 'welcome') setStep('intro');
-    else if (step === 'engineered') setStep('welcome');
+    else if (step === 'engineered') setStep('intro');
     else if (step === 'name') setStep('engineered');
     else if (step === 'email') setStep('name');
     else if (step === 'interests') setStep('email');
@@ -740,7 +742,7 @@ export default function Onboarding() {
           <TouchableOpacity
             style={styles.continueBtn}
             activeOpacity={0.9}
-            onPress={() => setStep('welcome')}
+            onPress={() => setStep('engineered')}
           >
             <Text style={styles.continueBtnText}>Continue</Text>
           </TouchableOpacity>
@@ -767,6 +769,7 @@ export default function Onboarding() {
                   <Text style={styles.authBtnText}>Continue with Apple</Text>
                 </TouchableOpacity>
 
+                {/*
                 <TouchableOpacity
                   style={[styles.authBtn, { marginTop: 14 }]}
                   activeOpacity={0.85}
@@ -775,6 +778,7 @@ export default function Onboarding() {
                   <Ionicons name="logo-google" size={20} color="#EA4335" style={styles.authBtnIcon} />
                   <Text style={styles.authBtnText}>Continue with Google</Text>
                 </TouchableOpacity>
+                */}
 
                 <TouchableOpacity style={styles.skipBtnLink} onPress={() => setStep('engineered')}>
                   <Text style={styles.skipBtnText}>Skip for now</Text>
@@ -1453,8 +1457,8 @@ export default function Onboarding() {
                     {(selectedResume.size / 1024).toFixed(1)} KB
                   </Text>
                 )}
-                <TouchableOpacity 
-                  style={styles.removeFileBtn} 
+                <TouchableOpacity
+                  style={styles.removeFileBtn}
                   onPress={() => setSelectedResume(null)}
                 >
                   <Text style={styles.removeFileText}>Remove file</Text>
@@ -1499,10 +1503,10 @@ export default function Onboarding() {
 
       {step === 'loading' && (
         <View style={styles.loadingScreenContainer}>
-          <ActivityIndicator 
-            size="large" 
-            color="#000000" 
-            style={{ transform: [{ scale: 1.8 }], marginBottom: 50 }} 
+          <ActivityIndicator
+            size="large"
+            color="#000000"
+            style={{ transform: [{ scale: 1.8 }], marginBottom: 50 }}
           />
           <Text style={styles.loadingText}>Building your</Text>
           <Text style={styles.loadingText}>personalized career</Text>

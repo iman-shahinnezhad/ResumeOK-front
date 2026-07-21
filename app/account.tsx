@@ -11,16 +11,7 @@ import { useAuth } from '../context/AuthContext';
 export default function Account() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, guestCredit, logout } = useAuth();
-
-  const [modalVisible, setModalVisible] = useState(false);
-
-  const handleCloseAccount = async () => {
-    setModalVisible(false);
-    await logout(); // Wipe session and trigger layout reload
-    router.dismissAll();
-    router.replace('/');
-  };
+  const { user, guestCredit } = useAuth();
 
   return (
     <View style={styles.container}>
@@ -57,51 +48,7 @@ export default function Account() {
           />
         </View>
 
-        {/* Close Account Button */}
-        <TouchableOpacity
-          style={styles.closeAccountButton}
-          activeOpacity={0.8}
-          onPress={() => setModalVisible(true)}
-        >
-          <View style={styles.closeAccountLeft}>
-            <MaterialIcons name="logout" size={20} color="#e53935" style={{ transform: [{ rotate: '180deg' }] }} />
-            <Text style={styles.closeAccountText}>Close Account</Text>
-          </View>
-          <Feather name="chevron-right" size={20} color="#e53935" />
-        </TouchableOpacity>
-
-        <Text style={styles.disclaimerText}>
-          This action will erase the account and all personal data associated with this account.
-        </Text>
-
       </View>
-
-      {/* Confirmation Modal */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <BlurView intensity={20} tint="dark" style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Close Account</Text>
-            <Text style={styles.modalMessage}>
-              Are you sure you want to close your account? This action cannot be undone.
-            </Text>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setModalVisible(false)}>
-                <Text style={styles.modalButtonCancelText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.modalButtonConfirm} onPress={handleCloseAccount}>
-                <Text style={styles.modalButtonConfirmText}>Yes, Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </BlurView>
-      </Modal>
 
     </View>
   );
