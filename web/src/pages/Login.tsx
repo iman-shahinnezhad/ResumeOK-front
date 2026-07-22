@@ -68,12 +68,24 @@ export default function Login({ onLogin, API_URL }: LoginProps) {
       }
     };
 
+    let googleClientId = '';
+    
+    // Fetch google client ID dynamically from config
+    fetch(`${API_URL}/api/app-config`)
+      .then(res => res.json())
+      .then(config => {
+        if (config.googleClientId) {
+          googleClientId = config.googleClientId;
+        }
+      })
+      .catch(err => console.error("Failed to fetch google client ID config:", err));
+
     // Initialize Google buttons
     const initInterval = setInterval(() => {
-      if ((window as any).google) {
+      if ((window as any).google && googleClientId) {
         clearInterval(initInterval);
         (window as any).google.accounts.id.initialize({
-          client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+          client_id: googleClientId,
           callback: handleCredentialResponse,
         });
 
