@@ -413,7 +413,7 @@ export default function Settings() {
         )}
 
         {/* Greenhouse Integration Card */}
-        {/* <View style={styles.referrerCard}>
+        <View style={styles.referrerCard}>
           <LinearGradient
             colors={['rgba(27, 94, 32, 0.04)', 'rgba(27, 94, 32, 0.01)']}
             style={StyleSheet.absoluteFillObject}
@@ -481,7 +481,7 @@ export default function Settings() {
               <Text style={styles.planButtonText}>Save Greenhouse Configuration</Text>
             )}
           </TouchableOpacity>
-        </View> */}
+        </View>
 
         {/* Menu Section */}
         <View style={styles.menuSectionHeader}>
