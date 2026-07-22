@@ -107,7 +107,7 @@ export default function Settings() {
       setReferrerSubmitError('Please enter a referral code.');
       return;
     }
-    
+
     setSubmittingReferrer(true);
     try {
       const response = await fetch(`${API_URL}/api/guest/${guestId}/referral`, {
@@ -164,7 +164,7 @@ export default function Settings() {
         Alert.alert("Simulation", "Restoring purchases is simulated. Your credits are synced.");
         return;
       }
-      
+
       const receipt = await getReceipt();
       if (receipt) {
         console.log('Found App Store receipt! Verifying...');
@@ -343,7 +343,7 @@ export default function Settings() {
                   </Text>
                 </View>
               </View>
-              
+
               <View style={styles.referralActionRow}>
                 <TouchableOpacity style={styles.codeContainer} activeOpacity={0.7} onPress={copyCode}>
                   <Text style={styles.codeText}>{referralCode || '...'}</Text>
@@ -413,7 +413,7 @@ export default function Settings() {
         )}
 
         {/* Greenhouse Integration Card */}
-        <View style={styles.referrerCard}>
+        {/* <View style={styles.referrerCard}>
           <LinearGradient
             colors={['rgba(27, 94, 32, 0.04)', 'rgba(27, 94, 32, 0.01)']}
             style={StyleSheet.absoluteFillObject}
@@ -481,7 +481,7 @@ export default function Settings() {
               <Text style={styles.planButtonText}>Save Greenhouse Configuration</Text>
             )}
           </TouchableOpacity>
-        </View>
+        </View> */}
 
         {/* Menu Section */}
         <View style={styles.menuSectionHeader}>

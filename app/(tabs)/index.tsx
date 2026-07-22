@@ -72,8 +72,8 @@ export default function Home() {
       </View>
 
       {/* SCROLL CONTENT */}
-      <ScrollView 
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]} 
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -127,10 +127,10 @@ export default function Home() {
           </TouchableOpacity>
 
           {/* Job Search Section Header */}
-          <Text style={styles.sectionTitle}>Apply & Track Jobs</Text>
+          {/* <Text style={styles.sectionTitle}>Apply & Track Jobs</Text> */}
 
           {/* Job Search Card */}
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={[styles.buildCard, { backgroundColor: '#E8F5E9', borderColor: '#A5D6A7' }]}
             activeOpacity={0.8}
             onPress={() => router.push('/jobs' as any)}
@@ -147,7 +147,7 @@ export default function Home() {
                 <Ionicons name="chevron-forward" size={18} color="#1B5E20" style={styles.buildChevron} />
               </View>
             </View>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
 
         </View>
