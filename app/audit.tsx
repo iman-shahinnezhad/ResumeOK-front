@@ -1254,7 +1254,7 @@ Bachelor of Science in Computer Science | Stanford University (2018 - 2022)`;
             <Ionicons name="chevron-back" size={28} color="#000000" />
           </TouchableOpacity>
           {currentView === 'audit' && (
-            <TouchableOpacity style={styles.profileContainer} activeOpacity={0.8} onPress={() => router.push('/settings')}>
+            <TouchableOpacity style={styles.profileContainer} activeOpacity={0.8} onPress={() => router.push('/account')}>
               <Image source={require('../assets/images/placeholder-avatar.png')} style={styles.profilePic} />
             </TouchableOpacity>
           )}

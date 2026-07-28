@@ -69,6 +69,14 @@ export default function TabLayout() {
                 />
                 <Label>Your Doc</Label>
             </NativeTabs.Trigger>
+
+            <NativeTabs.Trigger name="account" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
+                <Icon
+                    sf={{ default: 'person', selected: 'person.fill' }}
+                    androidSrc={<VectorIcon family={Ionicons} name="person-outline" />}
+                />
+                <Label>My Profile</Label>
+            </NativeTabs.Trigger>
         </NativeTabs>
     );
 }

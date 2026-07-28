@@ -39,7 +39,7 @@ export default function Home() {
     <View style={styles.container}>
       {/* HEADER */}
       <View style={[styles.header, { marginTop: insets.top + (isPad ? 25 : 0) }]}>
-        <TouchableOpacity style={styles.profileContainer} activeOpacity={0.8} onPress={() => router.push('/settings')}>
+        <TouchableOpacity style={styles.profileContainer} activeOpacity={0.8} onPress={() => router.push('/account')}>
           <Image source={require('../../assets/images/placeholder-avatar.png')} style={styles.profilePic} />
         </TouchableOpacity>
 

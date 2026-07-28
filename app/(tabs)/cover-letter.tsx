@@ -663,7 +663,7 @@ To help us parse your response, please enclose the sections in specific tags as 
             <TouchableOpacity 
               style={styles.profileContainer} 
               activeOpacity={0.8} 
-              onPress={() => router.push('/settings')}
+              onPress={() => router.push('/account')}
             >
               <Image 
                 source={require('../../assets/images/placeholder-avatar.png')} 
