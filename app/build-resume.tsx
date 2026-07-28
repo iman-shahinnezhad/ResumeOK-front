@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -96,37 +97,104 @@ export default function BuildResumeScreen() {
     summary: '',
   });
 
-  // Load onboarding profile if exists on mount
-  React.useEffect(() => {
-    async function loadOnboardingProfile() {
-      try {
-        const path = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
-        const fileInfo = await FileSystem.getInfoAsync(path);
-        if (fileInfo.exists) {
-          const text = await FileSystem.readAsStringAsync(path);
-          const parsed = JSON.parse(text);
-          setFormData(prev => ({
-            ...prev,
-            firstName: parsed.firstName || prev.firstName,
-            lastName: parsed.lastName || prev.lastName,
-            jobTitle: parsed.jobTitle || prev.jobTitle,
-            email: parsed.email || prev.email,
-            phone: parsed.phone || prev.phone,
-            city: parsed.city || prev.city,
-            dob: parsed.dob || prev.dob,
-            nationality: parsed.nationality || prev.nationality,
-            website: parsed.website || prev.website,
-            skills: parsed.skills || prev.skills,
-            workExperiences: parsed.workExperiences || prev.workExperiences,
-            educations: parsed.educations || prev.educations,
-            summary: parsed.summary || prev.summary,
+  const [isAutofillEnabled, setIsAutofillEnabled] = useState<boolean>(true);
+
+  const applyAutofill = async (enabled: boolean) => {
+    setIsAutofillEnabled(enabled);
+
+    if (!enabled) {
+      setFormData({
+        firstName: '',
+        lastName: '',
+        jobTitle: '',
+        email: '',
+        phone: '',
+        city: '',
+        dob: '',
+        nationality: '',
+        profileImage: '',
+        website: '',
+        workExperiences: [],
+        skills: [],
+        languages: [],
+        educations: [],
+        summary: '',
+      });
+      return;
+    }
+
+    try {
+      const path = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+      const fileInfo = await FileSystem.getInfoAsync(path);
+      if (fileInfo.exists) {
+        const text = await FileSystem.readAsStringAsync(path);
+        const parsed = JSON.parse(text);
+
+        let experiences: WorkExperience[] = [];
+        if (Array.isArray(parsed.workExperiences) && parsed.workExperiences.length > 0) {
+          experiences = parsed.workExperiences;
+        } else if (Array.isArray(parsed.experiences) && parsed.experiences.length > 0) {
+          experiences = parsed.experiences.map((exp: any, idx: number) => ({
+            id: exp.id || String(idx),
+            jobTitle: exp.jobTitle || exp.title || '',
+            companyName: exp.companyName || exp.company || '',
+            city: exp.city || exp.location || '',
+            startDate: exp.startDate || '',
+            endDate: exp.endDate || '',
+            description: exp.description || '',
           }));
         }
-      } catch (e) {
-        console.log('Error loading onboarding profile in builder:', e);
+
+        let edus: Education[] = [];
+        if (Array.isArray(parsed.educations) && parsed.educations.length > 0) {
+          edus = parsed.educations.map((edu: any, idx: number) => ({
+            id: edu.id || String(idx),
+            schoolName: edu.schoolName || edu.school || edu.institution || '',
+            degree: edu.degree || '',
+            fieldOfStudy: edu.fieldOfStudy || edu.field || '',
+            city: edu.city || edu.location || '',
+            startDate: edu.startDate || '',
+            endDate: edu.endDate || '',
+            description: edu.description || '',
+            gpa: edu.gpa || '',
+          }));
+        }
+
+        let summaryText = parsed.summary || '';
+        if (!summaryText && Array.isArray(parsed.summaries) && parsed.summaries.length > 0) {
+          summaryText = parsed.summaries[0];
+        }
+
+        let websiteUrl = parsed.website || '';
+        if (!websiteUrl && Array.isArray(parsed.links) && parsed.links.length > 0) {
+          websiteUrl = parsed.links[0].url || '';
+        }
+
+        setFormData({
+          firstName: parsed.firstName || '',
+          lastName: parsed.lastName || '',
+          jobTitle: parsed.jobTitle || '',
+          email: parsed.email || '',
+          phone: parsed.phone || '',
+          city: parsed.city || parsed.address || '',
+          dob: parsed.dob || '',
+          nationality: parsed.nationality || parsed.citizenship || '',
+          profileImage: parsed.profileImage || '',
+          website: websiteUrl,
+          skills: Array.isArray(parsed.skills) ? parsed.skills : [],
+          languages: Array.isArray(parsed.languages) ? parsed.languages : ['English (Primary)'],
+          workExperiences: experiences,
+          educations: edus,
+          summary: summaryText,
+        });
       }
+    } catch (e) {
+      console.log('Error applying autofill in builder:', e);
     }
-    loadOnboardingProfile();
+  };
+
+  React.useEffect(() => {
+    applyAutofill(true);
   }, []);
 
   // UI state for Loading and PDF Preview
@@ -3305,12 +3373,36 @@ export default function BuildResumeScreen() {
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Resume Builder</Text>
           <View style={styles.progressRow}>
-            <Text style={styles.stepIndicatorText}>1 of 5</Text>
+            <Text style={styles.stepIndicatorText}>{step} of 5</Text>
             <View style={styles.progressBarBg}>
-              <View style={[styles.progressBarFill, { width: '20%' }]} />
+              <View style={[styles.progressBarFill, { width: `${step * 20}%` }]} />
             </View>
           </View>
         </View>
+
+        {/* Header Autofill Toggle Button */}
+        <TouchableOpacity
+          style={[
+            styles.headerAutofillPill,
+            isAutofillEnabled ? styles.headerAutofillActive : styles.headerAutofillInactive,
+          ]}
+          activeOpacity={0.8}
+          onPress={() => applyAutofill(!isAutofillEnabled)}
+        >
+          <Ionicons
+            name="sparkles"
+            size={14}
+            color={isAutofillEnabled ? '#FFFFFF' : '#666666'}
+          />
+          <Text
+            style={[
+              styles.headerAutofillText,
+              isAutofillEnabled ? styles.headerAutofillTextActive : styles.headerAutofillTextInactive,
+            ]}
+          >
+            {isAutofillEnabled ? 'Autofill ON' : 'Autofill OFF'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* FORM FIELDS */}
@@ -3318,6 +3410,27 @@ export default function BuildResumeScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* AUTOFILL TOGGLE CARD BANNER */}
+        <View style={styles.autofillBannerCard}>
+          <View style={styles.autofillTextCol}>
+            <View style={styles.autofillTitleRow}>
+              <Ionicons name="sparkles" size={18} color="#2563EB" />
+              <Text style={styles.autofillTitleText}>Autofill from Profile</Text>
+            </View>
+            <Text style={styles.autofillSubtitleText}>
+              {isAutofillEnabled
+                ? 'Filled automatically using your Onboarding & Profile details'
+                : 'Form cleared for manual entry'}
+            </Text>
+          </View>
+          <Switch
+            value={isAutofillEnabled}
+            onValueChange={val => applyAutofill(val)}
+            trackColor={{ false: '#D1D1D6', true: '#2563EB' }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
+
         <Text style={styles.pageTitle}>Let’s Start with your contact detail</Text>
 
         {/* First Name */}
@@ -4359,5 +4472,64 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  headerAutofillPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  headerAutofillActive: {
+    backgroundColor: '#2563EB',
+    borderColor: '#2563EB',
+  },
+  headerAutofillInactive: {
+    backgroundColor: '#F2F2F4',
+    borderColor: '#E0E0E0',
+  },
+  headerAutofillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  headerAutofillTextActive: {
+    color: '#FFFFFF',
+  },
+  headerAutofillTextInactive: {
+    color: '#666666',
+  },
+  autofillBannerCard: {
+    backgroundColor: '#EBF3FF',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    borderWidth: 1.5,
+    borderColor: '#93C5FD',
+  },
+  autofillTextCol: {
+    flex: 1,
+    marginRight: 10,
+  },
+  autofillTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  autofillTitleText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1E40AF',
+  },
+  autofillSubtitleText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#3B82F6',
   },
 });

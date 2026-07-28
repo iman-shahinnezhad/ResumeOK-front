@@ -265,6 +265,7 @@ export default function JobsScreen() {
   const [previewCoverLetter, setPreviewCoverLetter] = useState('');
   const [previewResumeUri, setPreviewResumeUri] = useState('');
   const [previewResumeName, setPreviewResumeName] = useState('');
+  const [previewResumeHtml, setPreviewResumeHtml] = useState('');
   const [previewTab, setPreviewTab] = useState<'cover_letter' | 'resume'>('cover_letter');
   const webViewRef = useRef<WebView>(null);
 
@@ -740,6 +741,21 @@ export default function JobsScreen() {
     webViewRef.current.injectJavaScript(jsCode);
   };
 
+  const handleViewTailoredResume = async () => {
+    if (previewResumeUri) {
+      try {
+        await Print.printAsync({ uri: previewResumeUri });
+      } catch (e) {
+        console.log('Error opening resume preview:', e);
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(previewResumeUri);
+        }
+      }
+    } else {
+      Alert.alert('Resume Preview', 'No tailored resume file found.');
+    }
+  };
+
   const handleStartAiMatch = async () => {
     if (!selectedJob) {
       Alert.alert("Error", "No job is selected to match.");
@@ -802,8 +818,16 @@ export default function JobsScreen() {
 
       setMatchLoadingStep("Generating tailored PDF document...");
 
+      const userPrefix = (firstName && lastName)
+        ? `${firstName}_${lastName}`
+        : firstName
+          ? firstName
+          : 'User';
+
+      const cleanUserPrefix = userPrefix.replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanCompanyForFile = targetCompany.replace(/[^a-zA-Z0-9]/g, '_');
       const cleanTitleForFile = jobTitle.replace(/[^a-zA-Z0-9]/g, '_');
-      const formattedResumeName = `Resume_${targetCompany.replace(/\s+/g, '_')}_${cleanTitleForFile}.pdf`;
+      const formattedResumeName = `${cleanUserPrefix}_${cleanCompanyForFile}_${cleanTitleForFile}.pdf`;
       const cleanResumeUri = `${FileSystem.documentDirectory}${formattedResumeName}`;
 
       const formattedHtml = `
@@ -829,6 +853,7 @@ export default function JobsScreen() {
 
       setPreviewResumeUri(cleanResumeUri);
       setPreviewResumeName(formattedResumeName);
+      setPreviewResumeHtml(formattedHtml);
       setPreviewCoverLetter(generatedCL);
 
       // Save tailored resume back to local Resumes list
@@ -1232,66 +1257,180 @@ export default function JobsScreen() {
                 <>
                   <View style={styles.divider} />
 
-                  <Text style={styles.inputLabel}>Select Resume to Apply</Text>
+                  <Text style={styles.inputLabel}>Resume to Apply</Text>
                   {resumesList.length === 0 ? (
-                    <Text style={styles.noResumesWarning}>
-                      No resumes found. Please generate or import a resume PDF first.
-                    </Text>
+                    <TouchableOpacity
+                      style={styles.noResumesBanner}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setSelectedJob(null);
+                        router.push('/resumes');
+                      }}
+                    >
+                      <Ionicons name="alert-circle-outline" size={20} color="#DC2626" />
+                      <Text style={styles.noResumesWarningText}>
+                        No resume found. Tap to add or set default resume.
+                      </Text>
+                    </TouchableOpacity>
                   ) : (
-                    <View style={styles.dropdownContainer}>
-                      {resumesList.map((r) => {
-                        const isSelected = String(r.id) === String(selectedResumeId);
-                        return (
-                          <TouchableOpacity
-                            key={r.id}
-                            style={[styles.dropdownItem, isSelected && styles.dropdownItemSelected]}
-                            onPress={() => setSelectedResumeId(String(r.id))}
-                          >
-                            <Ionicons
-                              name={isSelected ? "checkbox" : "square-outline"}
-                              size={18}
-                              color={isSelected ? "#7C3AED" : "#6B7280"}
-                              style={{ marginRight: 8 }}
-                            />
-                            <Text
-                              style={[styles.dropdownText, isSelected && styles.dropdownTextSelected]}
-                              numberOfLines={1}
-                            >
-                              {r.name}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
+                    <View style={styles.defaultResumeCard}>
+                      <View style={styles.defaultResumeHeaderRow}>
+                        <View style={styles.defaultBadgePill}>
+                          <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
+                          <Text style={styles.defaultBadgeText}>Default Resume</Text>
+                        </View>
+
+                        <TouchableOpacity
+                          activeOpacity={0.7}
+                          onPress={() => {
+                            setSelectedJob(null);
+                            router.push('/resumes');
+                          }}
+                        >
+                          <Text style={styles.changeResumeLinkText}>Change in Profile →</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={styles.defaultResumeFileRow}>
+                        <Ionicons name="document-text" size={20} color="#7C3AED" />
+                        <Text style={styles.defaultResumeFileName} numberOfLines={1}>
+                          {resumesList.find(r => String(r.id) === String(selectedResumeId))?.name || resumesList[0]?.name || 'Default Resume'}
+                        </Text>
+                      </View>
                     </View>
                   )}
                   
                   {previewResumeUri && previewCoverLetter ? (
                     <View style={styles.previewLinksContainer}>
                       <Text style={styles.previewLinksTitle}>AI Matched Documents</Text>
-                      <View style={styles.previewLinksRow}>
+
+                      {/* Segmented Tab Buttons */}
+                      <View style={styles.inlineTabRow}>
                         <TouchableOpacity
-                          style={styles.previewLinkBtn}
-                          onPress={() => {
-                            setPreviewTab('resume');
-                            setShowMatchPreviewModal(true);
-                          }}
+                          style={[
+                            styles.inlineTabBtn,
+                            previewTab === 'resume' && styles.inlineTabBtnActive,
+                          ]}
+                          activeOpacity={0.8}
+                          onPress={() => setPreviewTab('resume')}
                         >
-                          <Ionicons name="document-text" size={20} color="#7C3AED" />
-                          <Text style={styles.previewLinkBtnText}>Tailored Resume</Text>
-                          <Ionicons name="eye-outline" size={14} color="#6B7280" style={{ marginLeft: 'auto' }} />
+                          <Ionicons
+                            name="document-text"
+                            size={16}
+                            color={previewTab === 'resume' ? '#7C3AED' : '#64748B'}
+                          />
+                          <Text
+                            style={[
+                              styles.inlineTabText,
+                              previewTab === 'resume' && styles.inlineTabTextActive,
+                            ]}
+                          >
+                            Tailored Resume
+                          </Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                          style={styles.previewLinkBtn}
-                          onPress={() => {
-                            setPreviewTab('cover_letter');
-                            setShowMatchPreviewModal(true);
-                          }}
+                          style={[
+                            styles.inlineTabBtn,
+                            previewTab === 'cover_letter' && styles.inlineTabBtnActive,
+                          ]}
+                          activeOpacity={0.8}
+                          onPress={() => setPreviewTab('cover_letter')}
                         >
-                          <Ionicons name="mail" size={20} color="#7C3AED" />
-                          <Text style={styles.previewLinkBtnText}>Cover Letter</Text>
-                          <Ionicons name="eye-outline" size={14} color="#6B7280" style={{ marginLeft: 'auto' }} />
+                          <Ionicons
+                            name="mail"
+                            size={16}
+                            color={previewTab === 'cover_letter' ? '#7C3AED' : '#64748B'}
+                          />
+                          <Text
+                            style={[
+                              styles.inlineTabText,
+                              previewTab === 'cover_letter' && styles.inlineTabTextActive,
+                            ]}
+                          >
+                            Cover Letter
+                          </Text>
                         </TouchableOpacity>
+                      </View>
+
+                      {/* Inline Preview Content Box */}
+                      <View style={styles.inlinePreviewBox}>
+                        {previewTab === 'resume' ? (
+                          <View style={{ flex: 1 }}>
+                            {/* Top Bar for Resume */}
+                            <View style={styles.inlinePreviewHeader}>
+                              <Text style={styles.inlinePreviewTitleText} numberOfLines={1}>
+                                {previewResumeName}
+                              </Text>
+                              <TouchableOpacity
+                                style={styles.openPdfHeaderBtn}
+                                activeOpacity={0.8}
+                                onPress={handleViewTailoredResume}
+                              >
+                                <Ionicons name="open-outline" size={14} color="#7C3AED" />
+                                <Text style={styles.openPdfHeaderBtnText}>Full PDF</Text>
+                              </TouchableOpacity>
+                            </View>
+
+                            {/* WebView Embedded Resume Preview */}
+                            <View style={{ height: 260, borderRadius: 10, overflow: 'hidden', marginTop: 8 }}>
+                              <WebView
+                                originWhitelist={['*']}
+                                source={{
+                                  html: previewResumeHtml || `
+                                    <html>
+                                      <head>
+                                        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                                        <style>
+                                          body { font-family: -apple-system, sans-serif; padding: 15px; color: #1E293B; line-height: 1.4; background: #FFFFFF; }
+                                          h1 { color: #7C3AED; font-size: 18px; margin-bottom: 4px; }
+                                          h2 { color: #475569; font-size: 13px; margin-top: 12px; border-bottom: 1.5px solid #7C3AED; padding-bottom: 3px; }
+                                          p { font-size: 12px; margin: 6px 0; }
+                                          li { font-size: 11px; margin-bottom: 3px; }
+                                        </style>
+                                      </head>
+                                      <body>
+                                        <h1>Tailored Resume</h1>
+                                        <p>Position: <strong>${selectedJob?.title || 'Job Application'}</strong></p>
+                                        <h2>Summary & Keywords</h2>
+                                        <p>ATS matched skills, experience highlights, and target keywords tailored for ${selectedJob?.companyName || 'this job'}.</p>
+                                      </body>
+                                    </html>
+                                  `
+                                }}
+                                style={{ flex: 1 }}
+                                scalesPageToFit={true}
+                              />
+                            </View>
+                          </View>
+                        ) : (
+                          <View style={{ flex: 1 }}>
+                            {/* Top Bar for Cover Letter */}
+                            <View style={styles.inlinePreviewHeader}>
+                              <Text style={styles.inlinePreviewTitleText}>Matched Cover Letter</Text>
+                              <TouchableOpacity
+                                style={styles.copyBtn}
+                                activeOpacity={0.8}
+                                onPress={() => {
+                                  Alert.alert('Copied!', 'Cover Letter text copied to clipboard.');
+                                }}
+                              >
+                                <Ionicons name="copy-outline" size={14} color="#7C3AED" />
+                                <Text style={styles.copyBtnText}>Copy Text</Text>
+                              </TouchableOpacity>
+                            </View>
+
+                            {/* Editable Scrollable TextInput for Cover Letter */}
+                            <TextInput
+                              style={styles.inlineCoverLetterInput}
+                              multiline={true}
+                              value={previewCoverLetter}
+                              onChangeText={setPreviewCoverLetter}
+                              textAlignVertical="top"
+                              placeholder="Write cover letter..."
+                            />
+                          </View>
+                        )}
                       </View>
                     </View>
                   ) : null}
@@ -1321,11 +1460,11 @@ export default function JobsScreen() {
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity
-                    style={[styles.modalSubmitBtn, (isSubmitting || resumesList.length === 0) && styles.modalSubmitBtnDisabled]}
+                    style={[styles.modalSubmitBtn, (isSubmitting || isMatchingWithAI || resumesList.length === 0) && styles.modalSubmitBtnDisabled]}
                     onPress={handleStartAiMatch}
-                    disabled={isSubmitting || resumesList.length === 0}
+                    disabled={isSubmitting || isMatchingWithAI || resumesList.length === 0}
                   >
-                    {isSubmitting ? (
+                    {(isSubmitting || isMatchingWithAI) ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
                       <>
@@ -1525,15 +1664,50 @@ export default function JobsScreen() {
                   />
                 </View>
               ) : (
-                <View style={styles.resumePreviewCard}>
-                  <Ionicons name="document-text" size={64} color="#7C3AED" style={{ marginBottom: 16 }} />
-                  <Text style={styles.resumePreviewName}>{previewResumeName}</Text>
-                  <Text style={styles.resumePreviewDesc}>
-                    This tailored PDF resume has been optimized with target keywords matching the "{selectedJob?.title}" description.
-                  </Text>
-                  <View style={styles.badgeRow}>
-                    <View style={styles.keywordBadge}><Text style={styles.keywordBadgeText}>Keywords Optimized</Text></View>
-                    <View style={styles.keywordBadge}><Text style={styles.keywordBadgeText}>ATS Checked</Text></View>
+                <View style={styles.resumePreviewContainer}>
+                  <View style={styles.resumePreviewTopBar}>
+                    <Text style={styles.resumePreviewNameText} numberOfLines={1}>
+                      {previewResumeName}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.openPdfHeaderBtn}
+                      activeOpacity={0.8}
+                      onPress={handleViewTailoredResume}
+                    >
+                      <Ionicons name="open-outline" size={15} color="#7C3AED" />
+                      <Text style={styles.openPdfHeaderBtnText}>Full PDF</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.webViewWrapper}>
+                    <WebView
+                      originWhitelist={['*']}
+                      source={{
+                        html: previewResumeHtml || `
+                          <html>
+                            <head>
+                              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                              <style>
+                                body { font-family: -apple-system, Helvetica, Arial, sans-serif; padding: 20px; color: #1E293B; line-height: 1.5; background: #FFFFFF; }
+                                h1 { color: #7C3AED; font-size: 20px; margin-bottom: 4px; font-weight: 800; }
+                                h2 { color: #475569; font-size: 14px; margin-top: 16px; border-bottom: 2px solid #7C3AED; padding-bottom: 4px; font-weight: 700; }
+                                p { font-size: 13px; margin: 8px 0; }
+                                ul { padding-left: 18px; margin: 6px 0; }
+                                li { font-size: 12px; margin-bottom: 4px; color: #334155; }
+                              </style>
+                            </head>
+                            <body>
+                              <h1>Tailored Resume</h1>
+                              <p>Optimized for position: <strong>${selectedJob?.title || 'Job Application'}</strong> at <strong>${selectedJob?.companyName || 'Employer'}</strong></p>
+                              <h2>Summary & Key Qualifications</h2>
+                              <p>ATS matched skills, experience highlights, and target keywords tailored for this job.</p>
+                            </body>
+                          </html>
+                        `
+                      }}
+                      style={{ flex: 1, backgroundColor: '#FFFFFF' }}
+                      scalesPageToFit={true}
+                    />
                   </View>
                 </View>
               )}
@@ -2336,27 +2510,238 @@ const styles = StyleSheet.create({
   },
   previewLinksRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   previewLinkBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#F3F4F6',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    gap: 8,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    gap: 6,
   },
   previewLinkBtnText: {
+    flex: 1,
     fontSize: 12,
     fontWeight: '700',
     color: '#1F2937',
   },
+  openPdfBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#7C3AED',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    marginVertical: 14,
+    width: '100%',
+  },
+  openPdfBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  resumePreviewContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  resumePreviewTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  resumePreviewNameText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginRight: 8,
+  },
+  openPdfHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  openPdfHeaderBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7C3AED',
+  },
+  webViewWrapper: {
+    flex: 1,
+    minHeight: 280,
+  },
   modalApplyNowBtn: {
     backgroundColor: '#10B981',
+  },
+  inlineTabRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
+  },
+  inlineTabBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  inlineTabBtnActive: {
+    backgroundColor: '#F3E8FF',
+    borderColor: '#7C3AED',
+  },
+  inlineTabText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  inlineTabTextActive: {
+    color: '#7C3AED',
+  },
+  inlinePreviewBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    minHeight: 220,
+    marginBottom: 14,
+  },
+  inlinePreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  inlinePreviewTitleText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginRight: 8,
+  },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  copyBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7C3AED',
+  },
+  inlineCoverLetterInput: {
+    minHeight: 180,
+    maxHeight: 260,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  defaultResumeCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    marginBottom: 14,
+  },
+  defaultResumeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  defaultBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#16A34A',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  defaultBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  changeResumeLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7C3AED',
+  },
+  defaultResumeFileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  defaultResumeFileName: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  noResumesBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    marginBottom: 14,
+  },
+  noResumesWarningText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B91C1C',
+    flex: 1,
   },
 });
 
