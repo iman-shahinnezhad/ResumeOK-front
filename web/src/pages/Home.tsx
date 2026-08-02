@@ -1,145 +1,433 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Sparkles, ChevronRight, Zap } from 'lucide-react';
 import useSEO from '../hooks/useSEO';
+
+// Import exact design assets
+import webHome from '../assets/web-home.png';
+import webHome2 from '../assets/web-home2.png';
+import webHome3 from '../assets/web-home3.png';
+import webHome4 from '../assets/web-home4.png';
+import webHome5 from '../assets/web-home5.png';
+import webHome6 from '../assets/web-home6.png';
+import webHome7 from '../assets/web-home7.png';
+import webHome8 from '../assets/web-home8.png';
+import webHome9 from '../assets/web-home9.png';
+import webHome11 from '../assets/web-home11.png';
+import webHome12 from '../assets/web-home12.png';
+import webHome13 from '../assets/web-home13.png';
+import webHome14 from '../assets/web-home14.png';
+import webHome15 from '../assets/web-home15.png';
+import webHome16 from '../assets/web-home16.png';
+import webHome17 from '../assets/web-home17.png';
 
 export default function Home() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab2, setActiveTab2] = useState(0);
+
   useSEO(
-    "Dashboard - AI Resume Builder & ATS Matcher",
-    "Analyze, optimize, and build ATS-friendly resumes and cover letters using Google Gemini AI, 100% privately."
+    "ResumeOK - Land Interviews 6x Faster",
+    "AI that reads job posts like a recruiter — matches your real skills, tailors every resume, and auto-applies only where you're a genuine fit."
   );
 
+  const tabData = [
+    {
+      title: "Smart Match",
+      desc: "Stop scrolling through hundreds of irrelevant listings. Our AI filters 8M+ jobs down to the ones that actually match your experience, skills, and career trajectory — with zero fake postings or expired links.",
+      linkText: "Explore Smart Match",
+      path: "/match",
+      image: webHome4
+    },
+    {
+      title: "AI Resume Builder",
+      desc: "Generate a role-specific resume in seconds. The AI analyzes each job description, highlights your most relevant experience, optimizes for ATS parsing, and formats it professionally — so you stand out in the first 6-second scan.",
+      linkText: "Explore AI Resume Builder",
+      path: "/build",
+      image: webHome6
+    },
+    {
+      title: "Hands-free Auto Apply",
+      desc: "Set your preferences once and let AI handle the rest. It applies to matching roles daily, tailoring each submission — saving you 10+ hours a week of repetitive form-filling.",
+      linkText: "Explore Auto Apply",
+      path: "/jobs",
+      image: webHome17
+    }
+  ];
+
+  const tabData2 = [
+    {
+      title: "Insider Referrals",
+      desc: "Discover alumni, mutual connections, and hiring managers at your target companies. Get warm introductions that increase your interview chances by 4x — no cold outreach required.",
+      linkText: "Build connections",
+      path: "/tasks",
+      image: webHome4
+    },
+    {
+      title: "Interview Intelligence",
+      desc: "Get company-specific interview questions, salary benchmarks, and hiring timeline insights pulled from real candidate data — so you walk in prepared, not guessing.",
+      linkText: "Prep smarter",
+      path: "/audit",
+      image: webHome13
+    },
+    {
+      title: "Application Tracker",
+      desc: "See every application in one dashboard — status updates, response rates, follow-up reminders, and insights on which strategies are landing you interviews. No more spreadsheet chaos.",
+      linkText: "Track applications",
+      path: "/jobs",
+      image: webHome17
+    }
+  ];
+
   return (
-    <div className="container animate-fade-in">
-      {/* Hero Header */}
-      <header className="hero-section">
-        <div className="hero-tag">
-          <Sparkles className="inline-block w-4 h-4 mr-1.5 align-middle animate-pulse" />
-          AI-Powered Career Assistant
-        </div>
-        <h1 className="hero-title">
-          Optimize Your Resume.<br />
-          <span className="gradient-text">Land Your Dream Job.</span>
-        </h1>
-        <p className="hero-subtitle">
-          ResumeOK analyzes, tailors, and builds ATS-optimized resumes and cover letters in seconds, 100% privately.
-        </p>
-      </header>
-
-      {/* Grid Dashboard */}
-      <div className="dashboard-grid">
-        {/* Match Resume */}
-        <div className="tool-card tool-card-glow-blue">
-          <div>
-            <div className="tool-badge" style={{ backgroundColor: 'rgba(79, 70, 229, 0.15)', color: '#a5b4fc', border: '1px solid rgba(79, 70, 229, 0.25)' }}>
-              10 Credits / Scan
-            </div>
-            <h2 className="tool-title">Match Resume</h2>
-            <p className="tool-desc">
-              Paste a job post URL and compare it against your resume. Get a matching score, list of keywords, and actionable rewrite recommendations.
-            </p>
+    <div className="figma-landing">
+      {/* 1. Hero Section (Pixel Perfect Match) */}
+      <section className="figma-hero-section">
+        <div className="figma-hero-grid">
+          {/* Left Title Column */}
+          <div className="figma-hero-left">
+            <h1 className="figma-hero-headline">
+              Land interviews 6x faster.<br />
+              Zero guesswork.
+            </h1>
           </div>
-          <div className="tool-card-footer">
-            <button className="btn btn-primary" onClick={() => navigate('/match')}>
-              Start Matching
-              <ChevronRight className="w-4 h-4 ml-1" />
+
+          {/* Right Subtitle & CTA Column */}
+          <div className="figma-hero-right">
+            <p className="figma-hero-desc">
+              AI that reads job posts like a recruiter — matches your real skills, tailors every resume, and auto-applies only where you're a genuine fit.
+            </p>
+            <button className="figma-btn-hero-cta" onClick={() => navigate('/match')}>
+              Start applying smarter
             </button>
           </div>
         </div>
 
-        {/* Build Resume */}
-        <div className="tool-card tool-card-glow-purple">
-          <div>
-            <div className="tool-badge" style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#a7f3d0', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-              Free & Unlimited
-            </div>
-            <h2 className="tool-title">Resume Builder</h2>
-            <p className="tool-desc">
-              Create a modern, clean, and ATS-friendly resume from scratch using our step-by-step wizard. Add experiences, education, and export instantly.
-            </p>
+        {/* Hero Demo Screenshot Frame Box */}
+        <div className="figma-hero-banner-container">
+          <img src={webHome6} alt="ResumeOK AI Workflow Mockup" className="figma-hero-banner-img" />
+        </div>
+      </section>
+
+      {/* 2. Verified Jobs Logos Ticker Section */}
+      <section className="figma-logos-section">
+        <div className="figma-logos-header">
+          8M+ VERIFIED JOBS. UPDATED EVERY HOUR.
+        </div>
+        <div className="figma-logos-container">
+          <img src={webHome9} alt="Top Companies Hiring" className="figma-logos-img" />
+        </div>
+      </section>
+
+      {/* 3. Note From Our CEO Section (Exact 3-Column Figma Design) */}
+      <section className="figma-ceo-section">
+        <div className="figma-ceo-col-label">
+          <span className="figma-ceo-label">Note From Our CEO</span>
+        </div>
+        <div className="figma-ceo-col-quote">
+          <p className="figma-ceo-quote">
+            “With <span className="quote-highlight-orange">Most job boards blast your resume everywhere and call it progress.</span> We built something different — an AI that actually understands what makes you a strong candidate and only puts you forward when there's a real match. Quality applications, not quantity.”
+          </p>
+          <div className="figma-ceo-author">
+            <div className="figma-ceo-name">Saman Kazempour</div>
+            <div className="figma-ceo-title">CEO of ResumeOK</div>
           </div>
-          <div className="tool-card-footer">
-            <button className="btn btn-primary" style={{ backgroundColor: '#10b981' }} onClick={() => navigate('/build')}>
-              Create Resume
-              <ChevronRight className="w-4 h-4 ml-1" />
+        </div>
+        <div className="figma-ceo-col-image">
+          <img src={webHome2} alt="Saman Kazempour - CEO of ResumeOK" className="figma-ceo-img" />
+        </div>
+      </section>
+
+      {/* 4. Full Width Cream Banner Section */}
+      <section className="figma-fullwidth-banner">
+        <div className="figma-fullwidth-banner-inner">
+          <h2 className="figma-fullwidth-title">
+            No fluff. No fake listings. Just the tools that<br />
+            actually get you hired.
+          </h2>
+          <div className="figma-fullwidth-graphic">
+            <img src={webHome12} alt="Glass Sphere Graphic" className="figma-glass-sphere-img" />
+          </div>
+        </div>
+      </section>
+
+      {/* 5. AI Reads Job Post Feature Section (2 Columns, Full Width Background) */}
+      <section className="figma-ai-read-section">
+        <div className="figma-ai-read-inner">
+          {/* Left Column */}
+          <div className="figma-ai-read-left">
+            <div className="figma-ai-read-text-box">
+              <h2 className="figma-ai-read-title">
+                AI that actually reads the job post
+              </h2>
+              <p className="figma-ai-read-desc">
+                Our AI doesn't just keyword-match — it understands role context, seniority signals, and hidden requirements. You see jobs you're genuinely qualified for, ranked by real fit score, with early alerts before the applicant flood.
+              </p>
+            </div>
+            <div className="figma-ai-read-small-card">
+              <img src={webHome3} alt="What To Put On Your Resume When You Have No Experience" className="figma-ai-read-small-img" />
+            </div>
+          </div>
+
+          {/* Right Column */}
+          <div className="figma-ai-read-right">
+            <img src={webHome4} alt="AI Job Reading Interface" className="figma-ai-read-large-img" />
+          </div>
+        </div>
+      </section>
+
+      {/* 6. Dual Feature Cards Section (Full Width Background, 2 Cards) */}
+      <section className="figma-dual-features-section">
+        <div className="figma-dual-features-inner">
+          {/* Left Feature Card */}
+          <div className="figma-feature-box">
+            <div className="figma-feature-box-media">
+              <img src={webHome17} alt="One-click apply AI conversation summary" className="figma-feature-box-img" />
+            </div>
+            <div className="figma-feature-box-content">
+              <h3 className="figma-feature-box-title">
+                One-click apply that doesn't cut corners
+              </h3>
+              <p className="figma-feature-box-desc">
+                Auto-fill applications across every major job board and ATS. But unlike bulk-spray tools, each submission is tailored — your resume, cover letter, and answers adapted to what that specific role actually asks for.
+              </p>
+              <button className="figma-btn-feature-box" onClick={() => navigate('/jobs')}>
+                Find your dream job
+              </button>
+            </div>
+          </div>
+
+          {/* Right Feature Card */}
+          <div className="figma-feature-box">
+            <div className="figma-feature-box-media">
+              <img src={webHome13} alt="Topics Explorer ATS Resume Scoring" className="figma-feature-box-img" />
+            </div>
+            <div className="figma-feature-box-content">
+              <h3 className="figma-feature-box-title">
+                Resume scoring that thinks like a recruiter
+              </h3>
+              <p className="figma-feature-box-desc">
+                Get an instant breakdown of how your resume stacks up against each job post. See exactly what's missing, what's strong, and get AI rewrites that close the gap — before you hit apply.
+              </p>
+              <button className="figma-btn-feature-box" onClick={() => navigate('/audit')}>
+                Find your dream job
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. AI Career Copilot Section (Pure White Background, 2 Columns) */}
+      <section className="figma-copilot-section">
+        {/* Left Column (Centered Content) */}
+        <div className="figma-copilot-left">
+          <span className="figma-copilot-tag">AI CAREER COPILOT</span>
+          <h2 className="figma-copilot-title">
+            Your personal<br />
+            hiring strategist
+          </h2>
+          <div className="figma-copilot-orb-box">
+            <img src={webHome11} alt="AI Sphere Orb" className="figma-copilot-orb-img" />
+          </div>
+          <p className="figma-copilot-desc">
+            More than a chatbot — a career copilot that tracks your applications, preps you for interviews, and learns your strengths, goals and preferences over time Available 24/7 — like having a recruiter in your pocket.
+          </p>
+          <button className="figma-btn-copilot" onClick={() => navigate('/match')}>
+            Meet your copilot
+          </button>
+        </div>
+
+        {/* Right Column (Sharp Art Image) */}
+        <div className="figma-copilot-right">
+          <img src={webHome} alt="AI Career Copilot Illustration" className="figma-copilot-art-img" />
+        </div>
+      </section>
+
+      {/* 8. Complete Toolkit Header Section (Exact Figma Design) */}
+      <section className="figma-toolkit-section">
+        {/* Left Content */}
+        <div className="figma-toolkit-left">
+          <h2 className="figma-toolkit-title">
+            <span className="figma-toolkit-title-light">A complete toolkit</span><br />
+            <span className="figma-toolkit-title-dark">for modern job seekers</span>
+          </h2>
+          <p className="figma-toolkit-desc">
+            Everything you need in one place — from smart job discovery and AI resume building to application tracking, interview prep, and insider referrals. No switching between ten different tools.
+          </p>
+          <div className="figma-toolkit-buttons">
+            <button className="btn-figma-black" onClick={() => navigate('/match')}>
+              Get started free
+            </button>
+            <button className="btn-figma-outline" onClick={() => navigate('/jobs')}>
+              See it in action
             </button>
           </div>
         </div>
 
-        {/* Cover Letter */}
-        <div className="tool-card tool-card-glow-purple">
-          <div>
-            <div className="tool-badge" style={{ backgroundColor: 'rgba(79, 70, 229, 0.15)', color: '#a5b4fc', border: '1px solid rgba(79, 70, 229, 0.25)' }}>
-              10 Credits / Gen
-            </div>
-            <h2 className="tool-title">Generate Cover Letter</h2>
-            <p className="tool-desc">
-              Generate highly personalized cover letters matching the requirements of any job description. Completely tailored to your experience.
-            </p>
+        {/* Right Flying Birds Graphic */}
+        <div className="figma-toolkit-right">
+          <img src={webHome7} alt="Flying Birds Illustration" className="figma-toolkit-birds-img" />
+        </div>
+      </section>
+
+      {/* 9. Interactive 3-Tab Feature Section 1 */}
+      <section className="figma-tabs-section">
+        <h2 className="figma-tabs-section-title">Find roles worth applying to</h2>
+
+        <div className="figma-tabs-grid">
+          {/* Left Column: Sharp Image directly adjacent */}
+          <div className="figma-tabs-media">
+            <img 
+              src={tabData[activeTab].image} 
+              alt={tabData[activeTab].title} 
+              className="figma-tabs-img" 
+            />
           </div>
-          <div className="tool-card-footer">
-            <button className="btn btn-primary" onClick={() => navigate('/cover-letter')}>
-              Write Cover Letter
-              <ChevronRight className="w-4 h-4 ml-1" />
+
+          {/* Right Column: 3 Interactive Tabs */}
+          <div className="figma-tabs-list">
+            {tabData.map((tab, idx) => {
+              const isActive = activeTab === idx;
+              return (
+                <div 
+                  key={idx} 
+                  className={`figma-tab-item ${isActive ? 'figma-tab-active' : ''}`}
+                  onClick={() => setActiveTab(idx)}
+                >
+                  <div className="figma-tab-header">
+                    <span className="figma-tab-blue-square">■</span>
+                    <h3 className="figma-tab-title">{tab.title}</h3>
+                  </div>
+                  <p className="figma-tab-desc">{tab.desc}</p>
+                  {isActive && (
+                    <button 
+                      className="figma-tab-link-btn" 
+                      onClick={(e) => { e.stopPropagation(); navigate(tab.path); }}
+                    >
+                      {tab.linkText}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 10. Interactive 3-Tab Feature Section 2 (Get Inside Access) */}
+      <section className="figma-tabs-section">
+        <h2 className="figma-toolkit-title" style={{ marginBottom: '36px' }}>
+          <span className="figma-toolkit-title-dark">Get inside access</span><br />
+          <span className="figma-toolkit-title-light">to the companies you want</span>
+        </h2>
+
+        <div className="figma-tabs-grid">
+          {/* Left Column: Sharp Image directly adjacent */}
+          <div className="figma-tabs-media">
+            <img 
+              src={tabData2[activeTab2].image} 
+              alt={tabData2[activeTab2].title} 
+              className="figma-tabs-img" 
+            />
+          </div>
+
+          {/* Right Column: 3 Interactive Tabs */}
+          <div className="figma-tabs-list">
+            {tabData2.map((tab, idx) => {
+              const isActive = activeTab2 === idx;
+              return (
+                <div 
+                  key={idx} 
+                  className={`figma-tab-item ${isActive ? 'figma-tab-active' : ''}`}
+                  onClick={() => setActiveTab2(idx)}
+                >
+                  <div className="figma-tab-header">
+                    <span className="figma-tab-blue-square">■</span>
+                    <h3 className="figma-tab-title">{tab.title}</h3>
+                  </div>
+                  <p className="figma-tab-desc">{tab.desc}</p>
+                  {isActive && (
+                    <button 
+                      className="figma-tab-link-btn" 
+                      onClick={(e) => { e.stopPropagation(); navigate(tab.path); }}
+                    >
+                      {tab.linkText}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 11. Testimonial Banner 2 */}
+      <section className="figma-testimonial-banner" style={{ marginTop: '80px' }}>
+        <div className="figma-testimonial-left">
+          <span className="figma-label-sm">TESTIMONIAL</span>
+          <p className="figma-quote">
+            “I was skeptical about AI resume tools until ResumeOK helped me land 4 interviews in 1 week after 3 months of rejection.”
+          </p>
+          <div className="figma-signature">Sarah Jenkins — Product Designer</div>
+        </div>
+        <div className="figma-testimonial-right">
+          <img src={webHome5} alt="Sarah Jenkins" className="figma-author-img" />
+        </div>
+      </section>
+
+      {/* 12. Honest Pricing */}
+      <section className="figma-pricing-section">
+        <h2 className="figma-section-title" style={{ textAlign: 'center', marginBottom: '32px' }}>
+          Simple, honest pricing
+        </h2>
+
+        <div className="figma-pricing-card">
+          <div className="figma-pricing-bg">
+            <img src={webHome8} alt="Background Pattern" className="figma-pricing-pattern" />
+          </div>
+          <div className="figma-pricing-content">
+            <span className="figma-label-sm">PRO PLAN</span>
+            <div className="figma-price-amount">$12 <span className="figma-price-period">/ mo</span></div>
+            <p className="figma-price-subtext">Unlimited ATS Scans, Tailored Resumes & Cover Letters</p>
+            <button className="figma-btn-dark" style={{ width: '100%', marginTop: '24px' }} onClick={() => navigate('/pricing')}>
+              Get Started
             </button>
           </div>
         </div>
+      </section>
 
-        {/* Library */}
-        <div className="tool-card tool-card-glow-blue">
-          <div>
-            <div className="tool-badge" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', color: '#ffffff', border: '1px solid var(--dark-border)' }}>
-              Your Documents
+      {/* 13. Partner & Security Footer Cards */}
+      <section className="figma-partner-section">
+        <h2 className="figma-section-title" style={{ marginBottom: '16px' }}>
+          More than a tool —<br />
+          your job search partner
+        </h2>
+
+        <div className="figma-partner-grid">
+          <div className="figma-partner-card">
+            <img src={webHome14} alt="Security Certifications" className="figma-partner-img" />
+            <div className="figma-partner-footer">
+              <span className="figma-partner-title">Security & Compliance</span>
+              <button className="figma-arrow-btn">→</button>
             </div>
-            <h2 className="tool-title">Document Library</h2>
-            <p className="tool-desc">
-              Access all your uploaded resumes, built resumes, and generated cover letters. Manage, preview, share, or delete documents anytime.
-            </p>
           </div>
-          <div className="tool-card-footer">
-            <button className="btn btn-secondary" onClick={() => navigate('/library')}>
-              Open Library
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </button>
+
+          <div className="figma-partner-card">
+            <img src={webHome15} alt="100% Data Privacy" className="figma-partner-img" />
+            <div className="figma-partner-footer">
+              <span className="figma-partner-title">100% Data Privacy</span>
+              <button className="figma-arrow-btn">→</button>
+            </div>
+          </div>
+
+          <div className="figma-partner-card">
+            <img src={webHome16} alt="ATS Compatible" className="figma-partner-img" />
+            <div className="figma-partner-footer">
+              <span className="figma-partner-title">ATS Blueprint Certified</span>
+              <button className="figma-arrow-btn">→</button>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Feature stats list */}
-      <div className="card" style={{ marginBottom: '80px', padding: '40px' }}>
-        <h3 className="card-title" style={{ fontSize: '22px', justifyContent: 'center', marginBottom: '24px' }}>
-          Why Professionals Trust ResumeOK
-        </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '32px', textAlign: 'left' }}>
-          <div>
-            <div style={{ color: '#10b981', marginBottom: '12px' }}>
-              <Shield className="w-8 h-8" />
-            </div>
-            <h4 style={{ color: '#fff', fontSize: '16px', fontWeight: '700', marginBottom: '8px' }}>100% Private</h4>
-            <p style={{ color: 'var(--dark-text-secondary)', fontSize: '13.5px' }}>
-              Your files and personal details are processed locally and are never stored permanently on our servers.
-            </p>
-          </div>
-          <div>
-            <div style={{ color: '#3b82f6', marginBottom: '12px' }}>
-              <Zap className="w-8 h-8" />
-            </div>
-            <h4 style={{ color: '#fff', fontSize: '16px', fontWeight: '700', marginBottom: '8px' }}>ATS Compatible</h4>
-            <p style={{ color: 'var(--dark-text-secondary)', fontSize: '13.5px' }}>
-              Export clean vector layout PDF documents that ATS platforms can parse and scan successfully.
-            </p>
-          </div>
-          <div>
-            <div style={{ color: '#f59e0b', marginBottom: '12px' }}>
-              <Sparkles className="w-8 h-8" />
-            </div>
-            <h4 style={{ color: '#fff', fontSize: '16px', fontWeight: '700', marginBottom: '8px' }}>AI-Powered Insights</h4>
-            <p style={{ color: 'var(--dark-text-secondary)', fontSize: '13.5px' }}>
-              Utilizes state-of-the-art Large Language Models to identify job qualification gaps and recommend exact fixes.
-            </p>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }

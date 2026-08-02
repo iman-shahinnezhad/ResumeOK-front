@@ -404,12 +404,19 @@ export default function JobsScreen() {
     setCurrentIndex(0);
   }, [filteredJobs]);
 
-  const viewJobDetails = (job: GreenhouseJob) => {
-    setSelectedJob(job);
-    setJobDetailsHtml(job.content || "No description provided.");
-    setPreviewResumeUri('');
-    setPreviewResumeName('');
-    setPreviewCoverLetter('');
+  const viewJobDetails = async (job: GreenhouseJob) => {
+    try {
+      const storedPath = `${FileSystem.documentDirectory}cached_current_job.json`;
+      await FileSystem.writeAsStringAsync(storedPath, JSON.stringify(job));
+    } catch (e) {}
+
+    router.push({
+      pathname: '/job-details',
+      params: {
+        id: String(job.id),
+        jobJson: JSON.stringify(job),
+      },
+    });
   };
 
   const stripHtml = (html: string) => {
