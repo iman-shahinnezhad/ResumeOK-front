@@ -32,11 +32,11 @@ export default function App() {
   const [bannerVisible, setBannerVisible] = useState(true);
 
   // Authentication State
-  const [user, setUser] = useState<{ 
-    id: string; 
-    name: string; 
-    email?: string; 
-    avatar?: string; 
+  const [user, setUser] = useState<{
+    id: string;
+    name: string;
+    email?: string;
+    avatar?: string;
     credit: number;
     plan?: string;
   } | null>(null);
@@ -97,73 +97,114 @@ export default function App() {
           </div>
         )}
 
-        {/* 2. Top Navigation Bar (Figma Exact Parity) */}
+        {/* 2. Top Navigation Bar */}
         <nav className="navbar no-print">
-          <div className="nav-container-figma">
-            {/* Logo */}
-            <Link to="/" className="figma-brand-logo" onClick={() => setMenuOpen(false)}>
-              Resume<span>OK</span>
-            </Link>
+          <div className="nav-container-resumeok">
+            <div className="nav-brand-group">
+              {/* Logo */}
+              <Link to="/" className="resumeok-brand-logo" onClick={() => setMenuOpen(false)}>
+                ResumeOK
+              </Link>
 
-            {/* Left Nav Menu */}
-            <div className={`nav-links-left ${menuOpen ? 'nav-links-open' : ''}`}>
-              <NavLink to="/jobs" className={({ isActive }) => `figma-nav-item ${isActive ? 'active' : ''}`}>
-                Auto Apply
-              </NavLink>
-              <NavLink to="/build" className={({ isActive }) => `figma-nav-item ${isActive ? 'active' : ''}`}>
-                AI Resume Builder
-              </NavLink>
-              <NavLink to="/audit" className={({ isActive }) => `figma-nav-item ${isActive ? 'active' : ''}`}>
-                Resume Scoring
-              </NavLink>
-              <NavLink to="/jobs" className={({ isActive }) => `figma-nav-item ${isActive ? 'active' : ''}`}>
-                Job Board
-              </NavLink>
-              <div className="figma-dropdown-wrapper">
-                <span className="figma-nav-item">
-                  All Features <ChevronDown className="w-3.5 h-3.5 ml-1 inline-block" />
-                </span>
-                <div className="figma-dropdown-menu">
-                  <Link to="/match">Match Resume</Link>
-                  <Link to="/cover-letter">Cover Letter AI</Link>
-                  <Link to="/profile-sections">Profile Sections</Link>
-                  <Link to="/tasks">Earn Credits</Link>
-                  <Link to="/library">Library</Link>
+              {/* Desktop Left Nav Menu */}
+              <div className="nav-links-left desktop-only-flex">
+                <NavLink to="/jobs" className={({ isActive }) => `resumeok-nav-item ${isActive ? 'active' : ''}`}>
+                  Auto Apply
+                </NavLink>
+                <NavLink to="/build" className={({ isActive }) => `resumeok-nav-item ${isActive ? 'active' : ''}`}>
+                  AI Resume Builder
+                </NavLink>
+                <NavLink to="/audit" className={({ isActive }) => `resumeok-nav-item ${isActive ? 'active' : ''}`}>
+                  Resume Scoring
+                </NavLink>
+                <NavLink to="/jobs" className={({ isActive }) => `resumeok-nav-item ${isActive ? 'active' : ''}`}>
+                  Job Board
+                </NavLink>
+                <div className="resumeok-dropdown-wrapper">
+                  <span className="resumeok-nav-item">
+                    All Features <ChevronDown className="w-3 h-3 ml-0.5 inline-block opacity-75" />
+                  </span>
+                  <div className="resumeok-dropdown-menu">
+                    <Link to="/match">Match Resume</Link>
+                    <Link to="/cover-letter">Cover Letter AI</Link>
+                    <Link to="/profile-sections">Profile Sections</Link>
+                    <Link to="/tasks">Earn Credits</Link>
+                    <Link to="/library">Library</Link>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Nav Menu & CTAs */}
-            <div className="nav-links-right">
-              <Link to="/settings" className="figma-nav-item">About us</Link>
-              <Link to="/pricing" className="figma-nav-item">Pricing</Link>
-              <div className="figma-dropdown-wrapper">
-                <span className="figma-nav-item">
-                  Resources <ChevronDown className="w-3.5 h-3.5 ml-1 inline-block" />
+            {/* Desktop Right Nav Menu & CTAs */}
+            <div className="nav-links-right desktop-only-flex">
+              <Link to="/settings" className="resumeok-nav-item">About us</Link>
+              <Link to="/pricing" className="resumeok-nav-item">Pricing</Link>
+              <div className="resumeok-dropdown-wrapper">
+                <span className="resumeok-nav-item">
+                  Resources <ChevronDown className="w-3 h-3 ml-0.5 inline-block opacity-75" />
                 </span>
-                <div className="figma-dropdown-menu">
+                <div className="resumeok-dropdown-menu">
                   <Link to="/tasks">Daily Rewards</Link>
                   <Link to="/settings">Help & Support</Link>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <Link to="/login" className="btn-figma-black">
-                Sign up for free
-              </Link>
-              <Link to="/login" className="btn-figma-outline">
-                Log in <ArrowRight className="w-3.5 h-3.5 ml-1 inline-block" />
-              </Link>
-
-              <button 
-                className="nav-toggle-btn"
-                onClick={() => setMenuOpen(!menuOpen)}
-                aria-label="Toggle Menu"
-              >
-                {menuOpen ? <X className="w-6 h-6 text-black" /> : <Menu className="w-6 h-6 text-black" />}
-              </button>
+              {/* Action Buttons & Vertical Divider */}
+              <div className="resumeok-nav-actions">
+                <Link to="/login" className="btn-resumeok-black">
+                  Sign up for free
+                </Link>
+                <span className="resumeok-nav-divider"></span>
+                <Link to="/login" className="btn-resumeok-outline">
+                  Log in <ArrowRight className="w-3 h-3 ml-1 inline-block" />
+                </Link>
+              </div>
             </div>
+
+            {/* Mobile Hamburger Toggle Button */}
+            <button
+              className="nav-toggle-btn"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle Menu"
+            >
+              {menuOpen ? <X className="w-6 h-6 text-black" /> : <Menu className="w-6 h-6 text-black" />}
+            </button>
           </div>
+
+          {/* Professional Mobile Drawer Overlay Menu */}
+          {menuOpen && (
+            <div className="mobile-drawer-overlay no-print" onClick={() => setMenuOpen(false)}>
+              <div className="mobile-drawer-content" onClick={(e) => e.stopPropagation()}>
+                <div className="mobile-menu-section">
+                  <div className="mobile-menu-label">FEATURES</div>
+                  <Link to="/jobs" onClick={() => setMenuOpen(false)} className="mobile-nav-link">Auto Apply</Link>
+                  <Link to="/build" onClick={() => setMenuOpen(false)} className="mobile-nav-link">AI Resume Builder</Link>
+                  <Link to="/audit" onClick={() => setMenuOpen(false)} className="mobile-nav-link">Resume Scoring</Link>
+                  <Link to="/jobs" onClick={() => setMenuOpen(false)} className="mobile-nav-link">Job Board</Link>
+                  <Link to="/match" onClick={() => setMenuOpen(false)} className="mobile-nav-link">Match Resume</Link>
+                  <Link to="/cover-letter" onClick={() => setMenuOpen(false)} className="mobile-nav-link">Cover Letter AI</Link>
+                </div>
+
+                <div className="mobile-menu-section">
+                  <div className="mobile-menu-label">COMPANY & RESOURCES</div>
+                  <Link to="/settings" onClick={() => setMenuOpen(false)} className="mobile-nav-link">About us</Link>
+                  <Link to="/pricing" onClick={() => setMenuOpen(false)} className="mobile-nav-link">Pricing</Link>
+                  <Link to="/library" onClick={() => setMenuOpen(false)} className="mobile-nav-link">Library</Link>
+                  <Link to="/tasks" onClick={() => setMenuOpen(false)} className="mobile-nav-link">Daily Rewards</Link>
+                  <Link to="/settings" onClick={() => setMenuOpen(false)} className="mobile-nav-link">Help & Support</Link>
+                </div>
+
+                <div className="mobile-menu-actions">
+                  <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-resumeok-black full-w">
+                    Sign up for free
+                  </Link>
+                  <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-resumeok-outline full-w">
+                    Log in <ArrowRight className="w-3.5 h-3.5 ml-1 inline-block" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
         </nav>
 
         {/* Page Content Routes */}
@@ -182,13 +223,13 @@ export default function App() {
             <Route path="/library" element={<Library />} />
             <Route path="/login" element={<Login onLogin={handleLogin} API_URL={API_URL} />} />
             <Route path="/profile" element={<Profile user={user} setUser={setUser} token={token} credits={credits} API_URL={API_URL} />} />
-            <Route path="/pricing" element={<Pricing user={user} setUser={setUser} token={token} API_URL={API_URL} />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/checkout" element={<Checkout user={user} setUser={setUser} token={token} API_URL={API_URL} />} />
           </Routes>
         </div>
 
         {/* Footer */}
-        <footer className="figma-footer no-print">
+        <footer className="resumeok-footer no-print">
           <div className="container footer-content">
             <p className="footer-text">
               © {new Date().getFullYear()} ResumeOK. Built using Google Gemini AI, 100% Private.

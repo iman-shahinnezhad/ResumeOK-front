@@ -1,99 +1,68 @@
 import { useState } from 'react';
-import { Sparkles, Calendar, Users, Share2, Check } from 'lucide-react';
+import { Gift, CheckCircle, Share2, UserPlus, Star, Award } from 'lucide-react';
 import useSEO from '../hooks/useSEO';
 
 export default function Tasks() {
-  useSEO("Earn Credits & Daily Rewards", "Claim free AI credits daily by completing quick check-ins and referring friends.");
+  useSEO(
+    "Daily Rewards & AI Credits - ResumeOK",
+    "Complete quick daily tasks to earn free AI scanning and auto-apply credits."
+  );
 
-  const [claimedStreak, setClaimedStreak] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [claimed, setClaimed] = useState<{ [key: string]: boolean }>({});
 
-  const handleClaimStreak = () => {
-    setClaimedStreak(true);
-  };
+  const tasks = [
+    { id: 't1', title: 'Daily Check-in', reward: '+10 Credits', desc: 'Log in daily to claim free credits for resume scanning.', icon: Gift },
+    { id: 't2', title: 'Complete Candidate Profile', reward: '+25 Credits', desc: 'Fill out target roles, location preferences, and skills.', icon: UserPlus },
+    { id: 't3', title: 'Upload Active Resume', reward: '+20 Credits', desc: 'Upload your latest PDF resume to run Smart Match.', icon: Star },
+    { id: 't4', title: 'Invite a Colleague / Friend', reward: '+50 Credits', desc: 'Share your referral link with job seeking colleagues.', icon: Share2 }
+  ];
 
-  const handleCopyInvite = () => {
-    navigator.clipboard.writeText('https://resumeok.app/invite?ref=ALEX2026');
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+  const handleClaim = (id: string) => {
+    setClaimed({ ...claimed, [id]: true });
   };
 
   return (
-    <div className="container page-wrapper animate-fade-in">
-      <div className="page-header">
-        <div className="hero-tag" style={{ margin: '0 auto 16px' }}>
-          <Sparkles className="w-4 h-4 mr-1.5 text-amber-400" />
-          Free AI Credits
-        </div>
-        <h1 className="page-title">Daily Tasks & Rewards</h1>
-        <p className="page-subtitle">
-          Earn free ResumeOK AI credits by checking in daily, sharing with friends, or trying out new features.
+    <div className="resumeok-page-container">
+      <div className="resumeok-page-header">
+        <span className="resumeok-badge resumeok-badge-blue" style={{ marginBottom: '12px' }}>
+          <Award className="w-3.5 h-3.5" /> DAILY CANDIDATE REWARDS
+        </span>
+        <h1 className="resumeok-page-title">Earn Free AI Credits</h1>
+        <p className="resumeok-page-subtitle">
+          Complete simple daily candidate tasks to claim extra credits for resume auditing and auto-apply.
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
-        {/* Daily Streak Card */}
-        <div className="card" style={{ padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{ padding: '12px', borderRadius: '16px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>
-                <Calendar className="w-6 h-6" />
-              </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
+        {tasks.map(task => {
+          const IconComponent = task.icon;
+          const isDone = claimed[task.id];
+          return (
+            <div key={task.id} className="resumeok-card-cream" style={{ padding: '28px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
-                <h3 style={{ fontSize: '20px', fontWeight: '800' }}>Daily Check-In</h3>
-                <span style={{ fontSize: '13px', color: 'var(--dark-text-secondary)' }}>Streak: 4 Days</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <IconComponent className="w-6 h-6 text-gray-800" />
+                  <span className="resumeok-badge resumeok-badge-green">{task.reward}</span>
+                </div>
+                <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '20px', color: '#141414', marginBottom: '8px' }}>
+                  {task.title}
+                </h3>
+                <p style={{ fontSize: '14px', color: '#555555', lineHeight: '1.5', marginBottom: '20px' }}>
+                  {task.desc}
+                </p>
               </div>
+
+              <button
+                className={isDone ? "btn-resumeok-outline" : "btn-resumeok-black"}
+                onClick={() => handleClaim(task.id)}
+                disabled={isDone}
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                {isDone ? <><CheckCircle className="w-4 h-4 mr-1 text-green-600 inline-block" /> Claimed</> : 'Claim Reward'}
+              </button>
             </div>
-            <p style={{ fontSize: '14px', color: 'var(--dark-text-secondary)', marginBottom: '24px' }}>
-              Log in every day to claim +15 bonus credits for your resume scans and cover letter generations.
-            </p>
-          </div>
-
-          <button
-            className="btn btn-primary"
-            style={{ width: '100%', backgroundColor: claimedStreak ? '#10b981' : '#f59e0b', color: '#000', fontWeight: '800' }}
-            disabled={claimedStreak}
-            onClick={handleClaimStreak}
-          >
-            {claimedStreak ? (
-              <>
-                <Check className="w-4 h-4 mr-2" /> +15 Credits Claimed Today!
-              </>
-            ) : (
-              'Claim +15 Daily Credits'
-            )}
-          </button>
-        </div>
-
-        {/* Invite Friends Card */}
-        <div className="card" style={{ padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{ padding: '12px', borderRadius: '16px', background: 'rgba(79, 70, 229, 0.15)', color: '#6366f1' }}>
-                <Users className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '20px', fontWeight: '800' }}>Invite Colleagues</h3>
-                <span style={{ fontSize: '13px', color: '#818cf8', fontWeight: '700' }}>+50 Credits per Referral</span>
-              </div>
-            </div>
-            <p style={{ fontSize: '14px', color: 'var(--dark-text-secondary)', marginBottom: '24px' }}>
-              Share your referral link with job seekers. Both you and your friend get 50 bonus credits on sign up.
-            </p>
-          </div>
-
-          <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleCopyInvite}>
-            {copiedLink ? (
-              <>
-                <Check className="w-4 h-4 mr-2 text-emerald-400" /> Link Copied!
-              </>
-            ) : (
-              <>
-                <Share2 className="w-4 h-4 mr-2" /> Copy Referral Link
-              </>
-            )}
-          </button>
-        </div>
+          );
+        })}
       </div>
     </div>
   );

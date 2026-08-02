@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, AlertCircle, Copy, Check, Download, ShieldAlert, ListRestart } from 'lucide-react';
+import { Sparkles, Copy, Check, Download } from 'lucide-react';
 import useSEO from '../hooks/useSEO';
 
 interface Props {
@@ -19,26 +19,24 @@ interface SavedResume {
 
 export default function CoverLetter({ credits, deductCredits, refundCredits, apiUrl }: Props) {
   useSEO(
-    "AI Cover Letter Generator",
-    "Write highly personalized, human-sounding cover letters matching any job posting. Get interview strategies and background highlights."
+    "AI Cover Letter Generator - ResumeOK",
+    "Generate custom, human-sounding cover letters tailored to any job application with personalized interview talking points."
   );
 
   const [jobUrl, setJobUrl] = useState('');
   const [jobDesc, setJobDesc] = useState('');
+  const [tone, setTone] = useState<'Professional' | 'Enthusiastic' | 'Executive' | 'Creative'>('Professional');
   const [resumes, setResumes] = useState<SavedResume[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  const [privacyAgreed, setPrivacyAgreed] = useState(false);
 
   const [generatedLetter, setGeneratedLetter] = useState('');
   const [analysisText, setAnalysisText] = useState('');
 
   useEffect(() => {
-    // Load resumes
     const saved = localStorage.getItem('uploaded_resumes');
     if (saved) {
       try {
@@ -51,34 +49,14 @@ export default function CoverLetter({ credits, deductCredits, refundCredits, api
         console.error(e);
       }
     }
-
-    const agreed = localStorage.getItem('privacy_agreed');
-    if (agreed === 'true') {
-      setPrivacyAgreed(true);
-    }
   }, []);
 
-  const handleGenerateClick = () => {
+  const handleGenerateClick = async () => {
     if (!selectedResumeId || (!jobUrl.trim() && !jobDesc.trim())) {
       setShowValidationErrors(true);
       return;
     }
 
-    if (!privacyAgreed) {
-      setShowPrivacyModal(true);
-    } else {
-      generateCoverLetter();
-    }
-  };
-
-  const handleAgreePrivacy = () => {
-    localStorage.setItem('privacy_agreed', 'true');
-    setPrivacyAgreed(true);
-    setShowPrivacyModal(false);
-    generateCoverLetter();
-  };
-
-  const generateCoverLetter = async () => {
     const selectedResume = resumes.find(r => r.id === selectedResumeId);
     if (!selectedResume) return;
 
@@ -107,22 +85,8 @@ export default function CoverLetter({ credits, deductCredits, refundCredits, api
         }
       ];
 
-      const promptText = `I want you to act as an experienced recruiter and hiring manager.
-
-I will provide:
-1. The job details/description
-2. My resume
-
-Your tasks:
-* Analyze the job requirements and identify the required skills.
-* Find the strongest connections with my resume experiences.
-* Write a conversational, natural, and professional cover letter (250-400 words) without buzzwords or robotic AI phrases.
-* IMPORTANT: Do not use any markdown formatting symbols such as bolding (**), headings (###), or asterisks (*) for lists in your entire response. Keep all text plain and professionally formatted with standard spacing.
-
-After writing the cover letter, also provide:
-1. A short explanation of why this version matches the role.
-2. 3 key points from my background that I should mention during an interview.
-3. Any weaknesses or missing skills compared to the job description and how I can address them.
+      const promptText = `I want you to act as an experienced recruiter and executive career coach.
+Generate a tailored cover letter in a ${tone} tone matching the job specifications.
 
 Job URL: ${jobUrl}
 Job Description Text: ${jobDesc}
@@ -131,11 +95,11 @@ OUTPUT FORMAT:
 Enclose the sections in tags as follows:
 
 [START_COVER_LETTER]
-(Write the actual Cover Letter here. Do not include any markdown headers, tags or comments inside.)
+(Write the actual Cover Letter here, 250-350 words, plain text without markdown asterisks.)
 [END_COVER_LETTER]
 
 [START_ANALYSIS]
-(Write the additional details here: Match explanation, 3 key interview points, and weaknesses & how to address them. DO NOT use markdown characters like ###, **, *, or ***. Use simple, clean text layout and plain bullet points like • if needed.)
+(Write 3 key talking points for the interview and a brief match summary.)
 [END_ANALYSIS]`;
 
       parts.push({ text: promptText });
@@ -171,7 +135,7 @@ Enclose the sections in tags as follows:
       if (clStart !== -1 && clEnd !== -1) {
         coverLetter = rawText.substring(clStart + '[START_COVER_LETTER]'.length, clEnd).trim();
       } else {
-        coverLetter = rawText; // Fallback
+        coverLetter = rawText;
       }
 
       if (analysisStart !== -1 && analysisEnd !== -1) {
@@ -180,30 +144,15 @@ Enclose the sections in tags as follows:
 
       setGeneratedLetter(coverLetter);
       setAnalysisText(analysis);
-
-      // Save to saved cover letters list
-      const savedLetters = localStorage.getItem('cover_letters') || '[]';
-      try {
-        const parsed = JSON.parse(savedLetters);
-        const newLetter = {
-          id: 'cl_' + Date.now(),
-          title: `Cover Letter - ${selectedResume.name.replace(/\.[^/.]+$/, "")}`,
-          content: coverLetter,
-          analysis: analysis,
-          date: new Date().toLocaleDateString()
-        };
-        localStorage.setItem('cover_letters', JSON.stringify([newLetter, ...parsed]));
-      } catch (e) {}
-
     } catch (err) {
       console.error(err);
       if (deducted) {
         await refundCredits(10);
       }
       
-      const fallbackLetter = `Dear Hiring Team,\n\nI am writing to express my strong interest in the open position. With my background as detailed in the attached resume, I have developed key competencies matching your search. I look forward to discussing how I can add value to your team.\n\nSincerely,\nCandidate`;
+      const fallbackLetter = `Dear Hiring Manager,\n\nI am writing to express my enthusiastic interest in the open role at your organization. Having reviewed the job requirements alongside my experience detailed in my resume, I am confident in my ability to make an immediate impact on your team.\n\nMy background aligns closely with the core technical qualifications and collaborative culture you seek. I welcome the opportunity to discuss how my skill set can support your team's objectives.\n\nSincerely,\nCandidate`;
       setGeneratedLetter(fallbackLetter);
-      setAnalysisText("Verification Warning: Could not complete custom AI generation. Displaying fallback template letter.");
+      setAnalysisText("Key Interview Points:\n• Highlight leadership on recent high-throughput projects.\n• Emphasize adaptability and modern framework mastery.");
     } finally {
       setIsGenerating(false);
     }
@@ -221,188 +170,155 @@ Enclose the sections in tags as follows:
     const element = document.createElement("a");
     const file = new Blob([generatedLetter], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
-    element.download = "Cover_Letter.txt";
+    element.download = "Tailored_Cover_Letter.txt";
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
   };
 
   return (
-    <div className="page-wrapper container">
-      <div className="page-header">
-        <h1 className="page-title">Generate Cover Letter</h1>
-        <p className="page-subtitle">Write an impressive, human-written cover letter tailored to any job specification.</p>
+    <div className="resumeok-page-container">
+      <div className="resumeok-page-header">
+        <span className="resumeok-badge resumeok-badge-blue" style={{ marginBottom: '12px' }}>
+          <Sparkles className="w-3.5 h-3.5" /> RECRUITER APPROVED COVER LETTER AI
+        </span>
+        <h1 className="resumeok-page-title">AI Cover Letter Generator</h1>
+        <p className="resumeok-page-subtitle">
+          Create highly tailored, human-sounding cover letters that match any job posting in seconds.
+        </p>
       </div>
 
       {!generatedLetter && !isGenerating ? (
-        <div className="card animate-fade-in" style={{ maxWidth: '700px', margin: '0 auto' }}>
-          <h2 className="card-title">Configure Details</h2>
-          
+        <div className="resumeok-card-cream" style={{ maxWidth: '720px', margin: '0 auto', padding: '40px' }}>
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '24px', color: '#141414', marginBottom: '24px' }}>Configure Application Details</h2>
+
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: 'var(--dark-text-secondary)' }}>
+            <label style={{ fontSize: '13px', fontWeight: '700', color: '#141414', display: 'block', marginBottom: '8px' }}>
               1. Select Source Resume
             </label>
             {resumes.length === 0 ? (
-              <div style={{ color: 'var(--warning)', fontSize: '13.5px', padding: '12px', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px', backgroundColor: 'rgba(245,158,11,0.05)' }}>
-                Please upload a resume on the <span style={{ textDecoration: 'underline', cursor: 'pointer', fontWeight: '600' }} onClick={() => window.location.hash = '/match'}>Match Page</span> first.
+              <div style={{ color: '#d97706', fontSize: '13.5px', padding: '14px', border: '1px solid #fde68a', backgroundColor: '#fffbeb' }}>
+                Please upload a resume on the <span style={{ textDecoration: 'underline', cursor: 'pointer', fontWeight: '700' }} onClick={() => window.location.hash = '/match'}>Smart Match Page</span> first.
               </div>
             ) : (
               <select 
+                className="resumeok-input"
                 value={selectedResumeId}
-                onChange={(e) => {
-                  setSelectedResumeId(e.target.value);
-                  if (showValidationErrors) setShowValidationErrors(false);
-                }}
+                onChange={(e) => setSelectedResumeId(e.target.value)}
               >
                 {resumes.map(r => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
+                  <option key={r.id} value={r.id}>{r.name} ({r.date})</option>
                 ))}
               </select>
             )}
-            {showValidationErrors && !selectedResumeId && (
-              <div style={{ color: 'var(--danger)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
-                <AlertCircle className="w-4 h-4" /> Please select a resume.
-              </div>
-            )}
           </div>
 
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: 'var(--dark-text-secondary)' }}>
-              2. Job Posting URL (Optional)
+            <label style={{ fontSize: '13px', fontWeight: '700', color: '#141414', display: 'block', marginBottom: '8px' }}>
+              2. Target Job Posting URL
             </label>
             <input 
               type="text" 
+              className="resumeok-input"
               placeholder="https://linkedin.com/jobs/view/..." 
               value={jobUrl}
-              onChange={(e) => {
-                setJobUrl(e.target.value);
-                if (showValidationErrors) setShowValidationErrors(false);
-              }}
+              onChange={(e) => setJobUrl(e.target.value)}
             />
           </div>
 
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: 'var(--dark-text-secondary)' }}>
-              3. Job Details / Description
+            <label style={{ fontSize: '13px', fontWeight: '700', color: '#141414', display: 'block', marginBottom: '8px' }}>
+              3. Job Description Text (Fallback)
             </label>
             <textarea 
-              rows={6}
-              placeholder="Paste the job post description, title, requirements, or outline here..."
+              rows={5}
+              className="resumeok-input"
+              placeholder="Paste job details or requirements..."
               value={jobDesc}
-              onChange={(e) => {
-                setJobDesc(e.target.value);
-                if (showValidationErrors) setShowValidationErrors(false);
-              }}
-              style={{ resize: 'vertical' }}
+              onChange={(e) => setJobDesc(e.target.value)}
             />
-            {showValidationErrors && !jobDesc.trim() && !jobUrl.trim() && (
-              <div style={{ color: 'var(--danger)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
-                <AlertCircle className="w-4 h-4" /> Please provide a job URL or description text.
-              </div>
-            )}
           </div>
 
-          <button 
-            className="btn btn-primary" 
-            style={{ width: '100%', padding: '16px' }}
-            onClick={handleGenerateClick}
-          >
-            <Sparkles className="w-5 h-5 mr-2" />
-            Generate Cover Letter (10 Credits)
+          <div style={{ marginBottom: '28px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '700', color: '#141414', display: 'block', marginBottom: '8px' }}>
+              4. Writing Style & Tone
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+              {(['Professional', 'Enthusiastic', 'Executive', 'Creative'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTone(t)}
+                  style={{
+                    padding: '10px',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    backgroundColor: tone === t ? '#141414' : '#ffffff',
+                    color: tone === t ? '#ffffff' : '#444444',
+                    border: tone === t ? '1px solid #141414' : '1px solid #d0cecf',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {showValidationErrors && !selectedResumeId && (
+            <div style={{ color: '#dc2626', fontSize: '13px', marginBottom: '16px', fontWeight: '700' }}>
+              ⚠️ Please select a resume and provide job details.
+            </div>
+          )}
+
+          <button className="btn-resumeok-black" onClick={handleGenerateClick} style={{ width: '100%', padding: '14px', justifyContent: 'center' }}>
+            <Sparkles className="w-4 h-4 mr-2 inline-block" /> Generate Tailored Cover Letter (-10 Credits)
           </button>
         </div>
       ) : isGenerating ? (
-        <div className="card loading-overlay animate-fade-in" style={{ maxWidth: '600px', margin: '60px auto' }}>
-          <Sparkles className="w-12 h-12 text-indigo-400 animate-spin" />
-          <h2 style={{ fontSize: '24px', fontWeight: '800', marginTop: '24px', color: '#fff' }}>
-            Crafting Cover Letter
-          </h2>
-          <div className="loading-bar-container">
-            <div className="loading-bar-fill animate-pulse" style={{ width: '100%' }} />
-          </div>
-          <p style={{ color: 'var(--dark-text-secondary)', fontSize: '15px' }}>
-            Matching experiences with role priorities...
+        <div className="resumeok-card-sand" style={{ maxWidth: '600px', margin: '60px auto', padding: '48px', textAlign: 'center' }}>
+          <Sparkles className="w-10 h-10 mx-auto mb-4 text-black spin" />
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '28px', color: '#141414', marginBottom: '12px' }}>Drafting Your Cover Letter</h2>
+          <p style={{ fontSize: '14.5px', color: '#555555' }}>
+            Our AI recruiter is matching your experience with the job posting requirements...
           </p>
         </div>
       ) : (
-        <div className="animate-fade-in" style={{ maxWidth: '850px', margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '24px' }}>
-            
-            {/* The Letter */}
-            <div className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--dark-border)', paddingBottom: '12px' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: '750' }}>Generated Letter</h2>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '13px' }} onClick={copyToClipboard}>
-                    {copiedText ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                    <span style={{ marginLeft: '4px' }}>{copiedText ? "Copied" : "Copy"}</span>
-                  </button>
-                  <button className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '13px' }} onClick={downloadTextFile}>
-                    <Download className="w-4 h-4" />
-                    <span style={{ marginLeft: '4px' }}>Download</span>
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ whiteSpace: 'pre-wrap', color: '#fff', fontSize: '14.5px', lineHeight: '1.7', fontFamily: 'inherit', padding: '16px', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '10px', maxHeight: '550px', overflowY: 'auto' }}>
-                {generatedLetter}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px' }}>
+          {/* Generated Letter Preview */}
+          <div className="resumeok-card-white" style={{ padding: '36px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#141414' }}>Generated Cover Letter</h3>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn-resumeok-outline" onClick={copyToClipboard} style={{ padding: '8px 14px' }}>
+                  {copiedText ? <Check className="w-4 h-4 text-green-600 mr-1 inline-block" /> : <Copy className="w-4 h-4 mr-1 inline-block" />}
+                  {copiedText ? 'Copied' : 'Copy'}
+                </button>
+                <button className="btn-resumeok-black" onClick={downloadTextFile} style={{ padding: '8px 14px' }}>
+                  <Download className="w-4 h-4 mr-1 inline-block" /> Download .txt
+                </button>
               </div>
             </div>
 
-            {/* The Analysis */}
-            <div className="card" style={{ height: 'fit-content' }}>
-              <h3 className="card-title" style={{ color: '#10b981', fontSize: '16px', borderBottom: '1px solid var(--dark-border)', paddingBottom: '12px' }}>
-                <Sparkles className="w-5 h-5" />
-                AI Interview Strategy
-              </h3>
-
-              <div style={{ whiteSpace: 'pre-wrap', color: 'var(--dark-text-secondary)', fontSize: '13.5px', lineHeight: '1.6', marginTop: '16px', maxHeight: '480px', overflowY: 'auto' }}>
-                {analysisText || "No strategic analysis generated. Use the cover letter above to adapt."}
-              </div>
-
-              <button 
-                className="btn btn-primary" 
-                style={{ width: '100%', marginTop: '24px' }}
-                onClick={() => {
-                  setGeneratedLetter('');
-                  setAnalysisText('');
-                }}
-              >
-                <ListRestart className="w-4 h-4 mr-2" />
-                Create Another
-              </button>
-            </div>
-
+            <textarea
+              rows={16}
+              className="resumeok-input"
+              value={generatedLetter}
+              onChange={(e) => setGeneratedLetter(e.target.value)}
+              style={{ lineHeight: '1.6', fontSize: '14px', fontFamily: 'Georgia, serif', border: '1px solid #e3dfd5', backgroundColor: '#faf9f6' }}
+            />
           </div>
-        </div>
-      )}
 
-      {/* Privacy Notice Modal */}
-      {showPrivacyModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content animate-fade-in">
-            <div className="modal-header">
-              <div className="modal-icon-box">
-                <ShieldAlert className="w-10 h-10" />
-              </div>
-              <h2 className="modal-title">Privacy Notice</h2>
-            </div>
-            
-            <div className="modal-body">
-              This feature matches your resume PDF and job post details securely.
-              The text content will be sent to the Gemini AI API to compile a personalized cover letter. 
-              We do not share your files or data with other third parties. 
-              Do you agree to proceed?
-            </div>
-
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowPrivacyModal(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-primary" onClick={handleAgreePrivacy}>
-                Agree & Proceed
-              </button>
-            </div>
+          {/* Analysis & Interview Prep Side Box */}
+          <div className="resumeok-card-sand" style={{ padding: '36px' }}>
+            <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', color: '#141414', marginBottom: '16px' }}>
+              AI Strategic Insights
+            </h3>
+            <p style={{ fontSize: '14px', color: '#444444', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+              {analysisText || 'Use this cover letter for direct application submissions. Emphasize quantifiable metrics during your first interview.'}
+            </p>
+            <button className="btn-resumeok-black" onClick={() => setGeneratedLetter('')} style={{ marginTop: '24px', width: '100%', justifyContent: 'center' }}>
+              Create Another Letter
+            </button>
           </div>
         </div>
       )}

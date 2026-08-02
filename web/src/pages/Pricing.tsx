@@ -1,315 +1,116 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { Check, Sparkles, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ChevronDown, HelpCircle } from 'lucide-react';
+import useSEO from '../hooks/useSEO';
 
-interface PricingProps {
-  user: any;
-  setUser: React.Dispatch<React.SetStateAction<any>>;
-  token: string | null;
-  API_URL: string;
-}
+export default function Pricing() {
+  useSEO(
+    "Simple & Honest Pricing - ResumeOK Pro",
+    "Get unlimited AI auto-apply, ATS resume tailoring, insider referral access, and instant interview intelligence for $19/mo."
+  );
 
-export default function Pricing({ user, setUser, token, API_URL }: PricingProps) {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
 
-  useEffect(() => {
-    // Check if there are Stripe redirect params in URL
-    const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
-    const sessionId = params.get('session_id');
-    const checkoutStatus = params.get('checkout');
-
-    if (sessionId) {
-      setSuccess('Congratulations! Payment completed successfully. Your credits have been loaded.');
-      const cleanUrl = window.location.href.split('?')[0];
-      window.history.replaceState({}, document.title, cleanUrl);
-
-      // Force-sync credits from server
-      const syncCredits = async () => {
-        try {
-          const res = await fetch(`${API_URL}/auth/me`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.user) {
-              setUser(data.user);
-              localStorage.setItem('auth_user', JSON.stringify(data.user));
-            }
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      };
-      syncCredits();
-    } else if (checkoutStatus === 'cancelled') {
-      setError('Checkout was cancelled. No charges were made.');
-      const cleanUrl = window.location.href.split('?')[0];
-      window.history.replaceState({}, document.title, cleanUrl);
-    }
-  }, [token, setUser, API_URL]);
-
-  const handlePurchase = async (packageName: string, creditsAmount: number, price: number) => {
-    if (!user) {
-      // Redirect to login if user is not signed in
-      navigate('/login');
-      return;
-    }
-
-    setError('');
-    setSuccess('');
-    setLoading(true);
-
-    try {
-      const response = await fetch(`${API_URL}/api/payment/create-checkout-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          amount: price,
-          credits: creditsAmount,
-          packageName,
-          successUrl: window.location.href.split('?')[0] + '?session_id=completed',
-          cancelUrl: window.location.href.split('?')[0] + '?checkout=cancelled'
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to initialize payment');
-      }
-
-      if (data.url) {
-        window.location.href = data.url; // Redirect to Stripe checkout
-      }
-    } catch (err: any) {
-      setError(err.message || 'Payment initialization failed');
-    } finally {
-      setLoading(false);
+  const getPrice = () => {
+    switch (billingCycle) {
+      case 'annual': return '$12';
+      case 'quarterly': return '$15';
+      default: return '$19';
     }
   };
 
-  const faqs = [
-    {
-      q: "How do credits work on ResumeOK?",
-      a: "Credits are used for AI tasks. Tailoring a resume or cover letter costs 2 credits, while scanning your CV against a job description costs 1 credit. The default free welcome credits allow you to test the app fully."
-    },
-    {
-      q: "Do my purchased credits expire?",
-      a: "Never! Any credits you purchase remain in your account indefinitely until you use them. There are no monthly subscriptions or recurring fees."
-    },
-    {
-      q: "Can I use Stripe simulation (Sandbox)?",
-      a: "Yes! If our server is in development mode, clicking buy grants you credits immediately in the database for free, so you can test all features without entering credit cards."
-    },
-    {
-      q: "Is my payment information secure?",
-      a: "100% secure. All payments are processed directly by Stripe using bank-level encryption. ResumeOK never stores or accesses your credit card number."
+  const getSubtext = () => {
+    switch (billingCycle) {
+      case 'annual': return 'Billed annually ($144/year) • Save 37%';
+      case 'quarterly': return 'Billed quarterly ($45/quarter) • Save 20%';
+      default: return 'Billed monthly • Cancel anytime';
     }
-  ];
+  };
 
   return (
-    <div className="container" style={{ padding: '60px 16px 100px 16px', maxWidth: '1000px', textAlign: 'center' }}>
-      
-      {/* Page Header */}
-      <div style={{ marginBottom: '48px' }}>
-        <h2 style={{ fontSize: '36px', fontWeight: '900', margin: 0, color: '#fff' }}>
-          Choose your <span style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Credit Package</span>
-        </h2>
-        <p style={{ color: 'var(--dark-text-secondary)', fontSize: '15px', marginTop: '10px', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>
-          Get immediate access to premium features. Tailor resumes, scan against job requirements, and generate cover letters with Google Gemini AI.
+    <div className="resumeok-page-container">
+      {/* Header */}
+      <div className="resumeok-page-header" style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto 48px' }}>
+        <span className="resumeok-badge resumeok-badge-blue" style={{ marginBottom: '12px' }}>
+          <Sparkles className="w-3.5 h-3.5" /> SIMPLE, TRANSPARENT PRICING
+        </span>
+        <h1 className="resumeok-page-title" style={{ fontSize: '48px' }}>
+          Land your dream job faster.
+        </h1>
+        <p className="resumeok-page-subtitle" style={{ margin: '0 auto' }}>
+          No hidden fees or per-application charges. One subscription unlocks unlimited AI auto-applies, ATS resume scoring, and insider referrals.
         </p>
-      </div>
 
-      {error && (
-        <div style={{ padding: '12px 16px', borderRadius: '8px', backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.15)', color: '#f87171', fontSize: '13.5px', marginBottom: '24px', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div style={{ padding: '12px 16px', borderRadius: '8px', backgroundColor: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.15)', color: '#4ade80', fontSize: '13.5px', marginBottom: '24px', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>
-          {success}
-        </div>
-      )}
-
-      {/* Pricing Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '60px', alignItems: 'stretch' }}>
-        
-        {/* Basic Package */}
-        <div className="card" style={{ padding: '32px 24px', backgroundColor: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(20px)', border: '1px solid var(--dark-border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'left', transition: 'transform 0.2s' }}>
-          <div>
-            <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--dark-text-secondary)', letterSpacing: '1px' }}>Starter Pack</span>
-            <h3 style={{ fontSize: '28px', fontWeight: '900', color: '#fff', margin: '8px 0' }}>100 Credits</h3>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '20px' }}>
-              <span style={{ fontSize: '32px', fontWeight: '950', color: '#fff' }}>$9.99</span>
-              <span style={{ fontSize: '12px', color: 'var(--dark-text-secondary)' }}>one-time</span>
-            </div>
-            
-            <div style={{ height: '1px', backgroundColor: 'var(--dark-border)', marginBottom: '20px' }}></div>
-            
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 30px 0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                Tailor up to 50 resumes
-              </li>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                Write 50 customized cover letters
-              </li>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                100 job description match scans
-              </li>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                Credits never expire
-              </li>
-            </ul>
-          </div>
-
-          <button 
-            onClick={() => handlePurchase('Basic Pack', 100, 9.99)}
-            disabled={loading}
-            className="btn btn-secondary"
-            style={{ width: '100%', padding: '12px', fontSize: '14px', fontWeight: '750', borderRadius: '10px' }}
-          >
-            Buy 100 Credits
-          </button>
-        </div>
-
-        {/* Pro Package */}
-        <div className="card" style={{ padding: '32px 24px', backgroundColor: 'rgba(99, 102, 241, 0.05)', backdropFilter: 'blur(20px)', border: '2px solid var(--primary)', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'left', position: 'relative', boxShadow: '0 10px 30px rgba(99,102,241,0.15)' }}>
-          <span style={{ position: 'absolute', top: '-12px', right: '20px', backgroundColor: 'var(--primary)', color: '#fff', fontSize: '10px', fontWeight: '700', padding: '4px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Most Popular</span>
-          
-          <div>
-            <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--primary)', letterSpacing: '1px' }}>Job Seeker Pack</span>
-            <h3 style={{ fontSize: '28px', fontWeight: '900', color: '#fff', margin: '8px 0' }}>300 Credits</h3>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '20px' }}>
-              <span style={{ fontSize: '32px', fontWeight: '950', color: '#fff' }}>$19.99</span>
-              <span style={{ fontSize: '12px', color: 'var(--dark-text-secondary)' }}>one-time</span>
-            </div>
-            
-            <div style={{ height: '1px', backgroundColor: 'var(--dark-border)', marginBottom: '20px' }}></div>
-            
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 30px 0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                Tailor up to 150 resumes
-              </li>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                Write 150 customized cover letters
-              </li>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                300 job description match scans
-              </li>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                Priority Gemini Flash model speed
-              </li>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                Credits never expire
-              </li>
-            </ul>
-          </div>
-
-          <button 
-            onClick={() => handlePurchase('Pro Pack', 300, 19.99)}
-            disabled={loading}
-            className="btn btn-primary"
-            style={{ width: '100%', padding: '12px', fontSize: '14px', fontWeight: '750', borderRadius: '10px', boxShadow: '0 4px 14px rgba(99,102,241,0.4)' }}
-          >
-            Buy 300 Credits
-          </button>
-        </div>
-
-        {/* Ultimate Package */}
-        <div className="card" style={{ padding: '32px 24px', backgroundColor: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(20px)', border: '1px solid var(--dark-border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'left' }}>
-          <div>
-            <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--dark-text-secondary)', letterSpacing: '1px' }}>Power User Pack</span>
-            <h3 style={{ fontSize: '28px', fontWeight: '900', color: '#fff', margin: '8px 0' }}>1000 Credits</h3>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '20px' }}>
-              <span style={{ fontSize: '32px', fontWeight: '950', color: '#fff' }}>$49.99</span>
-              <span style={{ fontSize: '12px', color: 'var(--dark-text-secondary)' }}>one-time</span>
-            </div>
-            
-            <div style={{ height: '1px', backgroundColor: 'var(--dark-border)', marginBottom: '20px' }}></div>
-            
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 30px 0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                Tailor up to 500 resumes
-              </li>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                Write 500 customized cover letters
-              </li>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                1000 job description match scans
-              </li>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                Highest priority API generation
-              </li>
-              <li style={{ display: 'flex', gap: '10px', fontSize: '13px', color: 'var(--dark-text-secondary)' }}>
-                <Check className="w-4.5 h-4.5 text-indigo-400 flex-shrink-0" />
-                Credits never expire
-              </li>
-            </ul>
-          </div>
-
-          <button 
-            onClick={() => handlePurchase('Ultimate Pack', 1000, 49.99)}
-            disabled={loading}
-            className="btn btn-secondary"
-            style={{ width: '100%', padding: '12px', fontSize: '14px', fontWeight: '750', borderRadius: '10px' }}
-          >
-            Buy 1000 Credits
-          </button>
-        </div>
-
-      </div>
-
-      {/* FAQ Section */}
-      <div style={{ maxWidth: '700px', marginLeft: 'auto', marginRight: 'auto', textAlign: 'left', borderTop: '1px solid var(--dark-border)', paddingTop: '48px' }}>
-        <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#fff', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <HelpCircle className="w-5 h-5 text-indigo-400" />
-          Frequently Asked Questions
-        </h3>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {faqs.map((faq, idx) => (
-            <div 
-              key={idx} 
-              style={{ border: '1px solid var(--dark-border)', borderRadius: '12px', backgroundColor: 'rgba(30, 41, 59, 0.2)', overflow: 'hidden' }}
+        {/* Billing Toggle */}
+        <div style={{ display: 'inline-flex', gap: '4px', backgroundColor: '#faf9f6', padding: '4px', border: '1px solid #e3dfd5', marginTop: '32px' }}>
+          {(['monthly', 'quarterly', 'annual'] as const).map(cycle => (
+            <button
+              key={cycle}
+              onClick={() => setBillingCycle(cycle)}
+              style={{
+                padding: '8px 20px',
+                fontSize: '13px',
+                fontWeight: '700',
+                textTransform: 'capitalize',
+                backgroundColor: billingCycle === cycle ? '#141414' : 'transparent',
+                color: billingCycle === cycle ? '#ffffff' : '#555555',
+                border: 'none',
+                cursor: 'pointer'
+              }}
             >
-              <button
-                onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                style={{ width: '100%', padding: '18px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', outline: 'none' }}
-              >
-                <span style={{ fontSize: '14.5px', fontWeight: '700', color: '#fff' }}>{faq.q}</span>
-                <ChevronDown className="w-4 h-4" style={{ color: '#fff', stroke: '#fff', transform: openFaq === idx ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
-              </button>
-              
-              {openFaq === idx && (
-                <div style={{ padding: '0 20px 18px 20px', fontSize: '13px', color: 'var(--dark-text-secondary)', lineHeight: '1.6' }}>
-                  {faq.a}
-                </div>
-              )}
-            </div>
+              {cycle} {cycle === 'annual' && '🔥 37% OFF'}
+            </button>
           ))}
         </div>
       </div>
 
+      {/* Main Pricing Box Card */}
+      <div className="resumeok-card-sand" style={{ maxWidth: '580px', margin: '0 auto 60px', padding: '52px 40px', textAlign: 'center', position: 'relative' }}>
+        <span className="resumeok-badge resumeok-badge-amber" style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', padding: '6px 16px', fontSize: '12px' }}>
+          MOST POPULAR FOR ACTIVE JOB SEEKERS
+        </span>
+
+        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '32px', color: '#141414', marginBottom: '8px' }}>
+          Pro Job Seeker
+        </h2>
+        <p style={{ fontSize: '14.5px', color: '#555555', marginBottom: '24px' }}>
+          Full access to AI Auto Apply, Smart Resume Match, ATS Scoring, Cover Letters & Insider Referrals.
+        </p>
+
+        <div style={{ fontFamily: 'Georgia, serif', fontSize: '64px', fontWeight: '400', color: '#141414', lineHeight: '1', marginBottom: '4px' }}>
+          {getPrice()}<span style={{ fontSize: '18px', color: '#666666', fontFamily: 'sans-serif' }}>/month</span>
+        </div>
+        <div style={{ fontSize: '13px', color: '#777777', fontWeight: '600', marginBottom: '32px' }}>
+          {getSubtext()}
+        </div>
+
+        <button 
+          className="btn-resumeok-black" 
+          onClick={() => navigate('/checkout')}
+          style={{ width: '100%', padding: '16px', fontSize: '15px', justifyContent: 'center', marginBottom: '32px' }}
+        >
+          Get Started Now <ArrowRight className="w-4 h-4 ml-1 inline-block" />
+        </button>
+
+        {/* Feature List */}
+        <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid #dcd7cc', paddingTop: '28px' }}>
+          {[
+            'Unlimited Daily AI Auto-Applies across Workday, Greenhouse & Taleo',
+            'Smart Match Resume vs Job Description Gap Analysis',
+            'Recruiter-Level ATS Resume Scoring & Bullet Optimizer',
+            'Tailored AI Cover Letter Generator with Executive Tones',
+            'Insider Employee Referral Finder at Target Companies',
+            'Application Pipeline Dashboard & Interview Intelligence',
+            '24/7 Priority Candidate Support & 7-Day Money-Back Guarantee'
+          ].map((feat, idx) => (
+            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14px', color: '#2c2c2c' }}>
+              <Check className="w-4 h-4 text-green-600 flex-shrink-0 style-icon" style={{ marginTop: '2px' }} />
+              <span>{feat}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
