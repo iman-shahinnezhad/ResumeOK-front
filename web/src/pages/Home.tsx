@@ -12,6 +12,7 @@ import webHome6 from '../assets/web-home6.png';
 import webHome7 from '../assets/web-home7.png';
 import webHome8 from '../assets/web-home8.png';
 import webHome9 from '../assets/web-home9.png';
+import webHome10 from '../assets/web-home10.png';
 import webHome11 from '../assets/web-home11.png';
 import webHome12 from '../assets/web-home12.png';
 import webHome13 from '../assets/web-home13.png';
@@ -360,70 +361,110 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 11. Testimonial Banner 2 */}
-      <section className="figma-testimonial-banner" style={{ marginTop: '80px' }}>
-        <div className="figma-testimonial-left">
-          <span className="figma-label-sm">TESTIMONIAL</span>
-          <p className="figma-quote">
-            “I was skeptical about AI resume tools until ResumeOK helped me land 4 interviews in 1 week after 3 months of rejection.”
-          </p>
-          <div className="figma-signature">Sarah Jenkins — Product Designer</div>
+      {/* 11. Testimonial Banner 2 (3 Columns, Warm Sand Container, Sharp Corners, Not Full Width) */}
+      <section className="figma-clay-testimonial-section">
+        {/* Column 1: Clay Logo */}
+        <div className="figma-clay-col-logo">
+          <img src={webHome10} alt="Clay Logo" className="figma-clay-logo-img" />
         </div>
-        <div className="figma-testimonial-right">
-          <img src={webHome5} alt="Sarah Jenkins" className="figma-author-img" />
+
+        {/* Column 2: Quote & Author */}
+        <div className="figma-clay-col-quote">
+          <p className="figma-clay-quote-text">
+            “ I went from mass-applying to 50 jobs a week with zero callbacks, to landing 3 interviews in my first week using ResumeOK. The AI actually matched me to roles I was qualified for — game changer.”
+          </p>
+          <div className="figma-clay-author">
+            <div className="figma-clay-author-name">Marcus Chen</div>
+            <div className="figma-clay-author-title">Senior Product Designer</div>
+          </div>
+        </div>
+
+        {/* Column 3: Marcus Chen Portrait Photo */}
+        <div className="figma-clay-col-photo">
+          <img src={webHome5} alt="Marcus Chen - Senior Product Designer" className="figma-clay-photo-img" />
         </div>
       </section>
 
-      {/* 12. Honest Pricing */}
-      <section className="figma-pricing-section">
-        <h2 className="figma-section-title" style={{ textAlign: 'center', marginBottom: '32px' }}>
-          Simple, honest pricing
-        </h2>
+      {/* 12. Honest Pricing Section (Exact Figma Design, Dotted Grid Background, Sharp Corners) */}
+      <section className="figma-pricing-container-section">
+        <div className="figma-pricing-pattern-bg" style={{ backgroundImage: `url(${webHome8})` }}>
+          <h2 className="figma-pricing-main-title">Simple, honest pricing</h2>
 
-        <div className="figma-pricing-card">
-          <div className="figma-pricing-bg">
-            <img src={webHome8} alt="Background Pattern" className="figma-pricing-pattern" />
-          </div>
-          <div className="figma-pricing-content">
-            <span className="figma-label-sm">PRO PLAN</span>
-            <div className="figma-price-amount">$12 <span className="figma-price-period">/ mo</span></div>
-            <p className="figma-price-subtext">Unlimited ATS Scans, Tailored Resumes & Cover Letters</p>
-            <button className="figma-btn-dark" style={{ width: '100%', marginTop: '24px' }} onClick={() => navigate('/pricing')}>
-              Get Started
+          {/* Centered Solid Cream Card (No Border Radius) */}
+          <div className="figma-pricing-solid-box">
+            <h3 className="figma-pricing-box-title">Pro Job Seeker</h3>
+            <p className="figma-pricing-box-desc">
+              Combine smart matching with Pro for unlimited AI applications, resume tailoring, and referral access.
+            </p>
+            <div className="figma-pricing-amount">$19</div>
+            <div className="figma-pricing-period">PER SEAT/MO</div>
+            <button className="figma-btn-pricing-box" onClick={() => navigate('/pricing')}>
+              Learn more
             </button>
           </div>
         </div>
       </section>
 
-      {/* 13. Partner & Security Footer Cards */}
+      {/* 13. Blog Articles Cards (Interactive Clickable Links, Sharp Corners) */}
       <section className="figma-partner-section">
-        <h2 className="figma-section-title" style={{ marginBottom: '16px' }}>
-          More than a tool —<br />
-          your job search partner
-        </h2>
-
         <div className="figma-partner-grid">
-          <div className="figma-partner-card">
-            <img src={webHome14} alt="Security Certifications" className="figma-partner-img" />
-            <div className="figma-partner-footer">
-              <span className="figma-partner-title">Security & Compliance</span>
-              <button className="figma-arrow-btn">→</button>
+          {/* Card 1 */}
+          <div 
+            className="figma-partner-box figma-blog-card-link"
+            onClick={() => navigate('/library')}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="figma-partner-box-media">
+              <img src={webHome14} alt="Your data stays yours" className="figma-partner-box-img" />
+            </div>
+            <div className="figma-partner-box-content">
+              <h3 className="figma-partner-box-title">
+                Your data stays yours <span className="blog-link-arrow">→</span>
+              </h3>
+              <p className="figma-partner-box-desc">
+                Enterprise-grade encryption. We never sell your data or share your resume with third parties.
+              </p>
             </div>
           </div>
 
-          <div className="figma-partner-card">
-            <img src={webHome15} alt="100% Data Privacy" className="figma-partner-img" />
-            <div className="figma-partner-footer">
-              <span className="figma-partner-title">100% Data Privacy</span>
-              <button className="figma-arrow-btn">→</button>
+          {/* Card 2 */}
+          <div 
+            className="figma-partner-box figma-blog-card-link"
+            onClick={() => navigate('/library')}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="figma-partner-box-media">
+              <img src={webHome15} alt="Real humans, real help" className="figma-partner-box-img" />
+            </div>
+            <div className="figma-partner-box-content">
+              <h3 className="figma-partner-box-title">
+                Real humans, real help <span className="blog-link-arrow">→</span>
+              </h3>
+              <p className="figma-partner-box-desc">
+                Our career experts and AI engineers are available 24/7. When algorithm guidance isn't enough, get personalized support from real recruiters who want you to win.
+              </p>
             </div>
           </div>
 
-          <div className="figma-partner-card">
-            <img src={webHome16} alt="ATS Compatible" className="figma-partner-img" />
-            <div className="figma-partner-footer">
-              <span className="figma-partner-title">ATS Blueprint Certified</span>
-              <button className="figma-arrow-btn">→</button>
+          {/* Card 3 */}
+          <div 
+            className="figma-partner-box figma-blog-card-link"
+            onClick={() => navigate('/library')}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="figma-partner-box-media">
+              <img src={webHome16} alt="The Job Search Playbook" className="figma-partner-box-img" />
+            </div>
+            <div className="figma-partner-box-content">
+              <h3 className="figma-partner-box-title">
+                The Job Search Playbook <span className="blog-link-arrow">→</span>
+              </h3>
+              <p className="figma-partner-box-desc">
+                Get battle-tested strategies, interview frameworks, and salary negotiation scripts derived from analyzing over 100,000 successful hires.
+              </p>
             </div>
           </div>
         </div>
