@@ -87,7 +87,7 @@ export default function Home() {
           {/* Left Title Column */}
           <div className="resumeok-hero-left">
             <h1 className="resumeok-hero-headline">
-              Land interviews 6x faster.<br />
+              Land interviews 6x fasterr..<br />
               Zero guesswork.
             </h1>
           </div>
