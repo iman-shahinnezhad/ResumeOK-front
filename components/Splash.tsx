@@ -23,7 +23,7 @@ export default function Splash({ onContinue }: SplashProps) {
   }, [onContinue]);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} pointerEvents="none">
       <Animated.View style={[
         styles.logoContainer,
         {

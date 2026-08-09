@@ -35,6 +35,43 @@ interface SelectedResumeFile {
   isBuilt?: boolean;
 }
 
+// Helper to determine dynamic colors for match cards in job details based on percentage thresholds
+function getMatchPillColors(val: number) {
+  if (val === 0) {
+    return {
+      bg: '#F1F5F9',       // Muted slate gray (Zero Match / No profile)
+      scoreColor: '#64748B',
+      labelColor: '#64748B',
+      borderColor: '#E2E8F0',
+    };
+  }
+
+  if (val >= 75) {
+    return {
+      bg: '#DCFCE7',       // Soft Emerald Green (High Match >= 75%)
+      scoreColor: '#15803D',
+      labelColor: '#166534',
+      borderColor: '#86EFAC',
+    };
+  }
+
+  if (val >= 35) {
+    return {
+      bg: '#FEF3C7',       // Soft Amber / Warm Orange (Medium Match 35%-74%)
+      scoreColor: '#D97706',
+      labelColor: '#B45309',
+      borderColor: '#FDE68A',
+    };
+  }
+
+  return {
+    bg: '#FFE4E6',         // Soft Rose / Crimson Red (Low Match < 35%)
+    scoreColor: '#E11D48',
+    labelColor: '#BE123C',
+    borderColor: '#FECDD3',
+  };
+}
+
 export default function JobDetailsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -65,6 +102,7 @@ export default function JobDetailsScreen() {
   const [previewResumeHtml, setPreviewResumeHtml] = useState<string>('');
   const [previewCoverLetter, setPreviewCoverLetter] = useState<string>('');
   const [showMatchPreviewModal, setShowMatchPreviewModal] = useState<boolean>(false);
+  const [showTailorModal, setShowTailorModal] = useState<boolean>(false);
   const [previewTab, setPreviewTab] = useState<'cover_letter' | 'resume'>('resume');
 
   // AutoFill & WebView state
@@ -308,7 +346,13 @@ export default function JobDetailsScreen() {
     <View style={styles.container}>
       {/* TOP NAVIGATION HEADER */}
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/jobs');
+          }
+        }}>
           <Ionicons name="chevron-back" size={24} color="#000000" />
         </TouchableOpacity>
 
@@ -388,30 +432,52 @@ export default function JobDetailsScreen() {
 
               <View style={styles.scoreGrid}>
                 {/* Overall Match Card */}
-                <View style={[styles.scoreCard, styles.scoreCardHighlight]}>
-                  <Text style={styles.scoreValueHighlight}>{matchResult?.overallScore || 78}%</Text>
-                  <View style={styles.scoreBadgeHighlight}>
-                    <Text style={styles.scoreBadgeTextHighlight}>MATCH</Text>
-                  </View>
-                </View>
+                {(() => {
+                  const score = matchResult ? matchResult.overallScore : 0;
+                  const colors = getMatchPillColors(score);
+                  return (
+                    <View style={[styles.scoreCard, { backgroundColor: colors.bg, borderColor: colors.borderColor, borderWidth: 1 }]}>
+                      <Text style={[styles.scoreValueHighlight, { color: colors.scoreColor }]}>{score}%</Text>
+                      <Text style={[styles.scoreLabelText, { color: colors.labelColor, fontWeight: '700' }]}>Overall Match</Text>
+                    </View>
+                  );
+                })()}
 
                 {/* Exp Level Card */}
-                <View style={styles.scoreCard}>
-                  <Text style={styles.scoreValueText}>{matchResult?.expLevelScore || 90}%</Text>
-                  <Text style={styles.scoreLabelText}>Exp. Level</Text>
-                </View>
+                {(() => {
+                  const score = matchResult ? matchResult.expLevelScore : 0;
+                  const colors = getMatchPillColors(score);
+                  return (
+                    <View style={[styles.scoreCard, { backgroundColor: colors.bg, borderColor: colors.borderColor, borderWidth: 1 }]}>
+                      <Text style={[styles.scoreValueText, { color: colors.scoreColor }]}>{score}%</Text>
+                      <Text style={[styles.scoreLabelText, { color: colors.labelColor }]}>Exp. Level</Text>
+                    </View>
+                  );
+                })()}
 
                 {/* Skill Score Card */}
-                <View style={styles.scoreCard}>
-                  <Text style={styles.scoreValueText}>{matchResult?.skillsScore || 83}%</Text>
-                  <Text style={styles.scoreLabelText}>Skill</Text>
-                </View>
+                {(() => {
+                  const score = matchResult ? matchResult.skillsScore : 0;
+                  const colors = getMatchPillColors(score);
+                  return (
+                    <View style={[styles.scoreCard, { backgroundColor: colors.bg, borderColor: colors.borderColor, borderWidth: 1 }]}>
+                      <Text style={[styles.scoreValueText, { color: colors.scoreColor }]}>{score}%</Text>
+                      <Text style={[styles.scoreLabelText, { color: colors.labelColor }]}>Skill Match</Text>
+                    </View>
+                  );
+                })()}
 
                 {/* Industry Exp Card */}
-                <View style={styles.scoreCard}>
-                  <Text style={styles.scoreValueText}>{matchResult?.industryScore || 75}%</Text>
-                  <Text style={styles.scoreLabelText}>Industry Exp.</Text>
-                </View>
+                {(() => {
+                  const score = matchResult ? matchResult.industryScore : 0;
+                  const colors = getMatchPillColors(score);
+                  return (
+                    <View style={[styles.scoreCard, { backgroundColor: colors.bg, borderColor: colors.borderColor, borderWidth: 1 }]}>
+                      <Text style={[styles.scoreValueText, { color: colors.scoreColor }]}>{score}%</Text>
+                      <Text style={[styles.scoreLabelText, { color: colors.labelColor }]}>Industry Exp.</Text>
+                    </View>
+                  );
+                })()}
               </View>
             </View>
 
@@ -438,90 +504,6 @@ export default function JobDetailsScreen() {
                   </View>
                 ))}
               </View>
-            </View>
-
-            {/* DEFAULT RESUME & MATCH AI SECTION */}
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionHeaderTitle}>Resume & AI Tailoring</Text>
-
-              {/* Default Resume Card */}
-              <View style={styles.defaultResumeCard}>
-                <View style={styles.defaultResumeHeaderRow}>
-                  <View style={styles.defaultBadgePill}>
-                    <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
-                    <Text style={styles.defaultBadgeText}>Default Resume</Text>
-                  </View>
-
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() => router.push('/resumes')}
-                  >
-                    <Text style={styles.changeResumeLinkText}>Change in Profile →</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.defaultResumeFileRow}>
-                  <Ionicons name="document-text" size={20} color="#7C3AED" />
-                  <Text style={styles.defaultResumeFileName} numberOfLines={1}>
-                    {resumesList.find(r => String(r.id) === String(selectedResumeId))?.name || resumesList[0]?.name || 'Default Resume'}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Match Resume & Cover Letter Button */}
-              <TouchableOpacity
-                style={[styles.matchAiBtn, isMatchingWithAI && styles.matchAiBtnDisabled]}
-                activeOpacity={0.8}
-                onPress={handleStartAiMatch}
-                disabled={isMatchingWithAI}
-              >
-                {isMatchingWithAI ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Text style={styles.matchAiBtnText}>Match Resume and Cover Letter</Text>
-                    <Ionicons name="sparkles" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
-                  </>
-                )}
-              </TouchableOpacity>
-
-              {/* AI Matched Documents section (if generated) */}
-              {previewResumeUri && previewCoverLetter ? (
-                <View style={{ marginTop: 16 }}>
-                  <Text style={styles.previewLinksTitle}>AI Matched Documents</Text>
-                  <View style={styles.previewLinksRow}>
-                    <TouchableOpacity
-                      style={styles.previewLinkBtn}
-                      activeOpacity={0.8}
-                      onPress={() => {
-                        setPreviewTab('resume');
-                        setShowMatchPreviewModal(true);
-                      }}
-                    >
-                      <Ionicons name="document-text" size={18} color="#7C3AED" />
-                      <Text style={styles.previewLinkBtnText} numberOfLines={1}>
-                        Tailored Resume
-                      </Text>
-                      <Ionicons name="eye-outline" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.previewLinkBtn}
-                      activeOpacity={0.8}
-                      onPress={() => {
-                        setPreviewTab('cover_letter');
-                        setShowMatchPreviewModal(true);
-                      }}
-                    >
-                      <Ionicons name="mail" size={18} color="#7C3AED" />
-                      <Text style={styles.previewLinkBtnText} numberOfLines={1}>
-                        Cover Letter
-                      </Text>
-                      <Ionicons name="eye-outline" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : null}
             </View>
 
             {/* JOB DESCRIPTION BODY */}
@@ -589,25 +571,11 @@ export default function JobDetailsScreen() {
       {/* FLOATING STICKY BOTTOM BAR */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
-          style={styles.heartBtn}
-          activeOpacity={0.8}
-          onPress={() => setIsSaved(!isSaved)}
-        >
-          <Ionicons name={isSaved ? "heart" : "heart-outline"} size={24} color={isSaved ? "#DC2626" : "#000000"} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
           style={styles.applyNowBtn}
           activeOpacity={0.8}
-          onPress={() => {
-            if (jobData?.absolute_url) {
-              Linking.openURL(jobData.absolute_url);
-            } else {
-              Alert.alert('Apply', 'Redirecting to application board...');
-            }
-          }}
+          onPress={() => setShowTailorModal(true)}
         >
-          <Text style={styles.applyNowBtnText}>APPLY NOW</Text>
+          <Text style={styles.applyNowBtnText}>TAILOR RESUME & APPLY</Text>
           <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
         </TouchableOpacity>
       </View>
@@ -697,6 +665,165 @@ export default function JobDetailsScreen() {
                 </View>
               )}
             </View>
+          </View>
+        </View>
+      </Modal>
+      {/* TAILOR RESUME & APPLY FULL MODAL */}
+      <Modal
+        visible={showTailorModal}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowTailorModal(false)}
+      >
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+          {/* Modal Header */}
+          <View style={styles.tailorModalHeader}>
+            <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => setShowTailorModal(false)}>
+              <Ionicons name="close" size={24} color="#000000" />
+            </TouchableOpacity>
+            <Text style={styles.tailorModalHeaderTitle}>Tailor Resume & Apply</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 100 }} showsVerticalScrollIndicator={false}>
+            {/* Target Job Summary Banner */}
+            <View style={styles.tailorTargetCard}>
+              <View style={styles.companyIconCircle}>
+                <Text style={styles.companyIconInitial}>{companyName.charAt(0).toUpperCase()}</Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.heroJobTitle} numberOfLines={1}>{jobTitle}</Text>
+                <Text style={styles.heroCompanyName}>{companyName} • {locationName}</Text>
+              </View>
+            </View>
+
+            {/* Selected Resume Section */}
+            <View style={styles.tailorSection}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={styles.sectionHeaderTitle}>Selected Resume</Text>
+                <TouchableOpacity onPress={() => { setShowTailorModal(false); router.push('/resumes'); }}>
+                  <Text style={styles.changeResumeLinkText}>Change in Profile →</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.defaultResumeCard}>
+                <View style={styles.defaultResumeHeaderRow}>
+                  <View style={styles.defaultBadgePill}>
+                    <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
+                    <Text style={styles.defaultBadgeText}>Default Resume</Text>
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => { setShowTailorModal(false); router.push('/resumes'); }}
+                  >
+                    <Text style={styles.changeResumeLinkText}>Change →</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.defaultResumeFileRow}>
+                  <Ionicons name="document-text" size={20} color="#7C3AED" />
+                  <Text style={styles.defaultResumeFileName} numberOfLines={1}>
+                    {resumesList.find(r => String(r.id) === String(selectedResumeId))?.name || resumesList[0]?.name || 'Default Resume'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Match Resume & Cover Letter Button */}
+            <TouchableOpacity
+              style={[styles.matchAiBtn, isMatchingWithAI && styles.matchAiBtnDisabled, { marginVertical: 16 }]}
+              activeOpacity={0.8}
+              onPress={handleStartAiMatch}
+              disabled={isMatchingWithAI}
+            >
+              {isMatchingWithAI ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.matchAiBtnText}>Tailoring Resume & Cover Letter...</Text>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.matchAiBtnText}>Match Resume and Cover Letter</Text>
+                  <Ionicons name="sparkles" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* AI Generated Documents Preview (if generated) */}
+            {previewResumeUri || previewCoverLetter ? (
+              <View style={styles.tailorSection}>
+                <Text style={styles.sectionHeaderTitle}>AI Tailored Documents</Text>
+
+                {/* Inline Segmented Tabs */}
+                <View style={[styles.inlineTabRow, { marginTop: 12 }]}>
+                  <TouchableOpacity
+                    style={[styles.inlineTabBtn, previewTab === 'resume' && styles.inlineTabBtnActive]}
+                    onPress={() => setPreviewTab('resume')}
+                  >
+                    <Ionicons name="document-text" size={16} color={previewTab === 'resume' ? '#7C3AED' : '#64748B'} />
+                    <Text style={[styles.inlineTabText, previewTab === 'resume' && styles.inlineTabTextActive]}>
+                      Tailored Resume
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.inlineTabBtn, previewTab === 'cover_letter' && styles.inlineTabBtnActive]}
+                    onPress={() => setPreviewTab('cover_letter')}
+                  >
+                    <Ionicons name="mail" size={16} color={previewTab === 'cover_letter' ? '#7C3AED' : '#64748B'} />
+                    <Text style={[styles.inlineTabText, previewTab === 'cover_letter' && styles.inlineTabTextActive]}>
+                      Cover Letter
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{ height: 350, marginTop: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#E2E8F0' }}>
+                  {previewTab === 'resume' ? (
+                    <WebView
+                      originWhitelist={['*']}
+                      source={{ html: previewResumeHtml }}
+                      style={{ flex: 1 }}
+                      scalesPageToFit={true}
+                    />
+                  ) : (
+                    <TextInput
+                      style={[styles.modalCoverLetterInput, { height: 350 }]}
+                      multiline={true}
+                      value={previewCoverLetter}
+                      onChangeText={setPreviewCoverLetter}
+                      textAlignVertical="top"
+                    />
+                  )}
+                </View>
+              </View>
+            ) : null}
+          </ScrollView>
+
+          {/* Modal Bottom Dock for Final Apply */}
+          <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}>
+            <TouchableOpacity
+              style={[styles.applyNowBtn, { backgroundColor: '#10B981' }]}
+              activeOpacity={0.8}
+              onPress={() => {
+                setShowTailorModal(false);
+                if (jobData?.absolute_url) {
+                  router.push({
+                    pathname: '/apply-job',
+                    params: {
+                      url: jobData.absolute_url,
+                      title: jobData.title || jobTitle,
+                      company: companyName
+                    }
+                  });
+                } else {
+                  Alert.alert('Apply', 'Application URL is missing for this position.');
+                }
+              }}
+            >
+              <Text style={styles.applyNowBtnText}>PROCEED TO APPLY</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1301,5 +1428,48 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+  },
+  tailorModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  tailorModalHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  tailorTargetCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 20,
+  },
+  tailorSection: {
+    marginBottom: 20,
+  },
+  resumeSelectCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 10,
+  },
+  resumeSelectCardActive: {
+    borderColor: '#7C3AED',
+    backgroundColor: '#F5F3FF',
   },
 });

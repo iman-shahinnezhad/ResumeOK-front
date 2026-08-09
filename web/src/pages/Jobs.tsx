@@ -232,8 +232,8 @@ export default function Jobs() {
 
     // Search term
     const matchesSearch = job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          job.industry.toLowerCase().includes(searchTerm.toLowerCase());
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.industry.toLowerCase().includes(searchTerm.toLowerCase());
     if (!matchesSearch) return false;
 
     // Location Filter
@@ -383,7 +383,7 @@ export default function Jobs() {
 
         {/* 🌟 HIGH-END INTERACTIVE FILTER PILLS TOOLBAR */}
         <div ref={filterRef} style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '24px', position: 'relative' }}>
-          
+
           {/* Location Filter Pill */}
           <div style={{ position: 'relative' }}>
             <button

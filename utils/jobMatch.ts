@@ -17,20 +17,37 @@ const COMMON_TECH_SKILLS = [
 
 export function calculateJobMatch(jobContent: string, jobTitle: string, userProfile: any): JobMatchResult {
   const contentLower = (jobContent + ' ' + jobTitle).toLowerCase();
+  const titleLower = (jobTitle || '').toLowerCase();
 
-  // User skills
+  // Extract User skills & interests
   const userSkills: string[] = Array.isArray(userProfile?.skills) ? userProfile.skills : [];
+  const userInterests: string[] = Array.isArray(userProfile?.interests) ? userProfile.interests : [];
   const userSoftSkills: string[] = Array.isArray(userProfile?.softSkills) ? userProfile.softSkills : [];
-  const allUserSkills = [...userSkills, ...userSoftSkills].map(s => s.trim().toLowerCase());
+  const allUserKeywords = [...userSkills, ...userInterests, ...userSoftSkills].map(s => s.trim().toLowerCase()).filter(Boolean);
+  const userExpStr = (userProfile?.experience || '').toLowerCase();
 
-  // Matched and Missing skills
+  const hasProfileData = Boolean(userExpStr || allUserKeywords.length > 0 || userProfile?.resumeFile || userProfile?.title);
+
+  // If user has not filled out profile or uploaded resume, return 0% for all scores
+  if (!userProfile || !hasProfileData) {
+    return {
+      overallScore: 0,
+      expLevelScore: 0,
+      skillsScore: 0,
+      industryScore: 0,
+      matchedSkills: [],
+      missingSkills: [],
+    };
+  }
+
+  // 1. Matched and Missing Skills
   const matchedSkillsSet = new Set<string>();
   const missingSkillsSet = new Set<string>();
 
   COMMON_TECH_SKILLS.forEach(skill => {
     const skillLower = skill.toLowerCase();
     if (contentLower.includes(skillLower)) {
-      if (allUserSkills.some(us => us.includes(skillLower) || skillLower.includes(us))) {
+      if (allUserKeywords.some(us => us.includes(skillLower) || skillLower.includes(us))) {
         matchedSkillsSet.add(skill);
       } else {
         missingSkillsSet.add(skill);
@@ -38,7 +55,7 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
     }
   });
 
-  // Also check direct user skills present in job
+  // Direct user skills present in job
   userSkills.forEach(skill => {
     if (contentLower.includes(skill.toLowerCase())) {
       matchedSkillsSet.add(skill);
@@ -48,36 +65,63 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
   const matchedSkills = Array.from(matchedSkillsSet);
   const missingSkills = Array.from(missingSkillsSet).slice(0, 6);
 
-  // Score calculation logic
-  const totalKeywords = matchedSkills.length + missingSkills.length;
-  let skillsScore = 75;
-  if (totalKeywords > 0) {
-    skillsScore = Math.min(98, Math.max(45, Math.round((matchedSkills.length / totalKeywords) * 100)));
+  // 2. Experience Level Score (0% to 100%)
+  let expLevelScore = 0;
+  const isSeniorJob = titleLower.includes('senior') || titleLower.includes('lead') || titleLower.includes('principal') || contentLower.includes('5+ years') || contentLower.includes('5 years');
+  const isMidJob = titleLower.includes('mid') || contentLower.includes('3+ years') || contentLower.includes('3-5 years');
+  const isJuniorJob = titleLower.includes('junior') || titleLower.includes('intern') || titleLower.includes('associate') || contentLower.includes('1-2 years');
+
+  if (userExpStr) {
+    if (userExpStr.includes('5+')) {
+      expLevelScore = isSeniorJob ? 100 : (isMidJob ? 85 : 60);
+    } else if (userExpStr.includes('3-5')) {
+      expLevelScore = isSeniorJob ? 65 : (isMidJob ? 95 : 70);
+    } else if (userExpStr.includes('1-3')) {
+      expLevelScore = isSeniorJob ? 30 : (isJuniorJob ? 95 : 60);
+    } else if (userExpStr.includes('0-1')) {
+      expLevelScore = isSeniorJob ? 10 : (isJuniorJob ? 90 : 40);
+    } else {
+      expLevelScore = isSeniorJob ? 40 : 60;
+    }
   }
 
-  // Exp level score
-  let expLevelScore = 90;
-  if (contentLower.includes('senior') || contentLower.includes('lead') || contentLower.includes('principal')) {
-    const expCount = userProfile?.experiences?.length || 0;
-    expLevelScore = expCount >= 2 ? 95 : 65;
-  } else if (contentLower.includes('entry') || contentLower.includes('junior')) {
-    expLevelScore = 100;
+  // 3. Skill & Keyword Match Ratio
+  let matchedKeywordCount = 0;
+  allUserKeywords.forEach(kw => {
+    if (titleLower.includes(kw) || contentLower.includes(kw)) {
+      matchedKeywordCount++;
+    }
+  });
+
+  const keywordRatio = allUserKeywords.length > 0 ? matchedKeywordCount / allUserKeywords.length : 0;
+
+  // Excellent Match (0% to 95%)
+  let overallScore = 0;
+  if (keywordRatio >= 0.7) {
+    overallScore = Math.round(75 + (keywordRatio - 0.7) * 50);
+  } else if (keywordRatio >= 0.3) {
+    overallScore = Math.round(45 + (keywordRatio - 0.3) * 60);
+  } else if (keywordRatio > 0) {
+    overallScore = Math.round(20 + keywordRatio * 80);
+  } else {
+    overallScore = 0;
   }
+  overallScore = Math.min(95, Math.max(0, overallScore));
 
-  // Industry exp score
-  let industryScore = 80;
-  if (userSkills.length > 3) industryScore += 10;
-  if (userProfile?.summaries?.length > 0) industryScore += 5;
+  // Fair Match (0% to 55%)
+  const skillsScore = overallScore > 0 ? Math.min(55, Math.max(10, Math.round(overallScore * 0.55))) : 0;
 
-  // Overall score
-  const overallScore = Math.min(99, Math.round((skillsScore * 0.5) + (expLevelScore * 0.3) + (industryScore * 0.2)));
+  // Perfect Match (0% to 98%)
+  const industryScore = (expLevelScore > 0 || overallScore > 0)
+    ? Math.min(98, Math.max(10, Math.round((expLevelScore * 0.45) + (overallScore * 0.55))))
+    : 0;
 
   return {
     overallScore,
     expLevelScore,
     skillsScore,
     industryScore,
-    matchedSkills: matchedSkills.length > 0 ? matchedSkills : (userSkills.length > 0 ? userSkills : ['JavaScript', 'React', 'Git']),
+    matchedSkills: matchedSkills.length > 0 ? matchedSkills : (userSkills.length > 0 ? userSkills : ['Design', 'UI/UX', 'Product']),
     missingSkills,
   };
 }

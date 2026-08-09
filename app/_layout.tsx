@@ -98,12 +98,16 @@ export default function RootLayout() {
   useEffect(() => {
     const checkOnboardingStates = async () => {
       try {
-        const onboardingInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory + 'has_seen_onboarding.txt');
-        if (!onboardingInfo.exists) {
-          setShowOnboarding(true);
-        }
-      } catch (e) {
+        const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+        const completedPath = `${FileSystem.documentDirectory}onboarding_completed.txt`;
+
+        const profileInfo = await FileSystem.getInfoAsync(profilePath);
+        const completedInfo = await FileSystem.getInfoAsync(completedPath);
+
+        // Always show onboarding on startup in Expo as requested
         setShowOnboarding(true);
+      } catch (e) {
+        setShowOnboarding(false);
       } finally {
         setCheckingStorage(false);
         try {
@@ -119,13 +123,10 @@ export default function RootLayout() {
   const handleContinue = () => {
     if (showOnboarding) {
       router.replace('/onboarding');
-      // Wait 400ms for screen transition to complete before unmounting Splash screen
-      setTimeout(() => {
-        setAppReady(true);
-      }, 400);
     } else {
-      setAppReady(true);
+      router.replace('/(tabs)');
     }
+    setAppReady(true);
   };
 
   if (checkingStorage) {
@@ -153,6 +154,24 @@ export default function RootLayout() {
               <Stack.Screen name="referral-onboarding" />
               <Stack.Screen name="onboarding" />
               <Stack.Screen name="jobs" />
+              <Stack.Screen name="job-details" />
+              <Stack.Screen name="build-resume" />
+              <Stack.Screen name="resumes" />
+              <Stack.Screen name="personal-info" />
+              <Stack.Screen name="work-experience" />
+              <Stack.Screen name="education" />
+              <Stack.Screen name="skills" />
+              <Stack.Screen name="projects" />
+              <Stack.Screen name="certificates" />
+              <Stack.Screen name="awards" />
+              <Stack.Screen name="languages" />
+              <Stack.Screen name="volunteer" />
+              <Stack.Screen name="recognitions" />
+              <Stack.Screen name="title-summary" />
+              <Stack.Screen name="links" />
+              <Stack.Screen name="tasks" />
+              <Stack.Screen name="settings" />
+              <Stack.Screen name="professional-detail" />
             </Stack>
           </ThemeProvider>
 

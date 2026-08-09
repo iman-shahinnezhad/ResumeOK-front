@@ -2,7 +2,7 @@
   "expo": {
     "name": "ResumeOK",
     "slug": "resumeok",
-    "version": "2.0.5",
+    "version": "2.0.6",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "resumeok",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pixflow.resumeok",
-      "buildNumber": "32",
+      "buildNumber": "33",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "This app requires access to your photo library to select a profile photo to be embedded directly into your generated resume templates.",

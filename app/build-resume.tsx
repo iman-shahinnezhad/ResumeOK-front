@@ -1529,7 +1529,7 @@ export default function BuildResumeScreen() {
     if (step > 1) {
       setStep(prev => prev - 1);
     } else {
-      router.back();
+      router.replace('/(tabs)');
     }
   };
 
