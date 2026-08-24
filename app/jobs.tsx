@@ -82,7 +82,8 @@ interface GreenhouseConfig {
 export default function JobsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, guestId } = useAuth();
+  const { user, guestId, guestCredit } = useAuth();
+  const totalCredits = user?.credit ?? guestCredit ?? 0;
 
   // Settings config
   const [config, setConfig] = useState<GreenhouseConfig>({});
@@ -1350,7 +1351,7 @@ export default function JobsScreen() {
             router.push('/pricing' as any);
           }}
         >
-          <Text style={styles.creditsPillText}>{config.email ? 20 : 0}</Text>
+          <Text style={styles.creditsPillText}>{totalCredits}</Text>
           <Image
             source={require('../assets/images/header-icon.png')}
             style={{ width: 14, height: 14, marginLeft: 4, resizeMode: 'contain' }}
