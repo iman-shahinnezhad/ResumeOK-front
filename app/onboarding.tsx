@@ -46,93 +46,192 @@ const { width, height } = Dimensions.get('window');
 
 const CATEGORIES_DATA = [
   {
-    name: 'Design',
-    icon: 'color-palette-outline',
+    name: 'Software & Engineering',
+    icon: 'code-slash-outline',
     roles: [
+      'Software Engineer',
+      'Frontend Engineer',
       'Backend Engineer',
-      'Blockchain Engineer',
+      'Full stack Engineer',
+      'Mobile Engineer',
+      'iOS Engineer',
+      'Android Engineer',
+      'DevOps Engineer',
+      'Systems Architect',
+      'Software Architect',
+      'Site Reliability Engineer',
       'Cloud Engineer',
       'Data Engineer',
-      'Developer Relations',
-      'DevOps Engineer',
       'Embedded Engineer',
-      'Engineering Manager',
-      'Frontend Engineer',
-      'Full stack Engineer',
-      'Game Engineer',
+      'Firmware Engineer',
       'ML Engineer',
       'QA Engineer',
+      'Blockchain Engineer',
+      'Game Engineer',
+      'Developer Relations',
+      'Support Engineer',
       'Sales Engineer',
-      'Software Engineer',
-      'Site Reliability Engineer',
-      'Software Architect',
-      'Support Engineer'
+      'Security Analyst'
     ]
   },
   {
-    name: 'Software & Engineering',
-    icon: 'code-slash-outline',
-    roles: ['Mobile Engineer', 'Firmware Engineer', 'Systems Architect', 'Security Analyst']
+    name: 'Design & UX',
+    icon: 'color-palette-outline',
+    roles: [
+      'Product Designer',
+      'UI/UX Designer',
+      'UX Researcher',
+      'Graphic Designer',
+      'Interaction Designer',
+      'Visual Designer',
+      'Brand Designer',
+      'Motion Designer',
+      'Web Designer',
+      'Art Director',
+      'UX Writer',
+      'Illustrator',
+      '3D Artist'
+    ]
   },
   {
     name: 'Marketing',
     icon: 'megaphone-outline',
-    roles: ['Growth Marketer', 'SEO Specialist', 'Content Strategist', 'Social Media Manager']
+    roles: [
+      'Growth Marketer',
+      'SEO Specialist',
+      'Content Strategist',
+      'Social Media Manager',
+      'Marketing Manager',
+      'Digital Marketing Specialist',
+      'Brand Manager',
+      'Copywriter',
+      'Email Marketing Specialist',
+      'Public Relations Specialist'
+    ]
   },
   {
-    name: 'Product',
+    name: 'Product & Project',
     icon: 'cube-outline',
-    roles: ['Product Manager', 'Associate Product Manager', 'Product Owner']
+    roles: [
+      'Product Manager',
+      'Product Owner',
+      'Technical Product Manager',
+      'Associate Product Manager',
+      'Product Operations',
+      'Project Manager',
+      'Scrum Master',
+      'Agile Coach'
+    ]
   },
   {
     name: 'Data & AI',
     icon: 'analytics-outline',
-    roles: ['Data Scientist', 'Data Analyst', 'Machine Learning Engineer', 'AI Researcher']
+    roles: [
+      'Data Scientist',
+      'Data Analyst',
+      'Business Intelligence Analyst',
+      'Machine Learning Engineer',
+      'AI Researcher',
+      'Data Architect',
+      'Database Administrator',
+      'AI Product Manager'
+    ]
   },
   {
-    name: 'Sales',
+    name: 'Sales & Success',
     icon: 'trending-up-outline',
-    roles: ['Account Executive', 'Business Development Rep', 'Sales Manager']
+    roles: [
+      'Account Executive',
+      'Business Development Rep',
+      'Sales Manager',
+      'Sales Operations',
+      'Customer Success Manager',
+      'Account Manager'
+    ]
   },
   {
     name: 'Security',
     icon: 'shield-checkmark-outline',
-    roles: ['Security Analyst', 'Penetration Tester', 'Security Architect']
+    roles: [
+      'Security Analyst',
+      'Penetration Tester',
+      'Security Architect',
+      'Security Engineer',
+      'CISO',
+      'Compliance Analyst'
+    ]
   },
   {
-    name: 'Consulting',
+    name: 'Consulting & Business',
     icon: 'people-outline',
-    roles: ['Management Consultant', 'Strategy Consultant', 'IT Consultant']
+    roles: [
+      'Management Consultant',
+      'Strategy Consultant',
+      'IT Consultant',
+      'Business Analyst'
+    ]
   },
   {
     name: 'Human Resources',
     icon: 'person-add-outline',
-    roles: ['HR Manager', 'Talent Acquisition', 'Recruiter']
+    roles: [
+      'HR Manager',
+      'HR Generalist',
+      'Talent Acquisition Specialist',
+      'Technical Recruiter',
+      'HR Coordinator'
+    ]
   },
   {
     name: 'Customer Support',
     icon: 'headset-outline',
-    roles: ['Customer Support Specialist', 'Technical Support Agent']
+    roles: [
+      'Customer Support Specialist',
+      'Customer Support Manager',
+      'Technical Support Specialist',
+      'Support Engineer'
+    ]
   },
   {
-    name: 'Misc. Engineering',
+    name: 'Engineering (Other)',
     icon: 'build-outline',
-    roles: ['Hardware Engineer', 'Mechanical Engineer', 'Electrical Engineer']
+    roles: [
+      'Hardware Engineer',
+      'Mechanical Engineer',
+      'Electrical Engineer',
+      'Civil Engineer',
+      'Chemical Engineer',
+      'Robotics Engineer'
+    ]
   },
   {
     name: 'Finance',
     icon: 'cash-outline',
-    roles: ['Financial Analyst', 'Accountant', 'Investment Analyst']
+    roles: [
+      'Financial Analyst',
+      'Accountant',
+      'Controller',
+      'Investment Analyst',
+      'Portfolio Manager'
+    ]
   },
   {
     name: 'Legal',
     icon: 'briefcase-outline',
-    roles: ['Legal Counsel', 'Compliance Officer']
+    roles: [
+      'Legal Counsel',
+      'Compliance Officer',
+      'Paralegal'
+    ]
   },
   {
     name: 'Healthcare & Medical',
     icon: 'medical-outline',
-    roles: ['Medical Advisor', 'Health Analyst']
+    roles: [
+      'Medical Advisor',
+      'Health Analyst',
+      'Clinical Research Associate'
+    ]
   }
 ];
 
@@ -235,6 +334,8 @@ export default function Onboarding() {
     'intro' | 'welcome' | 'referral' | 'engineered' | 'name' | 'email' | 'jobs' | 'interests' | 'challenge' | 'location' | 'experience' | 'salary' | 'hearAbout' | 'rateUs' | 'notifications' | 'upload' | 'loading'
   >('intro');
   const [loading, setLoading] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const [roleQuery, setRoleQuery] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
@@ -294,10 +395,6 @@ export default function Onboarding() {
     const nextIndex = STEP_ORDER.indexOf(resolvedNextStep);
 
     if (currentIndex !== -1 && nextIndex !== -1 && currentIndex !== nextIndex) {
-      if (Platform.OS === 'ios' || Platform.OS === 'android') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
-      }
-
       const direction = nextIndex > currentIndex ? 'forward' : 'backward';
       const startValue = direction === 'forward' ? 40 : -40; // Shorter 40px shift distance for much smoother transitions
 
@@ -563,6 +660,9 @@ export default function Onboarding() {
           size: file.size
         });
 
+        setIsParsing(true);
+        let parsingFailed = false;
+
         // Optional PDF Auto-Fill: Extract text & pre-fill profile fields
         try {
           if (file.uri) {
@@ -570,63 +670,196 @@ export default function Onboarding() {
               encoding: FileSystem.EncodingType.Base64
             });
             if (rawContent && rawContent.length > 10) {
-              const parsed = await parsePdfResumeText(rawContent, file.name);
-              if (parsed.firstName) setFirstName(parsed.firstName);
-              if (parsed.lastName) setLastName(parsed.lastName);
-              if (parsed.email) setEmail(parsed.email);
-              if (parsed.targetRole) setSelectedRoles([parsed.targetRole]);
-              if (parsed.experienceLevel) setSelectedExperience(parsed.experienceLevel);
-              if (parsed.skills && parsed.skills.length > 0) {
-                setSelectedInterests(parsed.skills.slice(0, 5));
+              let parsed: any = null;
+              const backendEndpoints = [
+                `${API_URL}/api/parse-resume`,
+                'http://localhost:3000/api/parse-resume',
+                'http://127.0.0.1:3000/api/parse-resume',
+                'http://188.166.164.115:3030/api/parse-resume'
+              ];
+
+              for (const endpoint of backendEndpoints) {
+                try {
+                  const apiRes = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ base64Data: rawContent, fileName: file.name })
+                  });
+                  if (apiRes.ok) {
+                    const apiData = await apiRes.json();
+                    if (apiData.success && apiData.parsed) {
+                      parsed = apiData.parsed;
+                      break;
+                    }
+                  }
+                } catch (err) {}
               }
 
-              // Auto-save user onboarding profile file from parsed PDF
-              try {
-                const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
-                const autoProfile = {
-                  firstName: parsed.firstName || (parsed.fullName ? parsed.fullName.split(' ')[0] : 'User'),
-                  lastName: parsed.lastName || (parsed.fullName ? parsed.fullName.split(' ').slice(1).join(' ') : ''),
-                  email: parsed.email || email || 'user@example.com',
-                  phone: parsed.phone || '',
-                  linkedinUrl: parsed.linkedinUrl || '',
-                  portfolioUrl: parsed.portfolioUrl || '',
-                  roles: [parsed.targetRole || 'Professional'],
-                  interests: parsed.skills && parsed.skills.length > 0 ? parsed.skills.slice(0, 5) : ['Career growth', 'High salary', 'Remote work'],
-                  challenges: 'Finding relevant positions',
-                  city: parsed.location || 'United States',
-                  experience: parsed.experienceLevel || '3+ years',
-                  expectedSalary: { min: 100000, max: 180000 },
-                  hearAbout: 'Google Search',
-                  skills: parsed.skills && parsed.skills.length > 0 ? parsed.skills : ['Management', 'Strategy', 'Communication'],
-                  workExperiences: parsed.workExperiences || [],
-                  education: parsed.education || []
-                };
-                await FileSystem.writeAsStringAsync(profilePath, JSON.stringify(autoProfile, null, 2));
-
-                // Save PDF as default resume in resumes.json
-                const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
-                const newResumeItem = {
-                  id: `resume-${Date.now()}`,
-                  name: file.name,
-                  uri: file.uri,
-                  date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                  size: file.size ? `${(file.size / 1024).toFixed(0)} KB` : '120 KB',
-                  isDefault: true
-                };
-                await FileSystem.writeAsStringAsync(resumesPath, JSON.stringify([newResumeItem], null, 2));
-              } catch (saveErr) {
-                console.log('Error auto-saving profile from PDF:', saveErr);
+              if (!parsed || (!parsed.fullName && !parsed.email)) {
+                try {
+                  parsed = await parsePdfResumeText(rawContent, file.name);
+                } catch (pdfErr) {
+                  console.log("Local PDF parser error:", pdfErr);
+                }
               }
 
-              Alert.alert(
-                "⚡ Profile Auto-Filled!",
-                `Extracted details from "${file.name}":\n• Name: ${parsed.fullName || 'Detected'}\n• Email: ${parsed.email || 'Detected'}\n• Role: ${parsed.targetRole || 'Detected'}\n• Skills: ${parsed.skills.slice(0, 4).join(', ') || 'Extracted'}\n\nYour profile and default resume are now saved!`,
-                [{ text: "Complete Onboarding", onPress: () => setStep('loading') }]
-              );
+              if (parsed && (parsed.firstName || parsed.lastName || parsed.fullName || parsed.email)) {
+                console.log('\n===============================================================');
+                console.log('📄 🚀 HIGH-ACCURACY RESUME PARSED PERSONAL DATA LOG 🚀 📄');
+                console.log('===============================================================');
+                console.log('📛 Full Name:', parsed.fullName || 'Not detected');
+                console.log('👤 First Name:', parsed.firstName || 'Not detected');
+                console.log('👤 Last Name:', parsed.lastName || 'Not detected');
+                console.log('📧 Email:', parsed.email || 'Not detected');
+                console.log('📞 Phone:', parsed.phone || 'Not detected');
+                console.log('📍 Location:', parsed.location || 'Not detected');
+                console.log('🔗 LinkedIn:', parsed.linkedinUrl || 'Not detected');
+                console.log('🌐 Portfolio:', parsed.portfolioUrl || 'Not detected');
+                console.log('💼 Target Role / Job Title:', parsed.targetRole || 'Not detected');
+                console.log('⭐ Experience Level:', parsed.experienceLevel || 'Not detected');
+                console.log('🛠️ Skills Extracted (' + (parsed.skills?.length || 0) + '):', parsed.skills ? parsed.skills.join(', ') : 'None');
+                console.log('💼 Work Experiences Count:', parsed.workExperiences ? parsed.workExperiences.length : 0);
+                if (parsed.workExperiences && parsed.workExperiences.length > 0) {
+                  console.log('💼 Work Experiences List:', JSON.stringify(parsed.workExperiences, null, 2));
+                }
+                console.log('🎓 Education Count:', parsed.education ? parsed.education.length : 0);
+                if (parsed.education && parsed.education.length > 0) {
+                  console.log('🎓 Education List:', JSON.stringify(parsed.education, null, 2));
+                }
+                console.log('===============================================================\n');
+
+                if (parsed.firstName) setFirstName(parsed.firstName);
+                if (parsed.lastName) setLastName(parsed.lastName);
+                if (parsed.email) setEmail(parsed.email);
+                if (parsed.targetRole) setSelectedRoles([parsed.targetRole]);
+                if (parsed.experienceLevel) setSelectedExperience(parsed.experienceLevel);
+                if (parsed.skills && parsed.skills.length > 0) {
+                  setSelectedInterests(parsed.skills.slice(0, 5));
+                }
+
+                // Auto-save user onboarding profile & resume builder fields from parsed PDF
+                try {
+                  const formattedExperiences = (parsed.workExperiences || []).map((exp: any, idx: number) => ({
+                    id: String(idx + 1),
+                    jobTitle: exp.title || exp.jobTitle || 'Professional Role',
+                    companyName: exp.company || exp.companyName || 'Company',
+                    city: exp.location || exp.city || 'City',
+                    startDate: exp.dates?.split('—')[0]?.trim() || exp.dates?.split('-')[0]?.trim() || '2021',
+                    endDate: exp.dates?.split('—')[1]?.trim() || exp.dates?.split('-')[1]?.trim() || 'Present',
+                    jobDescription: exp.description || '',
+                    description: exp.description || ''
+                  }));
+
+                  const formattedEducations = (parsed.education || []).map((edu: any, idx: number) => ({
+                    id: String(idx + 1),
+                    schoolName: edu.school || edu.schoolName || 'University',
+                    degree: edu.degree || 'Degree',
+                    fieldOfStudy: edu.degree || 'Field of Study',
+                    city: edu.location || edu.city || 'City',
+                    startDate: edu.year?.split('—')[0]?.trim() || edu.year?.split('-')[0]?.trim() || '2019',
+                    endDate: edu.year?.split('—')[1]?.trim() || edu.year?.split('-')[1]?.trim() || '2022',
+                    description: '',
+                    gpa: ''
+                  }));
+
+                  const formattedLanguages = (parsed.languages || []).map((lang: any, idx: number) => {
+                    if (typeof lang === 'string') {
+                      return { id: String(idx + 1), name: lang, proficiency: 'Professional' };
+                    }
+                    return { id: String(idx + 1), name: lang.name || 'English', proficiency: lang.proficiency || 'Professional' };
+                  });
+
+                  const formattedProjects = (parsed.projects || []).map((proj: any, idx: number) => ({
+                    id: String(idx + 1),
+                    projectName: proj.name || proj.projectName || proj.title || `Project ${idx + 1}`,
+                    role: proj.role || parsed.targetRole || 'Contributor',
+                    description: proj.description || '',
+                    technologies: Array.isArray(proj.technologies) ? proj.technologies : (parsed.skills?.slice(0, 3) || []),
+                    projectType: 'Company / Individual',
+                    startDate: '2022',
+                    endDate: 'Present',
+                    currentlyWorking: true,
+                    projectUrl: proj.link || proj.projectUrl || '',
+                    repository: proj.link || ''
+                  }));
+
+                  const autoProfile = {
+                    firstName: parsed.firstName || (parsed.fullName ? parsed.fullName.split(' ')[0] : 'User'),
+                    lastName: parsed.lastName || (parsed.fullName ? parsed.fullName.split(' ').slice(1).join(' ') : ''),
+                    jobTitle: parsed.targetRole || '',
+                    role: parsed.targetRole || '',
+                    email: parsed.email || email || 'user@example.com',
+                    phone: parsed.phone || '',
+                    phoneNumber: parsed.phone || '',
+                    mobile: parsed.phone || '',
+                    city: parsed.location || 'United States',
+                    website: parsed.portfolioUrl || parsed.linkedinUrl || '',
+                    linkedinUrl: parsed.linkedinUrl || '',
+                    portfolioUrl: parsed.portfolioUrl || '',
+                    roles: [parsed.targetRole || 'Professional'],
+                    interests: parsed.skills && parsed.skills.length > 0 ? parsed.skills.slice(0, 5) : ['Career growth', 'High salary', 'Remote work'],
+                    challenges: 'Finding relevant positions',
+                    experience: parsed.experienceLevel || '3+ years',
+                    expectedSalary: { min: 100000, max: 180000 },
+                    hearAbout: 'Google Search',
+                    skills: parsed.skills && parsed.skills.length > 0 ? parsed.skills : [],
+                    softSkills: parsed.softSkills || ['Communication', 'Problem Solving', 'Leadership'],
+                    languages: formattedLanguages.length > 0 ? formattedLanguages : [
+                      { id: '1', name: 'English', proficiency: 'Fluent' }
+                    ],
+                    projects: formattedProjects,
+                    experiences: formattedExperiences,
+                    workExperiences: formattedExperiences,
+                    educations: formattedEducations,
+                    education: formattedEducations,
+                    summary: `${parsed.targetRole || 'Professional'} with ${parsed.experienceYears || 5}+ years of experience in ${parsed.skills?.slice(0, 3).join(', ') || 'field'}.`
+                  };
+
+                  const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+                  await FileSystem.writeAsStringAsync(profilePath, JSON.stringify(autoProfile, null, 2));
+
+                  const builderPath = `${FileSystem.documentDirectory}resume_builder_form_data.json`;
+                  await FileSystem.writeAsStringAsync(builderPath, JSON.stringify(autoProfile, null, 2));
+
+                  // Save PDF as default resume in resumes.json
+                  const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
+                  const newResumeItem = {
+                    id: `resume-${Date.now()}`,
+                    name: file.name,
+                    uri: file.uri,
+                    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    size: file.size ? `${(file.size / 1024).toFixed(0)} KB` : '120 KB',
+                    isDefault: true
+                  };
+                  await FileSystem.writeAsStringAsync(resumesPath, JSON.stringify([newResumeItem], null, 2));
+                  console.log('⚡ Profile Auto-Filled & Saved silently to local storage!');
+                } catch (saveErr) {
+                  console.log('Error auto-saving profile from PDF:', saveErr);
+                  parsingFailed = true;
+                }
+              } else {
+                parsingFailed = true;
+              }
+            } else {
+              parsingFailed = true;
             }
+          } else {
+            parsingFailed = true;
           }
         } catch (parseErr) {
           console.log("PDF parse info:", parseErr);
+          parsingFailed = true;
+        } finally {
+          setIsParsing(false);
+          if (parsingFailed) {
+            Alert.alert(
+              "Notice",
+              "We couldn't extract details from your resume file. Don't worry, you can fill in your details manually.",
+              [{ text: "Continue", onPress: () => setStep('name') }]
+            );
+          } else {
+            setStep('name');
+          }
         }
       }
     } catch (err) {
@@ -643,9 +876,23 @@ export default function Onboarding() {
       console.log('Store review error:', err);
     }
 
+    // Fallback to App Store review page direct URL scheme
+    setTimeout(() => {
+      const appStoreUrl = 'itms-apps://apps.apple.com/app/id6783382482?action=write-review';
+      Linking.canOpenURL(appStoreUrl).then((supported) => {
+        if (supported) {
+          Linking.openURL(appStoreUrl).catch(() => {});
+        } else {
+          Linking.openURL('https://apps.apple.com/app/apple-store/id6783382482?action=write-review').catch(() => {});
+        }
+      }).catch(() => {
+        Linking.openURL('https://apps.apple.com/app/apple-store/id6783382482?action=write-review').catch(() => {});
+      });
+    }, 400);
+
     setTimeout(() => {
       setShowIRated(true);
-    }, 1000);
+    }, 1500);
   };
 
   const handleRequestNotifications = async () => {
@@ -862,7 +1109,7 @@ export default function Onboarding() {
 
   const handleReferralSubmit = async () => {
     if (!referralCode.trim()) {
-      setStep('upload');
+      setStep('loading');
       return;
     }
 
@@ -876,7 +1123,7 @@ export default function Onboarding() {
       const data = await response.json();
       if (data.success) {
         Alert.alert("Success", "Referral code applied successfully!");
-        setStep('upload');
+        setStep('loading');
       } else {
         Alert.alert("Error", data.error || "This referral code is invalid.");
       }
@@ -975,13 +1222,14 @@ export default function Onboarding() {
     } catch (e) {
       console.error(e);
     }
-    router.replace('/build-resume');
+    router.replace('/(tabs)');
   };
 
   const handleBack = () => {
     if (step === 'welcome') setStep('intro');
     else if (step === 'engineered') setStep('welcome');
-    else if (step === 'name') setStep('engineered');
+    else if (step === 'upload') setStep('engineered');
+    else if (step === 'name') setStep('upload');
     else if (step === 'email') setStep('name');
     else if (step === 'interests') setStep('email');
     else if (step === 'jobs') setStep('interests');
@@ -993,7 +1241,6 @@ export default function Onboarding() {
     else if (step === 'rateUs') setStep('hearAbout');
     else if (step === 'notifications') setStep('rateUs');
     else if (step === 'referral') setStep('notifications');
-    else if (step === 'upload') setStep('referral');
   };
 
   const toggleCategory = (catName: string) => {
@@ -1049,24 +1296,27 @@ export default function Onboarding() {
   const totalSteps = 14;
   const currentProgressStep =
     step === 'engineered' ? 1
-      : step === 'name' ? 2
-        : step === 'email' ? 3
-          : step === 'interests' ? 4
-            : step === 'jobs' ? 5
-              : step === 'experience' ? 6
-                : step === 'location' ? 7
-                  : step === 'salary' ? 8
-                    : step === 'challenge' ? 9
-                      : step === 'hearAbout' ? 10
-                        : step === 'rateUs' ? 11
-                          : step === 'notifications' ? 12
-                            : step === 'referral' ? 13
+      : step === 'upload' ? 2
+        : step === 'name' ? 3
+          : step === 'email' ? 4
+            : step === 'interests' ? 5
+              : step === 'jobs' ? 6
+                : step === 'experience' ? 7
+                  : step === 'location' ? 8
+                    : step === 'salary' ? 9
+                      : step === 'challenge' ? 10
+                        : step === 'hearAbout' ? 11
+                          : step === 'rateUs' ? 12
+                            : step === 'notifications' ? 13
                               : 14;
   const progressPercentage = (currentProgressStep / totalSteps) * 100;
 
   const isNameValid = firstName.trim().length > 0 && lastName.trim().length > 0;
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const isReferralValid = referralCode.trim().length === 6;
+  const allPredefinedRoles = CATEGORIES_DATA.flatMap(c => c.roles);
+  const customSelectedRoles = selectedRoles.filter(role => !allPredefinedRoles.includes(role));
+
   const isJobsValid = selectedRoles.length >= 3;
   const isInterestsValid = selectedInterests.length >= 3;
   const isChallengeValid = selectedChallenge !== null;
@@ -1223,7 +1473,7 @@ export default function Onboarding() {
                 </View>
 
                 <View style={[styles.fixedBottomDock, dockBottomStyle]}>
-                  <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('upload')}>
+                  <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('loading')}>
                     <Text style={[styles.skipBtnTextBlack, { textDecorationLine: 'none' }]}>Skip for now</Text>
                   </TouchableOpacity>
 
@@ -1250,8 +1500,8 @@ export default function Onboarding() {
             style={styles.keyboardContainer}
           >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <View style={[styles.questionInner, { paddingBottom: insets.bottom + 90 }]}>
-                <View style={styles.engineeredHeadingContainer}>
+              <View style={[styles.questionInner, { paddingHorizontal: 0, paddingBottom: insets.bottom + 90 }]}>
+                <View style={[styles.engineeredHeadingContainer, { paddingHorizontal: 24 }]}>
                   <Text style={styles.engineeredHeadingSub}>More than AI.</Text>
                   <Text style={styles.engineeredHeadingMain}>Engineered</Text>
                   <Text style={styles.engineeredHeadingSub}>{"for today's hiring process."}</Text>
@@ -1316,7 +1566,7 @@ export default function Onboarding() {
                 <View style={[styles.fixedBottomDock, dockBottomStyle]}>
                   <AppleNativeButton
                     style={styles.actionBtnBlack}
-                    onPress={() => setStep('name')}
+                    onPress={() => setStep('upload')}
                   >
                     <Text style={styles.actionBtnTextWhite}>Continue</Text>
                   </AppleNativeButton>
@@ -1417,8 +1667,44 @@ export default function Onboarding() {
             <View style={[styles.questionInner, { paddingBottom: 0 }]}>
               <View style={styles.questionHeadingContainer}>
                 <Text style={styles.questionTitle}>What job are you{"\n"}targeting?</Text>
-                <Text style={styles.questionSubtitle}>We calibrate your matches, At least 3 Interests.</Text>
+                <Text style={styles.questionSubtitle}>We calibrate your matches, Select at least 3 roles.</Text>
               </View>
+
+              <View style={styles.searchBarContainer}>
+                <Ionicons name="search" size={20} color="#94A3B8" style={{ marginRight: 8 }} />
+                <TextInput
+                  style={styles.searchBarInput}
+                  placeholder="Search or type custom role..."
+                  placeholderTextColor="#94A3B8"
+                  value={roleQuery}
+                  onChangeText={setRoleQuery}
+                  autoCapitalize="words"
+                />
+                {roleQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setRoleQuery('')}>
+                    <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {roleQuery.trim().length > 0 && !allPredefinedRoles.some(r => r.toLowerCase() === roleQuery.trim().toLowerCase()) && !selectedRoles.some(r => r.toLowerCase() === roleQuery.trim().toLowerCase()) && (
+                <TouchableOpacity
+                  style={styles.addCustomRoleRow}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    const newRole = roleQuery.trim();
+                    if (newRole && !selectedRoles.includes(newRole)) {
+                      setSelectedRoles(prev => [...prev, newRole]);
+                    }
+                    setRoleQuery('');
+                  }}
+                >
+                  <Ionicons name="add-circle" size={22} color="#007AFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.addCustomRoleText}>
+                    Add "<Text style={{ fontWeight: '600' }}>{roleQuery.trim()}</Text>" as custom role
+                  </Text>
+                </TouchableOpacity>
+              )}
 
               <ScrollView
                 style={styles.accordionScrollView}
@@ -1429,9 +1715,48 @@ export default function Onboarding() {
                 bounces={true}
                 overScrollMode="always"
               >
+                {/* 1. Custom Roles Section */}
+                {customSelectedRoles.length > 0 && (
+                  <View style={[styles.accordionSection, { borderBottomColor: '#007AFF', borderBottomWidth: 1.5 }]}>
+                    <View style={styles.accordionHeader}>
+                      <View style={styles.accordionHeaderLeft}>
+                        <Ionicons name="star" size={20} color="#007AFF" style={{ marginRight: 10 }} />
+                        <View>
+                          <Text style={[styles.accordionCategoryTitle, { color: '#007AFF' }]}>Custom Roles</Text>
+                          <Text style={styles.accordionCategorySubtitle}>
+                            {customSelectedRoles.length} Custom {customSelectedRoles.length === 1 ? 'Role' : 'Roles'} Selected
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View style={[styles.accordionContent, { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', marginTop: 12, gap: 8 }]}>
+                      {customSelectedRoles.map((role) => (
+                        <TouchableOpacity
+                          key={role}
+                          style={[styles.roleBadge, styles.roleBadgeSelected, { borderColor: '#007AFF', flexDirection: 'row', alignItems: 'center' }]}
+                          activeOpacity={0.8}
+                          onPress={() => toggleRoleSelection(role)}
+                        >
+                          <Text style={[styles.roleBadgeText, styles.roleBadgeTextSelected, { color: '#FFFFFF' }]}>
+                            {role}
+                          </Text>
+                          <Ionicons name="close-circle" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* 2. Predefined Categories */}
                 {CATEGORIES_DATA.map((category) => {
-                  const isExpanded = expandedCategory === category.name;
-                  const selectedInCategory = category.roles.filter(role => selectedRoles.includes(role)).length;
+                  const filteredRoles = category.roles.filter(role =>
+                    role.toLowerCase().includes(roleQuery.toLowerCase())
+                  );
+
+                  if (roleQuery && filteredRoles.length === 0) return null;
+
+                  const isExpanded = roleQuery ? true : (expandedCategory === category.name);
+                  const selectedInCategory = filteredRoles.filter(role => selectedRoles.includes(role)).length;
 
                   return (
                     <View key={category.name} style={styles.accordionSection}>
@@ -1445,21 +1770,23 @@ export default function Onboarding() {
                           <View>
                             <Text style={styles.accordionCategoryTitle}>{category.name}</Text>
                             <Text style={styles.accordionCategorySubtitle}>
-                              {category.roles.length} {category.roles.length === 1 ? 'Role' : 'Roles'}
-                              {selectedInCategory > 0 ? ` (${selectedInCategory} ${selectedInCategory === 1 ? 'Role' : 'Roles'} Selected)` : ''}
+                              {filteredRoles.length} {filteredRoles.length === 1 ? 'Role' : 'Roles'}
+                              {selectedInCategory > 0 ? ` (${selectedInCategory} Selected)` : ''}
                             </Text>
                           </View>
                         </View>
-                        <Ionicons
-                          name={isExpanded ? "chevron-up" : "chevron-down"}
-                          size={18}
-                          color="#000000"
-                        />
+                        {!roleQuery && (
+                          <Ionicons
+                            name={isExpanded ? "chevron-up" : "chevron-down"}
+                            size={18}
+                            color="#000000"
+                          />
+                        )}
                       </TouchableOpacity>
 
                       {isExpanded && (
                         <View style={styles.accordionContent}>
-                          {category.roles.map((role) => {
+                          {filteredRoles.map((role) => {
                             const isSelected = selectedRoles.includes(role);
                             return (
                               <TouchableOpacity
@@ -1851,7 +2178,7 @@ export default function Onboarding() {
 
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <Image
-                source={require('../assets/images/leave-rate.png')}
+                source={require('../assets/images/onboarding/rate.png')}
                 style={styles.ratingImage}
                 resizeMode="contain"
               />
@@ -1918,60 +2245,76 @@ export default function Onboarding() {
 
         {step === 'upload' && (
           <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
-            <View style={styles.questionHeadingContainer}>
-              <Text style={styles.questionTitle}>Upload your resume{"\n"}or create one.</Text>
-            </View>
-
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%' }}>
-              {selectedResume ? (
-                <View style={styles.selectedFileCol}>
-                  <Ionicons name="checkmark-circle" size={56} color="#34C759" />
-                  <Text style={styles.fileNameText} numberOfLines={1}>{selectedResume.name}</Text>
-                  {selectedResume.size && (
-                    <Text style={styles.fileSizeText}>
-                      {(selectedResume.size / 1024).toFixed(1)} KB
-                    </Text>
-                  )}
-                  <TouchableOpacity
-                    style={styles.removeFileBtn}
-                    onPress={() => setSelectedResume(null)}
-                  >
-                    <Text style={styles.removeFileText}>Remove file</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <Image
-                  source={require('../assets/images/resume-onboarding.png')}
-                  style={styles.uploadFolderImage}
-                  resizeMode="contain"
+            {isParsing ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%', paddingHorizontal: 20 }}>
+                <ActivityIndicator
+                  size="large"
+                  color="#000000"
+                  style={{ transform: [{ scale: 1.5 }], marginBottom: 24 }}
                 />
-              )}
-            </View>
-
-            <View style={styles.uploadActionsArea}>
-              <TouchableOpacity style={styles.skipBtnLinkBlack} onPress={() => setStep('loading')}>
-                <Text style={styles.skipBtnTextBlack}>Skip for now</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.uploadOutlineBtn}
-                activeOpacity={0.8}
-                onPress={handlePickResume}
-              >
-                <Text style={styles.uploadOutlineBtnText}>
-                  {selectedResume ? 'Change resume' : 'Upload resume'}
+                <Text style={{ fontSize: 24, fontWeight: '700', color: '#000000', textAlign: 'center', marginBottom: 12 }}>
+                  Analyzing your resume...
                 </Text>
-              </TouchableOpacity>
-
-              <AppleNativeButton
-                style={styles.actionBtnBlack}
-                onPress={() => setStep('loading')}
-              >
-                <Text style={styles.actionBtnTextWhite}>
-                  {selectedResume ? 'Continue' : 'Start building a resume'}
+                <Text style={{ fontSize: 16, color: '#666666', textAlign: 'center', lineHeight: 22, paddingHorizontal: 10 }}>
+                  We are reading your experience, education, and skills to auto-fill the onboarding forms.
                 </Text>
-              </AppleNativeButton>
-            </View>
+              </View>
+            ) : (
+              <>
+                <View style={[styles.questionHeadingContainer, { marginTop: 25, marginBottom: 10 }]}>
+                  <Text style={{ fontSize: 32, fontWeight: '700', color: '#000000', textAlign: 'center', lineHeight: 38, letterSpacing: -0.5 }}>
+                    Upload your resume{"\n"}or create one.
+                  </Text>
+                </View>
+
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+                  {selectedResume ? (
+                    <View style={styles.selectedFileCol}>
+                      <Ionicons name="checkmark-circle" size={56} color="#34C759" />
+                      <Text style={styles.fileNameText} numberOfLines={1}>{selectedResume.name}</Text>
+                      {selectedResume.size && (
+                        <Text style={styles.fileSizeText}>
+                          {(selectedResume.size / 1024).toFixed(1)} KB
+                        </Text>
+                      )}
+                      <TouchableOpacity
+                        style={styles.removeFileBtn}
+                        onPress={() => setSelectedResume(null)}
+                      >
+                        <Text style={styles.removeFileText}>Remove file</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <Image
+                      source={require('../assets/images/onboarding/onboarding-resume.png')}
+                      style={{ width: width * 0.65, height: 230 }}
+                      resizeMode="contain"
+                    />
+                  )}
+                </View>
+
+                <View style={{ width: '100%', alignItems: 'center', marginBottom: 10 }}>
+                  <TouchableOpacity
+                    style={{ paddingVertical: 12, paddingHorizontal: 20, marginBottom: 12 }}
+                    activeOpacity={0.7}
+                    onPress={() => setStep('name')}
+                  >
+                    <Text style={{ color: '#666666', fontSize: 17, fontWeight: '500', textAlign: 'center' }}>
+                      Build Later
+                    </Text>
+                  </TouchableOpacity>
+
+                  <AppleNativeButton
+                    style={styles.actionBtnBlack}
+                    onPress={selectedResume ? () => setStep('name') : handlePickResume}
+                  >
+                    <Text style={styles.actionBtnTextWhite}>
+                      {selectedResume ? 'Continue' : 'Upload resume'}
+                    </Text>
+                  </AppleNativeButton>
+                </View>
+              </>
+            )}
           </View>
         )}
 
@@ -1996,6 +2339,40 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 48,
+    width: '100%',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  searchBarInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#0F172A',
+    paddingVertical: 8,
+  },
+  addCustomRoleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    width: '100%',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  addCustomRoleText: {
+    fontSize: 15,
+    color: '#1D4ED8',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,

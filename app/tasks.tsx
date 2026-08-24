@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   Modal,
+  Image,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -279,7 +280,10 @@ export default function TasksScreen() {
               onPress={() => router.push('/pricing' as any)}
             >
               <Text style={styles.creditsText}>{totalCredits}</Text>
-              <Ionicons name="sparkles" size={15} color="#000000" />
+              <Image
+                source={require('../assets/images/header-icon.png')}
+                style={{ width: 14, height: 14, marginLeft: 4, resizeMode: 'contain' }}
+              />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -351,7 +355,7 @@ export default function TasksScreen() {
 
             <Text style={styles.modalTitleText}>Claim Reward</Text>
             <Text style={styles.modalSubtitleText}>
-              Did you complete the task "{activeTaskModal?.title}"?
+              Did you complete the task &quot;{activeTaskModal?.title}&quot;?
             </Text>
 
             <View style={styles.modalRewardBadge}>
@@ -419,23 +423,25 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   creditsBadge: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.03,
     shadowRadius: 4,
     elevation: 2,
   },
   creditsText: {
-    fontSize: 14,
-    fontWeight: '800',
     color: '#000000',
+    fontSize: 13,
+    fontWeight: '700',
   },
   settingsBtn: {
     width: 38,

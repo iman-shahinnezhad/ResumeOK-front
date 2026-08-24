@@ -30,11 +30,14 @@ import Animated, {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { SymbolView } from 'expo-symbols';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { API_URL } from '../context/AuthContext';
+import * as Haptics from 'expo-haptics';
+import { API_URL, useAuth } from '../context/AuthContext';
 import { WebView } from 'react-native-webview';
 import { getSession } from '../utils/session';
 import { calculateJobMatch } from '../utils/jobMatch';
@@ -79,6 +82,7 @@ interface GreenhouseConfig {
 export default function JobsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { user, guestId } = useAuth();
 
   // Settings config
   const [config, setConfig] = useState<GreenhouseConfig>({});
@@ -112,6 +116,90 @@ export default function JobsScreen() {
     filteredJobsRef.current = filteredJobs;
   }, [filteredJobs]);
 
+  const getExcludedJobIds = async (): Promise<Set<string>> => {
+    const set = new Set<string>();
+    try {
+      const skippedPath = `${FileSystem.documentDirectory}user_skipped_jobs.json`;
+      const appliedPath = `${FileSystem.documentDirectory}user_applied_jobs.json`;
+      const rejectedPath = `${FileSystem.documentDirectory}user_rejected_jobs.json`;
+
+      const [skippedInfo, appliedInfo, rejectedInfo] = await Promise.all([
+        FileSystem.getInfoAsync(skippedPath),
+        FileSystem.getInfoAsync(appliedPath),
+        FileSystem.getInfoAsync(rejectedPath)
+      ]);
+
+      if (skippedInfo.exists) {
+        const text = await FileSystem.readAsStringAsync(skippedPath);
+        try {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed)) parsed.forEach((j: any) => j.id && set.add(String(j.id)));
+        } catch (e) { }
+      }
+      if (appliedInfo.exists) {
+        const text = await FileSystem.readAsStringAsync(appliedPath);
+        try {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed)) parsed.forEach((j: any) => j.id && set.add(String(j.id)));
+        } catch (e) { }
+      }
+      if (rejectedInfo.exists) {
+        const text = await FileSystem.readAsStringAsync(rejectedPath);
+        try {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed)) parsed.forEach((j: any) => j.id && set.add(String(j.id)));
+        } catch (e) { }
+      }
+    } catch (e) {
+      console.log("Error getting excluded job ids:", e);
+    }
+    return set;
+  };
+
+  const saveSkippedJob = async (job: GreenhouseJob) => {
+    try {
+      // Immediately filter out from local state for 0ms UI delay
+      setAllJobs(prev => prev.filter(j => String(j.id) !== String(job.id)));
+      setFilteredJobs(prev => prev.filter(j => String(j.id) !== String(job.id)));
+
+      const skippedPath = `${FileSystem.documentDirectory}user_skipped_jobs.json`;
+      let currentSkipped: any[] = [];
+      const info = await FileSystem.getInfoAsync(skippedPath);
+      if (info.exists) {
+        const text = await FileSystem.readAsStringAsync(skippedPath);
+        try { currentSkipped = JSON.parse(text); } catch (e) { }
+      }
+
+      const newEntry = {
+        id: String(job.id),
+        title: job.title,
+        companyName: job.companyName || 'Company',
+        location: job.location?.name || 'Remote',
+        url: job.absolute_url || '',
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        timestamp: Date.now(),
+        status: 'skipped'
+      };
+
+      const updatedList = [newEntry, ...currentSkipped.filter((j: any) => j.id !== newEntry.id)];
+      await FileSystem.writeAsStringAsync(skippedPath, JSON.stringify(updatedList));
+
+      // Sync online backend
+      const userId = user?.id || guestId || 'guest';
+      fetch(`${API_URL}/api/user-jobs/${userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'skipped',
+          jobId: String(job.id),
+          jobData: newEntry
+        })
+      }).catch(err => console.log('Backend sync skipped error:', err));
+    } catch (e) {
+      console.log('Error saving skipped job:', e);
+    }
+  };
+
   const handleSwipeComplete = (direction: 'left' | 'right') => {
     const targetJob = filteredJobsRef.current[currentIndexRef.current];
     const completedIndex = currentIndexRef.current;
@@ -130,7 +218,9 @@ export default function JobsScreen() {
       }
     }, 100);
 
-    if (direction === 'right' && targetJob) {
+    if (direction === 'left' && targetJob) {
+      saveSkippedJob(targetJob);
+    } else if (direction === 'right' && targetJob) {
       viewJobDetails(targetJob);
     }
   };
@@ -276,6 +366,7 @@ export default function JobsScreen() {
   const [totalJobsCount, setTotalJobsCount] = useState<number>(0);
   const [filterWorkModel, setFilterWorkModel] = useState<string>('ALL');
   const [filterExperience, setFilterExperience] = useState<string>('ALL');
+  const [filterSalary, setFilterSalary] = useState<string>('ALL');
   const [filterDepartment, setFilterDepartment] = useState<string>('ALL');
   const searchInputRef = useRef<TextInput>(null);
   const webViewRef = useRef<WebView>(null);
@@ -285,6 +376,13 @@ export default function JobsScreen() {
     useCallback(() => {
       async function initData() {
         try {
+          // Immediately filter out any skipped/applied jobs on focus with 0ms delay
+          const excludedSet = await getExcludedJobIds();
+          if (excludedSet.size > 0) {
+            setAllJobs(prev => prev.filter(j => !excludedSet.has(String(j.id))));
+            setFilteredJobs(prev => prev.filter(j => !excludedSet.has(String(j.id))));
+          }
+
           let finalFirstName = '';
           let finalLastName = '';
           let finalEmail = '';
@@ -303,6 +401,54 @@ export default function JobsScreen() {
             if (loadedProfile.firstName) finalFirstName = loadedProfile.firstName;
             if (loadedProfile.lastName) finalLastName = loadedProfile.lastName;
             if (loadedProfile.email) finalEmail = loadedProfile.email;
+
+            // Auto-populate filter values from onboarding choices
+            const onboardingRoles = Array.isArray(loadedProfile.skills) && loadedProfile.skills.length > 0
+              ? loadedProfile.skills
+              : (Array.isArray(loadedProfile.roles) ? loadedProfile.roles : []);
+
+            const onboardingRole = loadedProfile.jobTitle || loadedProfile.targetRole || onboardingRoles[0] || '';
+            if (onboardingRole && !filterQuery) {
+              setFilterQuery(onboardingRole);
+            }
+
+            // Department category auto-selection from onboarding roles (e.g. Design if 3 design roles selected)
+            const roleText = (onboardingRole + ' ' + onboardingRoles.join(' ')).toLowerCase();
+            if (roleText.includes('design') || roleText.includes('ux') || roleText.includes('ui')) {
+              setFilterDepartment('Design');
+            } else if (roleText.includes('engineer') || roleText.includes('develop') || roleText.includes('software')) {
+              setFilterDepartment('Engineering');
+            } else if (roleText.includes('product') || roleText.includes('pm')) {
+              setFilterDepartment('Product');
+            } else if (roleText.includes('market')) {
+              setFilterDepartment('Marketing');
+            } else if (roleText.includes('sale')) {
+              setFilterDepartment('Sales');
+            }
+
+            // Experience Seniority auto-selection
+            const onboardingExp = loadedProfile.experienceLevel || loadedProfile.experience || '';
+            if (onboardingExp && filterExperience === 'ALL') {
+              if (onboardingExp.includes('5+') || onboardingExp.includes('7+') || onboardingExp.toLowerCase().includes('senior')) {
+                setFilterExperience('Senior');
+              } else if (onboardingExp.includes('3+') || onboardingExp.includes('1-3') || onboardingExp.toLowerCase().includes('mid')) {
+                setFilterExperience('Mid');
+              } else if (onboardingExp.toLowerCase().includes('entry') || onboardingExp.toLowerCase().includes('junior')) {
+                setFilterExperience('Junior');
+              }
+            }
+
+            // Salary Range auto-selection
+            if (loadedProfile.expectedSalary && filterSalary === 'ALL') {
+              const minS = typeof loadedProfile.expectedSalary === 'object' ? (loadedProfile.expectedSalary.min || 0) : 0;
+              if (minS >= 180000) {
+                setFilterSalary('$180K+');
+              } else if (minS >= 100000) {
+                setFilterSalary('$100K - $180K');
+              } else if (minS >= 50000) {
+                setFilterSalary('$50K - $100K');
+              }
+            }
           }
 
           // Load greenhouse config and override/merge
@@ -332,8 +478,10 @@ export default function JobsScreen() {
               loadedResumes = parsedResumes.filter(r => r.uri);
               setResumesList(loadedResumes);
               if (loadedResumes.length > 0) {
-                // Keep selection if already set and valid, otherwise default to first
+                // Prioritize the default resume if set, otherwise keep valid selection or fall back to first
                 setSelectedResumeId(prev => {
+                  const defaultItem = loadedResumes.find(r => r.isDefault);
+                  if (defaultItem) return defaultItem.id;
                   const stillExists = loadedResumes.some(r => r.id === prev);
                   return stillExists ? prev : loadedResumes[0].id;
                 });
@@ -364,18 +512,20 @@ export default function JobsScreen() {
     try {
       const qParam = queryStr.trim() ? `&q=${encodeURIComponent(queryStr.trim())}` : '';
       const companyParam = companyStr && companyStr !== 'ALL' ? `&company=${encodeURIComponent(companyStr)}` : '';
-      const response = await fetch(`${API_URL}/api/jobs?limit=50&page=${pageToFetch}${qParam}${companyParam}`);
+      const currentUserId = user?.id || guestId || '';
+      const userIdParam = currentUserId ? `&userId=${encodeURIComponent(currentUserId)}` : '';
+      const response = await fetch(`${API_URL}/api/jobs?limit=50&page=${pageToFetch}${qParam}${companyParam}${userIdParam}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && Array.isArray(data.jobs)) {
           console.log(`Successfully fetched ${data.jobs.length} jobs for page ${pageToFetch}`);
 
           const serverTotal = typeof data.total === 'number' ? data.total :
-                              typeof data.totalCount === 'number' ? data.totalCount :
-                              typeof data.total_count === 'number' ? data.total_count :
-                              typeof data.totalJobs === 'number' ? data.totalJobs :
-                              typeof data.total_jobs === 'number' ? data.total_jobs :
-                              typeof data.count === 'number' ? data.count : undefined;
+            typeof data.totalCount === 'number' ? data.totalCount :
+              typeof data.total_count === 'number' ? data.total_count :
+                typeof data.totalJobs === 'number' ? data.totalJobs :
+                  typeof data.total_jobs === 'number' ? data.total_jobs :
+                    typeof data.count === 'number' ? data.count : undefined;
 
           if (serverTotal !== undefined && serverTotal > 0) {
             setTotalJobsCount(serverTotal);
@@ -391,17 +541,20 @@ export default function JobsScreen() {
             setHasMore(true);
           }
 
-          // Pre-process rich HTML content to clean snippets once on fetch
-          const processed = data.jobs.map((job: GreenhouseJob) => {
-            const rawDescription = stripHtml(job.content || "");
-            const cleanSnippet = rawDescription.length > 280
-              ? rawDescription.slice(0, 280) + "..."
-              : rawDescription;
-            return {
-              ...job,
-              cleanSnippet
-            };
-          });
+          // Pre-process rich HTML content & filter out skipped/applied jobs with 0ms delay
+          const excludedSet = await getExcludedJobIds();
+          const processed = data.jobs
+            .filter((job: GreenhouseJob) => !excludedSet.has(String(job.id)))
+            .map((job: GreenhouseJob) => {
+              const rawDescription = stripHtml(job.content || "");
+              const cleanSnippet = rawDescription.length > 280
+                ? rawDescription.slice(0, 280) + "..."
+                : rawDescription;
+              return {
+                ...job,
+                cleanSnippet
+              };
+            });
 
           if (append) {
             setAllJobs(prev => {
@@ -625,19 +778,19 @@ export default function JobsScreen() {
           sendLog('Greenhouse inputs state: firstName=' + !!ghFirstName + ', lastName=' + !!ghLastName + ', email=' + !!ghEmail + ', phone=' + !!ghPhone);
 
           if (ghFirstName || ghLastName || window.location.host.includes('greenhouse.io')) {
-            if (ghFirstName && !ghFirstName.value) {
+            if (ghFirstName && !ghFirstName.value && payload.firstName) {
               triggerInputChange(ghFirstName, payload.firstName);
               sendLog('Filled Greenhouse first_name: ' + payload.firstName);
             }
-            if (ghLastName && !ghLastName.value) {
+            if (ghLastName && !ghLastName.value && payload.lastName) {
               triggerInputChange(ghLastName, payload.lastName);
               sendLog('Filled Greenhouse last_name: ' + payload.lastName);
             }
-            if (ghEmail && !ghEmail.value) {
+            if (ghEmail && !ghEmail.value && payload.email) {
               triggerInputChange(ghEmail, payload.email);
               sendLog('Filled Greenhouse email: ' + payload.email);
             }
-            if (ghPhone && !ghPhone.value) {
+            if (ghPhone && !ghPhone.value && payload.phone) {
               triggerInputChange(ghPhone, payload.phone);
               sendLog('Filled Greenhouse phone: ' + payload.phone);
             }
@@ -715,15 +868,15 @@ export default function JobsScreen() {
           sendLog('Lever inputs state: name=' + !!leverName + ', email=' + !!leverEmail + ', phone=' + !!leverPhone);
 
           if (leverName || leverEmail || window.location.host.includes('lever.co')) {
-            if (leverName && !leverName.value) {
-              triggerInputChange(leverName, payload.firstName + ' ' + payload.lastName);
+            if (leverName && !leverName.value && (payload.firstName || payload.lastName)) {
+              triggerInputChange(leverName, (payload.firstName + ' ' + payload.lastName).trim());
               sendLog('Filled Lever name.');
             }
-            if (leverEmail && !leverEmail.value) {
+            if (leverEmail && !leverEmail.value && payload.email) {
               triggerInputChange(leverEmail, payload.email);
               sendLog('Filled Lever email.');
             }
-            if (leverPhone && !leverPhone.value) {
+            if (leverPhone && !leverPhone.value && payload.phone) {
               triggerInputChange(leverPhone, payload.phone);
               sendLog('Filled Lever phone.');
             }
@@ -794,7 +947,7 @@ export default function JobsScreen() {
 
           // 3. GENERIC FALLBACK FOR OTHER BOARDS
           const genericEmail = document.querySelector('input[type="email"]');
-          if (genericEmail && !genericEmail.value) {
+          if (genericEmail && !genericEmail.value && payload.email) {
             triggerInputChange(genericEmail, payload.email);
             sendLog('Filled generic email.');
           }
@@ -1164,21 +1317,15 @@ export default function JobsScreen() {
 
       {/* HEADER MATCHING DESIGN MOCKUP */}
       <View style={[styles.newHeader, { marginTop: insets.top + 4 }]}>
-        <TouchableOpacity style={{ marginRight: 2 }} activeOpacity={0.8} onPress={() => router.replace('/(tabs)')}>
-          <Ionicons name="chevron-back" size={24} color="#0F172A" />
-        </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/account')}>
-          <Image
-            source={require('../assets/images/placeholder-avatar.png')}
-            style={styles.headerAvatar}
-          />
-        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.roleFilterPill}
-          activeOpacity={0.85}
-          onPress={() => setShowSearchModal(true)}
+          activeOpacity={0.75}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowSearchModal(true);
+          }}
         >
           <View style={{ flex: 1 }}>
             <Text style={styles.roleFilterTitle} numberOfLines={1}>
@@ -1188,12 +1335,26 @@ export default function JobsScreen() {
               Dallas, USA
             </Text>
           </View>
-          <Ionicons name="options-outline" size={18} color="#475569" style={{ marginLeft: 8 }} />
+          {Platform.OS === 'ios' ? (
+            <SymbolView name="slider.horizontal.3" size={16} tintColor="#475569" style={{ marginLeft: 8 }} resizeMode="scaleAspectFit" />
+          ) : (
+            <Ionicons name="options-outline" size={18} color="#475569" style={{ marginLeft: 8 }} />
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.creditsPill} activeOpacity={0.8} onPress={() => router.push('/pricing' as any)}>
+        <TouchableOpacity
+          style={styles.creditsPill}
+          activeOpacity={0.75}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/pricing' as any);
+          }}
+        >
           <Text style={styles.creditsPillText}>{config.email ? 20 : 0}</Text>
-          <Text style={styles.creditsSparkleEmoji}>✦</Text>
+          <Image
+            source={require('../assets/images/header-icon.png')}
+            style={{ width: 14, height: 14, marginLeft: 4, resizeMode: 'contain' }}
+          />
         </TouchableOpacity>
       </View>
 
@@ -1205,10 +1366,17 @@ export default function JobsScreen() {
 
         <TouchableOpacity
           style={styles.menuCircleBtn}
-          activeOpacity={0.8}
-          onPress={() => setViewMode(prev => prev === 'card' ? 'list' : 'card')}
+          activeOpacity={0.7}
+          onPress={() => {
+            Haptics.selectionAsync();
+            setViewMode(prev => prev === 'card' ? 'list' : 'card');
+          }}
         >
-          <Ionicons name={viewMode === 'card' ? "menu-outline" : "copy-outline"} size={22} color="#0F172A" />
+          {Platform.OS === 'ios' ? (
+            <SymbolView name="line.3.horizontal" size={18} tintColor="#0F172A" resizeMode="scaleAspectFit" />
+          ) : (
+            <Ionicons name={viewMode === 'card' ? "menu-outline" : "copy-outline"} size={22} color="#0F172A" />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -1351,23 +1519,37 @@ export default function JobsScreen() {
         </View>
       )}
 
-      {/* Tinder Actions (Only shown in card mode) */}
+      {/* iOS 26 Floating Liquid Glass Match Actions (Card mode) */}
       {viewMode === 'card' && !isLoadingJobs && filteredJobs.length > 0 && currentIndex < filteredJobs.length && (
         <View style={styles.actionsRow}>
           <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnSkip]}
-            activeOpacity={0.8}
-            onPress={() => swipeCard('left')}
+            activeOpacity={0.7}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              swipeCard('left');
+            }}
           >
-            <Ionicons name="close" size={28} color="#EF4444" />
+            {Platform.OS === 'ios' ? (
+              <SymbolView name="xmark" size={24} tintColor="#EF4444" resizeMode="scaleAspectFit" />
+            ) : (
+              <Ionicons name="close" size={28} color="#EF4444" />
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnApply]}
-            activeOpacity={0.8}
-            onPress={() => swipeCard('right')}
+            activeOpacity={0.7}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              swipeCard('right');
+            }}
           >
-            <Ionicons name="sparkles" size={26} color="#10B981" />
+            {Platform.OS === 'ios' ? (
+              <SymbolView name="sparkles" size={24} tintColor="#10B981" resizeMode="scaleAspectFit" />
+            ) : (
+              <Ionicons name="sparkles" size={26} color="#10B981" />
+            )}
           </TouchableOpacity>
         </View>
       )}
@@ -1630,13 +1812,16 @@ export default function JobsScreen() {
                   style={styles.modalSubmitBtn}
                   onPress={() => {
                     if (selectedJob?.absolute_url) {
-                      setShowApplyModal(false);
+                      const targetUrl = selectedJob.absolute_url;
+                      const targetTitle = selectedJob.title || '';
+                      const targetComp = selectedJob.companyName || 'Company';
+                      setSelectedJob(null);
                       router.push({
                         pathname: '/apply-job',
                         params: {
-                          url: selectedJob.absolute_url,
-                          title: selectedJob.title,
-                          company: selectedJob.company_name
+                          url: targetUrl,
+                          title: targetTitle,
+                          company: targetComp
                         }
                       });
                     }
@@ -1931,6 +2116,7 @@ export default function JobsScreen() {
                     setFilterQuery('');
                     setFilterWorkModel('ALL');
                     setFilterExperience('ALL');
+                    setFilterSalary('ALL');
                     setFilterDepartment('ALL');
                     setSelectedCompanyFilter('ALL');
                   }}
@@ -1944,9 +2130,9 @@ export default function JobsScreen() {
               </View>
             </View>
 
-            {/* PINNED KEYWORD / JOB TITLE INPUT (ALWAYS VISIBLE AT TOP) */}
+            {/* PINNED KEYWORD / JOB TITLE INPUT (NO AUTO FOCUS) */}
             <View style={{ marginTop: 12, marginBottom: 12 }}>
-              <Text style={styles.searchLabel}>Keyword / Job Title</Text>
+              <Text style={styles.searchLabel}>Target Role / Keyword</Text>
               <View style={styles.searchModalInputWrapper}>
                 <Ionicons name="search-outline" size={18} color="#64748B" style={{ marginRight: 8 }} />
                 <TextInput
@@ -1956,7 +2142,7 @@ export default function JobsScreen() {
                   placeholderTextColor="#94A3B8"
                   value={filterQuery}
                   onChangeText={setFilterQuery}
-                  autoFocus={true}
+                  autoFocus={false}
                 />
                 {filterQuery.length > 0 && (
                   <TouchableOpacity onPress={() => setFilterQuery('')}>
@@ -1964,16 +2150,53 @@ export default function JobsScreen() {
                   </TouchableOpacity>
                 )}
               </View>
+
+              {/* Onboarding Target Role Quick Chips */}
+              {userProfile && (Array.isArray(userProfile.skills) || Array.isArray(userProfile.roles)) && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterChipRow, { marginTop: 8 }]}>
+                  {(Array.isArray(userProfile.skills) ? userProfile.skills : (Array.isArray(userProfile.roles) ? userProfile.roles : []))
+                    .slice(0, 5)
+                    .map((r: string, idx: number) => (
+                      <TouchableOpacity
+                        key={`onboard-role-${idx}`}
+                        style={[styles.filterChip, filterQuery.toLowerCase() === r.toLowerCase() && styles.filterChipActive]}
+                        onPress={() => setFilterQuery(r)}
+                      >
+                        <Text style={[styles.filterChipText, filterQuery.toLowerCase() === r.toLowerCase() && styles.filterChipTextActive]}>
+                          🎯 {r}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                </ScrollView>
+              )}
             </View>
 
             {/* SCROLLABLE CHIP FILTERS */}
             <ScrollView
-              style={{ maxHeight: 280 }}
+              style={{ maxHeight: 320 }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
-              {/* SECTION 2: WORK MODEL / LOCATION TYPE */}
+              {/* SECTION 1: EXPECTED SALARY RANGE */}
               <View style={{ marginTop: 4 }}>
+                <Text style={styles.searchLabel}>Expected Salary Range</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
+                  {['ALL', '$50K - $100K', '$100K - $180K', '$180K+'].map((sal) => (
+                    <TouchableOpacity
+                      key={`sal-${sal}`}
+                      style={[styles.filterChip, filterSalary === sal && styles.filterChipActive]}
+                      onPress={() => setFilterSalary(sal)}
+                    >
+                      <Text style={[styles.filterChipText, filterSalary === sal && styles.filterChipTextActive]}>
+                        💰 {sal}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* SECTION 2: WORK LOCATION TYPE */}
+              <View style={{ marginTop: 14 }}>
                 <Text style={styles.searchLabel}>Work Location Type</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
                   {['ALL', 'Remote', 'Hybrid', 'In Person'].map((model) => (
@@ -2025,33 +2248,6 @@ export default function JobsScreen() {
                     >
                       <Text style={[styles.filterChipText, filterDepartment === dept && styles.filterChipTextActive]}>
                         {dept}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* SECTION 5: FEATURED COMPANY */}
-              <View style={{ marginTop: 14, marginBottom: 12 }}>
-                <Text style={styles.searchLabel}>Featured Company</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
-                  {[
-                    { id: 'ALL', name: 'All Boards' },
-                    { id: 'stripe', name: 'Stripe' },
-                    { id: 'vimeo', name: 'Vimeo' },
-                    { id: 'amplitude', name: 'Amplitude' },
-                    { id: 'dropbox', name: 'Dropbox' },
-                    { id: 'deliveroo', name: 'Deliveroo' },
-                    { id: 'palantir', name: 'Palantir' },
-                    { id: 'kinsta', name: 'Kinsta' }
-                  ].map((comp) => (
-                    <TouchableOpacity
-                      key={`company-${comp.id}`}
-                      style={[styles.filterChip, selectedCompanyFilter === comp.id && styles.filterChipActive]}
-                      onPress={() => setSelectedCompanyFilter(comp.id)}
-                    >
-                      <Text style={[styles.filterChipText, selectedCompanyFilter === comp.id && styles.filterChipTextActive]}>
-                        {comp.name}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -2525,25 +2721,27 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   actionBtn: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.65)',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 4,
   },
   actionBtnSkip: {
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
+    backgroundColor: 'rgba(254, 226, 226, 0.75)',
+    borderColor: 'rgba(239, 68, 68, 0.35)',
   },
   actionBtnApply: {
-    borderWidth: 1,
-    borderColor: '#D1FAE5',
+    backgroundColor: 'rgba(209, 250, 229, 0.75)',
+    borderColor: 'rgba(16, 185, 129, 0.35)',
   },
   loadingCard: {
     justifyContent: 'center',
@@ -3090,16 +3288,16 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: 25,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     elevation: 2,
   },
   roleFilterTitle: {
@@ -3114,29 +3312,25 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   creditsPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 25,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
-    shadowRadius: 6,
+    shadowRadius: 4,
     elevation: 2,
   },
   creditsPillText: {
-    fontSize: 15,
+    color: '#000000',
+    fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
-  },
-  creditsSparkleEmoji: {
-    fontSize: 16,
-    color: '#F97316',
   },
   subHeaderRow: {
     flexDirection: 'row',
@@ -3155,14 +3349,13 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
     marginLeft: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 2,
@@ -3724,13 +3917,6 @@ const JobListItemCard = React.memo(({ item, userProfile, onViewDetails, onLike, 
           <Text style={styles.listItemViewDetailText}>View Detail</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.listItemCircleActionBtn}
-          activeOpacity={0.8}
-          onPress={() => onLike && onLike(item)}
-        >
-          <Ionicons name="heart-outline" size={20} color="#64748B" />
-        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.listItemCircleActionBtn}

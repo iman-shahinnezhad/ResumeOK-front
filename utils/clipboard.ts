@@ -8,13 +8,13 @@ import { Alert, Clipboard, Share } from 'react-native';
  * 3. React Native Share dialog (which allows copying)
  * 4. Alert fallback
  */
-export async function copyToClipboard(text: string, successMessage: string = 'Copied to clipboard.'): Promise<boolean> {
+export async function copyToClipboard(text: string, title: string = 'Copied!', successMessage: string = 'Copied to clipboard.'): Promise<boolean> {
   // 1. Try expo-clipboard
   try {
     const ExpoClipboard = require('expo-clipboard');
     if (ExpoClipboard && typeof ExpoClipboard.setStringAsync === 'function') {
       await ExpoClipboard.setStringAsync(text);
-      Alert.alert('Copied!', successMessage);
+      Alert.alert(title, successMessage);
       return true;
     }
   } catch (e) {
@@ -25,7 +25,7 @@ export async function copyToClipboard(text: string, successMessage: string = 'Co
   try {
     if (Clipboard && typeof Clipboard.setString === 'function') {
       Clipboard.setString(text);
-      Alert.alert('Copied!', successMessage);
+      Alert.alert(title, successMessage);
       return true;
     }
   } catch (e) {
@@ -43,6 +43,6 @@ export async function copyToClipboard(text: string, successMessage: string = 'Co
   }
 
   // 4. Ultimate fallback: show the text in an alert
-  Alert.alert('Copy Text', text);
+  Alert.alert(title || 'Copy Text', text);
   return false;
 }

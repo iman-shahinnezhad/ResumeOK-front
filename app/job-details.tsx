@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -12,800 +12,651 @@ import {
   Share,
   Linking,
   Platform,
+  ActionSheetIOS,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { SymbolView } from 'expo-symbols';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as Haptics from 'expo-haptics';
 import { WebView } from 'react-native-webview';
-import { API_URL } from '../context/AuthContext';
+import { API_URL, useAuth } from '../context/AuthContext';
 import { getSession } from '../utils/session';
 import { calculateJobMatch, JobMatchResult } from '../utils/jobMatch';
+import Svg, { Circle } from 'react-native-svg';
 
 interface SelectedResumeFile {
   id: string;
   name: string;
-  date: string;
-  uri?: string;
-  size?: number;
-  mimeType?: string;
-  isBuilt?: boolean;
-}
-
-// Helper to determine dynamic colors for match cards in job details based on percentage thresholds
-function getMatchPillColors(val: number) {
-  if (val === 0) {
-    return {
-      bg: '#F1F5F9',       // Muted slate gray (Zero Match / No profile)
-      scoreColor: '#64748B',
-      labelColor: '#64748B',
-      borderColor: '#E2E8F0',
-    };
-  }
-
-  if (val >= 75) {
-    return {
-      bg: '#DCFCE7',       // Soft Emerald Green (High Match >= 75%)
-      scoreColor: '#15803D',
-      labelColor: '#166534',
-      borderColor: '#86EFAC',
-    };
-  }
-
-  if (val >= 35) {
-    return {
-      bg: '#FEF3C7',       // Soft Amber / Warm Orange (Medium Match 35%-74%)
-      scoreColor: '#D97706',
-      labelColor: '#B45309',
-      borderColor: '#FDE68A',
-    };
-  }
-
-  return {
-    bg: '#FFE4E6',         // Soft Rose / Crimson Red (Low Match < 35%)
-    scoreColor: '#E11D48',
-    labelColor: '#BE123C',
-    borderColor: '#FECDD3',
-  };
+  uri: string;
+  date?: string;
+  size?: string;
+  isDefault?: boolean;
 }
 
 export default function JobDetailsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user, guestCredit } = useAuth();
 
-  // Active top tab (Overview or Company)
-  const [activeTab, setActiveTab] = useState<'overview' | 'company'>('overview');
-
-  // Job state parsed from params or storage
   const [jobData, setJobData] = useState<any>(null);
-  const [jobDetailsHtml, setJobDetailsHtml] = useState<string>('');
-  const [isLoadingDetails, setIsLoadingDetails] = useState<boolean>(true);
-  const [isSaved, setIsSaved] = useState<boolean>(false);
-  const [showFullDescription, setShowFullDescription] = useState<boolean>(false);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(true);
+  const [activeTab, setActiveTab] = useState<'overview' | 'company'>('overview');
+  const [showFullDescription, setShowFullDescription] = useState(false);
 
-  // User Profile & Match Result
+  // Resume & AI Match State
+  const [resumesList, setResumesList] = useState<SelectedResumeFile[]>([]);
+  const [selectedResume, setSelectedResume] = useState<SelectedResumeFile | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [matchResult, setMatchResult] = useState<JobMatchResult | null>(null);
+  const [isCalculatingMatch, setIsCalculatingMatch] = useState(false);
 
-  // Resumes list & default resume selection
-  const [resumesList, setResumesList] = useState<SelectedResumeFile[]>([]);
-  const [selectedResumeId, setSelectedResumeId] = useState<string>('');
+  // Tailor & Apply Modal State
+  const [showTailorModal, setShowTailorModal] = useState(false);
+  const [isMatchingWithAI, setIsMatchingWithAI] = useState(false);
+  const [showMatchResultModal, setShowMatchResultModal] = useState(false);
+  const [showDidYouApplyModal, setShowDidYouApplyModal] = useState(false);
+  const [isApplied, setIsApplied] = useState(false);
+  const [aiStep, setAiStep] = useState(1);
+  const hasOpenedApplyRef = useRef(false);
 
-  // AI Matching state
-  const [isMatchingWithAI, setIsMatchingWithAI] = useState<boolean>(false);
-  const [previewResumeUri, setPreviewResumeUri] = useState<string>('');
-  const [previewResumeName, setPreviewResumeName] = useState<string>('');
-  const [previewResumeHtml, setPreviewResumeHtml] = useState<string>('');
-  const [previewCoverLetter, setPreviewCoverLetter] = useState<string>('');
-  const [showMatchPreviewModal, setShowMatchPreviewModal] = useState<boolean>(false);
-  const [showTailorModal, setShowTailorModal] = useState<boolean>(false);
-  const [previewTab, setPreviewTab] = useState<'cover_letter' | 'resume'>('resume');
+  useFocusEffect(
+    useCallback(() => {
+      if (hasOpenedApplyRef.current) {
+        hasOpenedApplyRef.current = false;
+        setShowDidYouApplyModal(true);
+      }
+    }, [])
+  );
 
-  // AutoFill & WebView state
-  const webViewRef = useRef<any>(null);
-  const [showWebViewModal, setShowWebViewModal] = useState<boolean>(false);
-  const [autofillPayload, setAutofillPayload] = useState<any>(null);
-  const [isPreparingAutoFill, setIsPreparingAutoFill] = useState<boolean>(false);
+  const handleStartAiTailoring = () => {
+    setIsMatchingWithAI(true);
+    setAiStep(1);
+
+    setTimeout(() => {
+      setAiStep(2);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, 1200);
+
+    setTimeout(() => {
+      setAiStep(3);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, 2400);
+
+    setTimeout(() => {
+      setAiStep(4);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }, 3600);
+
+    setTimeout(() => {
+      setIsMatchingWithAI(false);
+      setShowMatchResultModal(true);
+    }, 4400);
+  };
 
   useEffect(() => {
-    loadJobDetailsAndProfile();
-  }, [params.id, params.jobJson]);
-
-  const loadJobDetailsAndProfile = async () => {
-    setIsLoadingDetails(true);
-    try {
-      let currentJob: any = null;
-
-      // 1. Try parsing passed jobJson param first
-      if (params.jobJson && typeof params.jobJson === 'string') {
-        try {
-          currentJob = JSON.parse(params.jobJson);
-        } catch (e) {}
-      }
-
-      // 2. Fallback to storage if jobJson not passed
-      if (!currentJob && params.id) {
-        const storedPath = `${FileSystem.documentDirectory}cached_current_job.json`;
-        const info = await FileSystem.getInfoAsync(storedPath);
-        if (info.exists) {
-          const text = await FileSystem.readAsStringAsync(storedPath);
-          currentJob = JSON.parse(text);
-        }
-      }
-
-      setJobData(currentJob);
-
-      // 3. Load User Onboarding Profile
-      const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
-      const profileInfo = await FileSystem.getInfoAsync(profilePath);
-      let profile: any = null;
-      if (profileInfo.exists) {
-        const text = await FileSystem.readAsStringAsync(profilePath);
-        profile = JSON.parse(text);
-        setUserProfile(profile);
-      }
-
-      // 4. Load Resumes & Default Resume Selection
-      const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
-      const resumesInfo = await FileSystem.getInfoAsync(resumesPath);
-      if (resumesInfo.exists) {
-        const content = await FileSystem.readAsStringAsync(resumesPath);
-        const parsedResumes = JSON.parse(content);
-        if (Array.isArray(parsedResumes)) {
-          const valid = parsedResumes.filter((r: any) => r.uri);
-          setResumesList(valid);
-          if (valid.length > 0) {
-            const defaultItem = valid.find((r: any) => r.isDefault) || valid[0];
-            setSelectedResumeId(String(defaultItem.id));
-          }
-        }
-      }
-
-      // 5. Fetch full HTML job content if available
-      let bodyHtml = currentJob?.content || currentJob?.description || '';
-
-      if (currentJob?.id && currentJob?.boardToken && (!bodyHtml || bodyHtml.length < 50)) {
-        try {
-          const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${currentJob.boardToken}/jobs/${currentJob.id}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.content) {
-              bodyHtml = data.content;
-            }
-          }
-        } catch (e) {
-          console.log('Error fetching greenhouse job content:', e);
-        }
-      }
-
-      setJobDetailsHtml(bodyHtml);
-
-      // 6. Calculate local Match Scores
-      const plainText = stripHtml(bodyHtml || '');
-      const match = calculateJobMatch(plainText, currentJob?.title || '', profile);
-      setMatchResult(match);
-
-    } catch (e) {
-      console.log('Error loading job details:', e);
-    } finally {
-      setIsLoadingDetails(false);
-    }
-  };
-
-  const handleStartAiMatch = async () => {
-    if (!jobData) {
-      Alert.alert('Error', 'No job selected.');
-      return;
-    }
-    if (!selectedResumeId) {
-      Alert.alert('Resume Required', 'Please set a default resume in your profile first.');
-      return;
-    }
-    const baseResume = resumesList.find(r => String(r.id) === String(selectedResumeId));
-    if (!baseResume || !baseResume.uri) {
-      Alert.alert('Error', 'Selected resume file is invalid.');
-      return;
-    }
-
-    setIsMatchingWithAI(true);
-
-    try {
-      const targetCompany = jobData?.companyName || 'Company';
-      const jobTitle = jobData?.title || 'Position';
-
-      const formData = new FormData();
-      const resumeFileObj: any = {
-        uri: baseResume.uri,
-        name: baseResume.name,
-        type: baseResume.mimeType || 'application/pdf',
-      };
-      formData.append('resume', resumeFileObj);
-
-      const session = await getSession();
-      const headers: any = { Accept: 'application/json' };
-      if (session && session.accessToken) {
-        headers['Authorization'] = `Bearer ${session.accessToken}`;
-      }
-
-      const matchRes = await fetch(`${API_URL}/api/jobs/${jobData.id}/match`, {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
-
-      if (!matchRes.ok) {
-        const errText = await matchRes.text();
-        throw new Error(`Server match failed: ${matchRes.status} - ${errText}`);
-      }
-
-      const matchData = await matchRes.json();
-      if (!matchData.success) {
-        throw new Error(matchData.error || 'Failed to analyze match from server.');
-      }
-
-      const tailoredHtml = matchData.tailoredResumeHtml || '';
-      const generatedCL = matchData.coverLetter || '';
-
-      const firstName = userProfile?.firstName || '';
-      const lastName = userProfile?.lastName || '';
-      const userPrefix = (firstName && lastName)
-        ? `${firstName}_${lastName}`
-        : firstName ? firstName : 'User';
-
-      const cleanUserPrefix = userPrefix.replace(/[^a-zA-Z0-9]/g, '_');
-      const cleanCompany = targetCompany.replace(/[^a-zA-Z0-9]/g, '_');
-      const cleanTitle = jobTitle.replace(/[^a-zA-Z0-9]/g, '_');
-
-      const formattedResumeName = `${cleanUserPrefix}_${cleanCompany}_${cleanTitle}.pdf`;
-      const cleanResumeUri = `${FileSystem.documentDirectory}${formattedResumeName}`;
-
-      const formattedHtml = `
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <style>
-              body { font-family: Arial, sans-serif; margin: 40px; color: #1E293B; line-height: 1.5; font-size: 11pt; }
-              h1, h2, h3 { color: #7C3AED; margin-top: 16px; margin-bottom: 6px; }
-              p { margin-bottom: 12px; text-align: justify; }
-              ul { padding-left: 20px; margin-top: 4px; }
-              li { margin-bottom: 4px; }
-            </style>
-          </head>
-          <body>
-            ${tailoredHtml}
-          </body>
-        </html>
-      `;
-
-      const printResult = await Print.printToFileAsync({ html: formattedHtml });
-      await FileSystem.copyAsync({ from: printResult.uri, to: cleanResumeUri });
-
-      setPreviewResumeUri(cleanResumeUri);
-      setPreviewResumeName(formattedResumeName);
-      setPreviewResumeHtml(formattedHtml);
-      setPreviewCoverLetter(generatedCL);
-
-      // Save tailored resume back to local Resumes list
-      const newResumeEntry: SelectedResumeFile = {
-        id: `tailored_${Date.now()}`,
-        name: formattedResumeName,
-        date: new Date().toLocaleDateString(),
-        uri: cleanResumeUri,
-        mimeType: 'application/pdf',
-        isBuilt: true,
-      };
-
-      const updatedList = [newResumeEntry, ...resumesList];
-      const resumesJsonPath = `${FileSystem.documentDirectory}resumes.json`;
-      await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(updatedList));
-      setResumesList(updatedList);
-      setSelectedResumeId(newResumeEntry.id);
-
-      setIsMatchingWithAI(false);
-      // Auto open preview popup modal
-      setShowMatchPreviewModal(true);
-
-    } catch (err: any) {
-      setIsMatchingWithAI(false);
-      Alert.alert('AI Match Failed', err.message || 'Failed to tailor resume and cover letter.');
-    }
-  };
-
-  const handleViewTailoredResume = async () => {
-    if (previewResumeUri) {
+    async function initJobDetails() {
+      setIsLoadingDetails(true);
       try {
-        await Print.printAsync({ uri: previewResumeUri });
-      } catch (e) {
-        console.log('Error printing/viewing PDF:', e);
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(previewResumeUri);
+        let jobObj: any = null;
+        if (params.job) {
+          try {
+            jobObj = JSON.parse(params.job as string);
+          } catch (e) {
+            console.log("Error parsing job param:", e);
+          }
         }
+        if (!jobObj && params.id) {
+          jobObj = {
+            id: params.id,
+            title: params.title || 'Senior Technical Program Manager',
+            companyName: params.company || 'Kota',
+            location: { name: params.location || 'Dallas, USA' },
+            absolute_url: params.url || '',
+            content: params.content || '',
+            department: params.department || 'Computer Software',
+            updated_at: '18 hour ago'
+          };
+        }
+        setJobData(jobObj);
+
+        // Load profile and resumes
+        const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+        const profileInfo = await FileSystem.getInfoAsync(profilePath);
+        let profileObj: any = null;
+        if (profileInfo.exists) {
+          const profileStr = await FileSystem.readAsStringAsync(profilePath);
+          profileObj = JSON.parse(profileStr);
+          setUserProfile(profileObj);
+        }
+
+        const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
+        const resumesInfo = await FileSystem.getInfoAsync(resumesPath);
+        let defaultRes: SelectedResumeFile | null = null;
+        if (resumesInfo.exists) {
+          const resumesStr = await FileSystem.readAsStringAsync(resumesPath);
+          const list: SelectedResumeFile[] = JSON.parse(resumesStr);
+          setResumesList(list);
+          defaultRes = list.find(r => r.isDefault) || list[0] || null;
+          setSelectedResume(defaultRes);
+        }
+
+        // Calculate initial match score
+        if (jobObj && (profileObj || defaultRes)) {
+          setIsCalculatingMatch(true);
+          const calculated = await calculateJobMatch(jobObj, profileObj, defaultRes);
+          setMatchResult(calculated);
+          setIsCalculatingMatch(false);
+        }
+      } catch (err) {
+        console.log("Error initializing job details screen:", err);
+      } finally {
+        setIsLoadingDetails(false);
       }
-    } else {
-      Alert.alert('Resume Preview', 'No tailored resume file found.');
     }
+
+    initJobDetails();
+  }, [params.id, params.job]);
+
+  const cleanAndSummarizeJobText = (htmlText: string) => {
+    if (!htmlText) return { summary: '', fullText: '', isLong: false };
+    const clean = htmlText.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+    if (clean.length <= 400) {
+      return { summary: clean, fullText: clean, isLong: false };
+    }
+    return {
+      summary: clean.slice(0, 380) + '...',
+      fullText: clean,
+      isLong: true
+    };
   };
 
   const handleShareJob = async () => {
-    if (jobData?.absolute_url) {
-      await Share.share({
-        message: `Check out this job position: ${jobData.title} at ${jobData.companyName || 'Company'}\n${jobData.absolute_url}`,
-      });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Share Job Link', 'Report Job Listing'],
+          cancelButtonIndex: 0,
+          userInterfaceStyle: 'light',
+        },
+        async (buttonIndex) => {
+          if (buttonIndex === 1 && jobData?.absolute_url) {
+            await Share.share({
+              message: `Check out this position: ${jobData.title} at ${jobData.companyName || 'Company'}\n${jobData.absolute_url}`,
+            });
+          } else if (buttonIndex === 2) {
+            router.push('/report-bug');
+          }
+        }
+      );
+    } else {
+      if (jobData?.absolute_url) {
+        await Share.share({
+          message: `Check out this position: ${jobData.title} at ${jobData.companyName || 'Company'}\n${jobData.absolute_url}`,
+        });
+      }
     }
   };
 
-  const companyName = jobData?.companyName || 'COMPANY';
-  const jobTitle = jobData?.title || 'Position';
-  const locationName = jobData?.location?.name || 'United States';
+  const companyName = jobData?.companyName || 'Kota';
+  const jobTitle = jobData?.title || 'Senior Staff Technical Program Manger (R5595)';
+  const locationName = jobData?.location?.name || 'Dallas, USA';
+  const jobDetailsHtml = jobData?.content || '';
+
+  const overallScore = matchResult ? matchResult.overallScore : 68;
+  const matchPercent = matchResult ? matchResult.overallScore : 90;
+  const skillsPercent = matchResult ? matchResult.skillsScore : 40;
+  const resumePercent = matchResult ? matchResult.expLevelScore : 66;
+
+  const handleMarkApplied = async () => {
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setIsApplied(true);
+      setShowDidYouApplyModal(false);
+
+      const appliedPath = `${FileSystem.documentDirectory}user_applied_jobs.json`;
+      const appliedInfo = await FileSystem.getInfoAsync(appliedPath);
+      let currentApplied: any[] = [];
+      if (appliedInfo.exists) {
+        const text = await FileSystem.readAsStringAsync(appliedPath);
+        try { currentApplied = JSON.parse(text); } catch (e) {}
+      }
+
+      const newEntry = {
+        id: jobData?.id || `job-${Date.now()}`,
+        title: jobTitle,
+        companyName: companyName,
+        location: locationName,
+        url: jobData?.absolute_url || '',
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        timestamp: Date.now(),
+        status: 'applied'
+      };
+
+      const updatedList = [newEntry, ...currentApplied.filter((j: any) => j.id !== newEntry.id)];
+      await FileSystem.writeAsStringAsync(appliedPath, JSON.stringify(updatedList));
+
+      // Sync with online backend
+      const userId = user?.id || 'guest';
+      fetch(`${API_URL}/api/user-jobs/${userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'applied',
+          jobId: newEntry.id,
+          jobData: newEntry
+        })
+      }).catch(err => console.log('Backend sync applied error:', err));
+
+      Alert.alert('Applied! 🎉', 'Job marked as applied in your Applications tab.');
+    } catch (e) {
+      console.log('Error saving applied job:', e);
+    }
+  };
+
+  const handleMarkRejected = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setShowDidYouApplyModal(false);
+
+      const skippedPath = `${FileSystem.documentDirectory}user_skipped_jobs.json`;
+      const skippedInfo = await FileSystem.getInfoAsync(skippedPath);
+      let currentSkipped: any[] = [];
+      if (skippedInfo.exists) {
+        const text = await FileSystem.readAsStringAsync(skippedPath);
+        try { currentSkipped = JSON.parse(text); } catch (e) {}
+      }
+
+      const newEntry = {
+        id: jobData?.id || `job-${Date.now()}`,
+        title: jobTitle,
+        companyName: companyName,
+        location: locationName,
+        url: jobData?.absolute_url || '',
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        timestamp: Date.now(),
+        status: 'skipped'
+      };
+
+      const updatedList = [newEntry, ...currentSkipped.filter((j: any) => j.id !== newEntry.id)];
+      await FileSystem.writeAsStringAsync(skippedPath, JSON.stringify(updatedList));
+
+      // Sync with online backend
+      const userId = user?.id || 'guest';
+      fetch(`${API_URL}/api/user-jobs/${userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'skipped',
+          jobId: newEntry.id,
+          jobData: newEntry
+        })
+      }).catch(err => console.log('Backend sync skipped error:', err));
+    } catch (e) {
+      console.log('Error saving skipped job:', e);
+    }
+  };
 
   return (
     <View style={styles.container}>
-      {/* TOP NAVIGATION HEADER */}
-      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => {
-          if (router.canGoBack()) {
-            router.back();
-          } else {
-            router.replace('/jobs');
-          }
-        }}>
-          <Ionicons name="chevron-back" size={24} color="#000000" />
+      {/* MOCKUP HEADER BAR */}
+      <View style={[styles.headerRow, { paddingTop: insets.top + 4 }]}>
+        {/* Left Circular Back Button */}
+        <TouchableOpacity
+          style={styles.backCircleBtn}
+          activeOpacity={0.7}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/jobs');
+            }
+          }}
+        >
+          {Platform.OS === 'ios' ? (
+            <SymbolView name="chevron.left" size={18} tintColor="#1E293B" resizeMode="scaleAspectFit" />
+          ) : (
+            <Ionicons name="chevron-back" size={22} color="#1E293B" />
+          )}
         </TouchableOpacity>
 
-        {/* Overview & Company Segmented Tabs */}
-        <View style={styles.segmentedTabContainer}>
+        {/* Middle Segmented Control (Overview | Company) */}
+        <View style={styles.segmentedContainer}>
           <TouchableOpacity
-            style={[styles.segmentedTabBtn, activeTab === 'overview' && styles.segmentedTabBtnActive]}
-            onPress={() => setActiveTab('overview')}
+            style={[styles.segmentedTab, activeTab === 'overview' && styles.segmentedTabActive]}
+            activeOpacity={0.75}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setActiveTab('overview');
+            }}
           >
-            <Text style={[styles.segmentedTabText, activeTab === 'overview' && styles.segmentedTabTextActive]}>
+            <Text style={[styles.segmentedText, activeTab === 'overview' && styles.segmentedTextActive]}>
               Overview
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.segmentedTabBtn, activeTab === 'company' && styles.segmentedTabBtnActive]}
-            onPress={() => setActiveTab('company')}
+            style={[styles.segmentedTab, activeTab === 'company' && styles.segmentedTabActive]}
+            activeOpacity={0.75}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setActiveTab('company');
+            }}
           >
-            <Text style={[styles.segmentedTabText, activeTab === 'company' && styles.segmentedTabTextActive]}>
+            <Text style={[styles.segmentedText, activeTab === 'company' && styles.segmentedTextActive]}>
               Company
             </Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.shareBtn} activeOpacity={0.8} onPress={handleShareJob}>
-          <Ionicons name="share-outline" size={22} color="#000000" />
+        {/* Right Credits Pill */}
+        <TouchableOpacity
+          style={styles.creditsPill}
+          activeOpacity={0.75}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/pricing' as any);
+          }}
+        >
+          <Text style={styles.creditsPillText}>1378</Text>
+          <Text style={styles.creditsSparkleIcon}>✦</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
-        {/* HERO JOB CARD */}
-        <View style={styles.heroCard}>
-          <View style={styles.heroTopRow}>
-            <View style={styles.companyIconCircle}>
-              <Text style={styles.companyIconInitial}>{companyName.charAt(0).toUpperCase()}</Text>
+        {/* COMPANY & JOB TITLE CARD */}
+        <View style={styles.topCardContainer}>
+          <View style={styles.companyTopHeaderRow}>
+            {/* Violet Company Logo Box */}
+            <View style={styles.violetCompanyLogoBox}>
+              <Ionicons name="sparkles-outline" size={24} color="#FFFFFF" />
             </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.heroCompanyName}>{companyName}</Text>
-              <Text style={styles.heroCompanySubText}>Information Technology • Software</Text>
+
+            <View style={styles.companyTitleCol}>
+              <Text style={styles.companyNameText}>{companyName}</Text>
+              <Text style={styles.companySubText}>Computer Software</Text>
             </View>
-            <View style={styles.postedBadge}>
-              <Text style={styles.postedBadgeText}>1 week ago</Text>
+
+            {/* Time Pill Badge */}
+            <View style={styles.timeBadgePill}>
+              <Text style={styles.timeBadgeText}>18 hour ago</Text>
             </View>
           </View>
 
-          <Text style={styles.heroJobTitle}>{jobTitle}</Text>
+          {/* Main Job Title */}
+          <Text style={styles.mainJobTitleText}>{jobTitle}</Text>
 
-          {/* Info Tags */}
-          <View style={styles.infoTagsRow}>
-            <View style={styles.infoTag}>
-              <Ionicons name="location-outline" size={14} color="#475569" />
-              <Text style={styles.infoTagText}>{locationName}</Text>
+          {/* 3x2 JOB SPECS GRID */}
+          <View style={styles.specsGrid}>
+            <View style={styles.specItem}>
+              <Ionicons name="location-outline" size={15} color="#475569" />
+              <Text style={styles.specItemText}>{locationName}</Text>
             </View>
 
-            <View style={styles.infoTag}>
-              <Ionicons name="home-outline" size={14} color="#475569" />
-              <Text style={styles.infoTagText}>Remote</Text>
+            <View style={styles.specItem}>
+              <Ionicons name="cash-outline" size={15} color="#475569" />
+              <Text style={styles.specItemText}>$50K-$80 Salary</Text>
             </View>
 
-            <View style={styles.infoTag}>
-              <Ionicons name="briefcase-outline" size={14} color="#475569" />
-              <Text style={styles.infoTagText}>Mid-Senior Level</Text>
+            <View style={styles.specItem}>
+              <Ionicons name="home-outline" size={15} color="#475569" />
+              <Text style={styles.specItemText}>5+ years exp</Text>
             </View>
 
-            <View style={styles.infoTag}>
-              <Ionicons name="time-outline" size={14} color="#475569" />
-              <Text style={styles.infoTagText}>Full-time</Text>
+            <View style={styles.specItem}>
+              <Ionicons name="time-outline" size={15} color="#475569" />
+              <Text style={styles.specItemText}>Full Time</Text>
+            </View>
+
+            <View style={styles.specItem}>
+              <Ionicons name="laptop-outline" size={15} color="#475569" />
+              <Text style={styles.specItemText}>In Person</Text>
+            </View>
+
+            <View style={styles.specItem}>
+              <Ionicons name="time-outline" size={15} color="#475569" />
+              <Text style={styles.specItemText}>19 hours ago</Text>
             </View>
           </View>
         </View>
 
         {activeTab === 'overview' ? (
           <>
-            {/* MATCH SCORE CARDS SECTION */}
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionHeaderTitle}>Match Score</Text>
-
-              <View style={styles.scoreGrid}>
-                {/* Overall Match Card */}
-                {(() => {
-                  const score = matchResult ? matchResult.overallScore : 0;
-                  const colors = getMatchPillColors(score);
-                  return (
-                    <View style={[styles.scoreCard, { backgroundColor: colors.bg, borderColor: colors.borderColor, borderWidth: 1 }]}>
-                      <Text style={[styles.scoreValueHighlight, { color: colors.scoreColor }]}>{score}%</Text>
-                      <Text style={[styles.scoreLabelText, { color: colors.labelColor, fontWeight: '700' }]}>Overall Match</Text>
-                    </View>
-                  );
-                })()}
-
-                {/* Exp Level Card */}
-                {(() => {
-                  const score = matchResult ? matchResult.expLevelScore : 0;
-                  const colors = getMatchPillColors(score);
-                  return (
-                    <View style={[styles.scoreCard, { backgroundColor: colors.bg, borderColor: colors.borderColor, borderWidth: 1 }]}>
-                      <Text style={[styles.scoreValueText, { color: colors.scoreColor }]}>{score}%</Text>
-                      <Text style={[styles.scoreLabelText, { color: colors.labelColor }]}>Exp. Level</Text>
-                    </View>
-                  );
-                })()}
-
-                {/* Skill Score Card */}
-                {(() => {
-                  const score = matchResult ? matchResult.skillsScore : 0;
-                  const colors = getMatchPillColors(score);
-                  return (
-                    <View style={[styles.scoreCard, { backgroundColor: colors.bg, borderColor: colors.borderColor, borderWidth: 1 }]}>
-                      <Text style={[styles.scoreValueText, { color: colors.scoreColor }]}>{score}%</Text>
-                      <Text style={[styles.scoreLabelText, { color: colors.labelColor }]}>Skill Match</Text>
-                    </View>
-                  );
-                })()}
-
-                {/* Industry Exp Card */}
-                {(() => {
-                  const score = matchResult ? matchResult.industryScore : 0;
-                  const colors = getMatchPillColors(score);
-                  return (
-                    <View style={[styles.scoreCard, { backgroundColor: colors.bg, borderColor: colors.borderColor, borderWidth: 1 }]}>
-                      <Text style={[styles.scoreValueText, { color: colors.scoreColor }]}>{score}%</Text>
-                      <Text style={[styles.scoreLabelText, { color: colors.labelColor }]}>Industry Exp.</Text>
-                    </View>
-                  );
-                })()}
-              </View>
-            </View>
-
-            {/* SKILLS BREAKDOWN SECTION */}
-            <View style={styles.sectionContainer}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text style={styles.sectionHeaderTitle}>Skills Analysis</Text>
-                <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '500' }}>👍 Represents skills you have</Text>
+            {/* ATS SCORE SECTION */}
+            <View style={styles.atsSectionContainer}>
+              <View style={styles.atsHeaderRow}>
+                <Text style={styles.atsSectionTitle}>ATS Score</Text>
+                <Text style={styles.atsScoreFraction}>
+                  <Text style={styles.atsScoreValue}>{overallScore}</Text>
+                  <Text style={styles.atsScoreTotal}>/100</Text>
+                </Text>
               </View>
 
-              <View style={styles.skillsPillsWrapper}>
-                {/* Matched skills (Green pills) */}
-                {matchResult?.matchedSkills.map((skill, idx) => (
-                  <View key={`matched-${idx}`} style={styles.matchedSkillPill}>
-                    <Text style={{ fontSize: 12 }}>👍</Text>
-                    <Text style={styles.matchedSkillText}>{skill}</Text>
-                  </View>
-                ))}
-
-                {/* Missing skills (Outline pills) */}
-                {matchResult?.missingSkills.map((skill, idx) => (
-                  <View key={`missing-${idx}`} style={styles.missingSkillPill}>
-                    <Text style={styles.missingSkillText}>{skill}</Text>
-                  </View>
-                ))}
+              {/* Coral/Orange Progress Bar */}
+              <View style={styles.progressBarTrack}>
+                <View style={[styles.progressBarFill, { width: `${overallScore}%` }]} />
               </View>
-            </View>
 
-            {/* JOB DESCRIPTION BODY */}
-            <View style={styles.sectionContainer}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Text style={styles.sectionHeaderTitle}>Job Summary</Text>
-                <View style={styles.summaryBadge}>
-                  <Ionicons name="sparkles" size={12} color="#7C3AED" />
-                  <Text style={styles.summaryBadgeText}>Condensed</Text>
+              {/* 4 METRIC CARDS ROW */}
+              <View style={styles.metricCardsRow}>
+                <View style={[styles.metricCard, styles.metricCardOrange]}>
+                  <Text style={styles.metricCardValueWhite}>{overallScore}%</Text>
+                  <Text style={styles.metricCardLabelWhite}>OVERALL</Text>
+                </View>
+
+                <View style={[styles.metricCard, styles.metricCardGreen]}>
+                  <Text style={styles.metricCardValueGreen}>{matchPercent}%</Text>
+                  <Text style={styles.metricCardLabelGreen}>JOB MATCH</Text>
+                </View>
+
+                <View style={[styles.metricCard, styles.metricCardGray]}>
+                  <Text style={styles.metricCardValueGray}>{skillsPercent}%</Text>
+                  <Text style={styles.metricCardLabelGray}>SKILLS</Text>
+                </View>
+
+                <View style={[styles.metricCard, styles.metricCardGray]}>
+                  <Text style={styles.metricCardValueGray}>{resumePercent}%</Text>
+                  <Text style={styles.metricCardLabelGray}>RESUME</Text>
                 </View>
               </View>
 
-              {isLoadingDetails ? (
-                <ActivityIndicator size="small" color="#7C3AED" style={{ marginVertical: 20 }} />
-              ) : (() => {
-                const parsed = cleanAndSummarizeJobText(jobDetailsHtml);
-                return (
-                  <View>
-                    <Text style={styles.jobDescriptionBodyText}>
-                      {showFullDescription ? parsed.fullText : parsed.summary}
-                    </Text>
+              {/* SKILLS PILLS GRID (Green matched vs Muted gray) */}
+              <View style={styles.skillsPillsContainer}>
+                <View style={styles.skillPillGreen}>
+                  <Text style={styles.thumbEmoji}>👍</Text>
+                  <Text style={styles.skillTextGreen}>Developer relation</Text>
+                </View>
 
-                    {parsed.isLong && (
-                      <TouchableOpacity
-                        style={styles.showMoreBtn}
-                        activeOpacity={0.8}
-                        onPress={() => setShowFullDescription(!showFullDescription)}
-                      >
-                        <Text style={styles.showMoreBtnText}>
-                          {showFullDescription ? 'Show Less ↑' : 'Read Full Description ↓'}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
-              })()}
+                <View style={styles.skillPillGreen}>
+                  <Text style={styles.thumbEmoji}>👍</Text>
+                  <Text style={styles.skillTextGreen}>Frontend</Text>
+                </View>
+
+                <View style={styles.skillPillGreen}>
+                  <Text style={styles.thumbEmoji}>👍</Text>
+                  <Text style={styles.skillTextGreen}>Soft Skills</Text>
+                </View>
+
+                <View style={styles.skillPillGreen}>
+                  <Text style={styles.thumbEmoji}>👍</Text>
+                  <Text style={styles.skillTextGreen}>Team managment</Text>
+                </View>
+
+                <View style={styles.skillPillGreen}>
+                  <Text style={styles.thumbEmoji}>👍</Text>
+                  <Text style={styles.skillTextGreen}>Project Coordination</Text>
+                </View>
+
+                <View style={styles.skillPillGray}>
+                  <Text style={styles.skillTextGray}>Developer relation</Text>
+                </View>
+
+                <View style={styles.skillPillGray}>
+                  <Text style={styles.skillTextGray}>Frontend</Text>
+                </View>
+
+                <View style={styles.skillPillGray}>
+                  <Text style={styles.skillTextGray}>Backend</Text>
+                </View>
+
+                <View style={styles.skillPillGray}>
+                  <Text style={styles.skillTextGray}>Fullstack</Text>
+                </View>
+
+                <View style={styles.skillPillGray}>
+                  <Text style={styles.skillTextGray}>Frontend</Text>
+                </View>
+
+                <View style={styles.skillPillGray}>
+                  <Text style={styles.skillTextGray}>Backend</Text>
+                </View>
+
+                <View style={styles.skillPillGray}>
+                  <Text style={styles.skillTextGray}>DevOps</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* JOB SUMMARY SECTION */}
+            <View style={styles.summarySectionContainer}>
+              <Text style={styles.jobSummaryTitle}>Job Summary</Text>
+
+              <Text style={styles.jobSummarySalutation}>Dear Hiring Manager,</Text>
+              <Text style={styles.jobSummaryBodyText}>
+                I am writing to express my strong interest in the Product Designer position at your company. With a passion for creating intuitive and engaging user experiences, I bring a wealth of experience in...
+              </Text>
             </View>
           </>
         ) : (
-          /* COMPANY TAB CONTENT */
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionHeaderTitle}>About {companyName}</Text>
-            <View style={styles.companyInfoCard}>
-              <View style={styles.companyInfoRow}>
-                <Ionicons name="location-outline" size={18} color="#7C3AED" />
-                <Text style={styles.companyInfoText}>{locationName}</Text>
-              </View>
-
-              <View style={styles.companyInfoRow}>
-                <Ionicons name="people-outline" size={18} color="#7C3AED" />
-                <Text style={styles.companyInfoText}>1,000 - 5,000 employees</Text>
-              </View>
-
-              <View style={styles.companyInfoRow}>
-                <Ionicons name="globe-outline" size={18} color="#7C3AED" />
-                <TouchableOpacity onPress={() => jobData?.absolute_url && Linking.openURL(jobData.absolute_url)}>
-                  <Text style={styles.companyLinkText}>{jobData?.absolute_url || 'https://company.careers'}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+          <View style={styles.summarySectionContainer}>
+            <Text style={styles.jobSummaryTitle}>About {companyName}</Text>
+            <Text style={styles.jobSummaryBodyText}>
+              {companyName} is a leading enterprise software company specializing in workflow automation and cloud technology solutions worldwide.
+            </Text>
           </View>
         )}
       </ScrollView>
 
-      {/* FLOATING STICKY BOTTOM BAR */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}>
+      {/* FLOATING BLACK PILL BUTTON */}
+      <View style={[styles.bottomDockBar, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
-          style={styles.applyNowBtn}
-          activeOpacity={0.8}
-          onPress={() => setShowTailorModal(true)}
+          style={styles.blackTailorApplyBtn}
+          activeOpacity={0.85}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            setShowTailorModal(true);
+          }}
         >
-          <Text style={styles.applyNowBtnText}>TAILOR RESUME & APPLY</Text>
-          <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+          <Text style={styles.blackTailorApplyBtnText}>Tailor resume & Apply</Text>
         </TouchableOpacity>
       </View>
 
-      {/* PREVIEW POPUP MODAL (Clean single popup!) */}
-      <Modal
-        visible={showMatchPreviewModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowMatchPreviewModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalHeaderTitle}>AI Generated Document</Text>
-              <TouchableOpacity onPress={() => setShowMatchPreviewModal(false)}>
-                <Ionicons name="close" size={24} color="#000000" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Segmented Modal Tabs */}
-            <View style={styles.inlineTabRow}>
-              <TouchableOpacity
-                style={[styles.inlineTabBtn, previewTab === 'resume' && styles.inlineTabBtnActive]}
-                onPress={() => setPreviewTab('resume')}
-              >
-                <Ionicons name="document-text" size={16} color={previewTab === 'resume' ? '#7C3AED' : '#64748B'} />
-                <Text style={[styles.inlineTabText, previewTab === 'resume' && styles.inlineTabTextActive]}>
-                  Tailored Resume
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.inlineTabBtn, previewTab === 'cover_letter' && styles.inlineTabBtnActive]}
-                onPress={() => setPreviewTab('cover_letter')}
-              >
-                <Ionicons name="mail" size={16} color={previewTab === 'cover_letter' ? '#7C3AED' : '#64748B'} />
-                <Text style={[styles.inlineTabText, previewTab === 'cover_letter' && styles.inlineTabTextActive]}>
-                  Cover Letter
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Modal Body Preview */}
-            <View style={{ flex: 1, marginTop: 10 }}>
-              {previewTab === 'resume' ? (
-                <View style={{ flex: 1 }}>
-                  <View style={styles.inlinePreviewHeader}>
-                    <Text style={styles.inlinePreviewTitleText} numberOfLines={1}>
-                      {previewResumeName}
-                    </Text>
-                    <TouchableOpacity style={styles.openPdfHeaderBtn} onPress={handleViewTailoredResume}>
-                      <Ionicons name="open-outline" size={14} color="#7C3AED" />
-                      <Text style={styles.openPdfHeaderBtnText}>Full PDF</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={{ flex: 1, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#E2E8F0' }}>
-                    <WebView
-                      originWhitelist={['*']}
-                      source={{ html: previewResumeHtml }}
-                      style={{ flex: 1 }}
-                      scalesPageToFit={true}
-                    />
-                  </View>
-                </View>
-              ) : (
-                <View style={{ flex: 1 }}>
-                  <View style={styles.inlinePreviewHeader}>
-                    <Text style={styles.inlinePreviewTitleText}>Matched Cover Letter</Text>
-                    <TouchableOpacity
-                      style={styles.copyBtn}
-                      onPress={() => Alert.alert('Copied!', 'Cover Letter copied to clipboard.')}
-                    >
-                      <Ionicons name="copy-outline" size={14} color="#7C3AED" />
-                      <Text style={styles.copyBtnText}>Copy Text</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <TextInput
-                    style={styles.modalCoverLetterInput}
-                    multiline={true}
-                    value={previewCoverLetter}
-                    onChangeText={setPreviewCoverLetter}
-                    textAlignVertical="top"
-                  />
-                </View>
-              )}
-            </View>
-          </View>
-        </View>
-      </Modal>
-      {/* TAILOR RESUME & APPLY FULL MODAL */}
+      {/* TAILOR NATIVE iOS BOTTOM SHEET MODAL */}
       <Modal
         visible={showTailorModal}
+        transparent={true}
         animationType="slide"
-        transparent={false}
         onRequestClose={() => setShowTailorModal(false)}
       >
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-          {/* Modal Header */}
-          <View style={styles.tailorModalHeader}>
-            <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => setShowTailorModal(false)}>
-              <Ionicons name="close" size={24} color="#000000" />
-            </TouchableOpacity>
-            <Text style={styles.tailorModalHeaderTitle}>Tailor Resume & Apply</Text>
-            <View style={{ width: 40 }} />
-          </View>
+        <View style={styles.modalOverlayBackdrop}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => setShowTailorModal(false)}
+          />
+          <View style={[styles.modalSheetCard, { paddingBottom: insets.bottom + 16 }]}>
+            {/* Header with Title and Close Button */}
+            <View style={styles.modalSheetHeaderRow}>
+              <Text style={styles.modalSheetTitle}>Tailor your to get better result</Text>
+              <TouchableOpacity
+                style={styles.modalCloseCircleBtn}
+                activeOpacity={0.7}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setShowTailorModal(false);
+                }}
+              >
+                {Platform.OS === 'ios' ? (
+                  <SymbolView name="xmark" size={16} tintColor="#1F2937" resizeMode="scaleAspectFit" />
+                ) : (
+                  <Ionicons name="close" size={20} color="#1F2937" />
+                )}
+              </TouchableOpacity>
+            </View>
 
-          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 100 }} showsVerticalScrollIndicator={false}>
-            {/* Target Job Summary Banner */}
-            <View style={styles.tailorTargetCard}>
-              <View style={styles.companyIconCircle}>
-                <Text style={styles.companyIconInitial}>{companyName.charAt(0).toUpperCase()}</Text>
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.heroJobTitle} numberOfLines={1}>{jobTitle}</Text>
-                <Text style={styles.heroCompanyName}>{companyName} • {locationName}</Text>
+            {/* Circular Gauge Diagram */}
+            <View style={styles.modalGaugeWrapper}>
+              <Svg width={180} height={180} viewBox="0 0 180 180">
+                <Circle
+                  cx="90"
+                  cy="90"
+                  r="78"
+                  stroke="#CBD5E1"
+                  strokeWidth="2"
+                  strokeDasharray="4,6"
+                  fill="none"
+                />
+                <Circle
+                  cx="90"
+                  cy="90"
+                  r="66"
+                  stroke="#E2E8F0"
+                  strokeWidth="12"
+                  fill="none"
+                />
+                <Circle
+                  cx="90"
+                  cy="90"
+                  r="66"
+                  stroke="#000000"
+                  strokeWidth="12"
+                  strokeDasharray={`${2 * Math.PI * 66}`}
+                  strokeDashoffset={`${2 * Math.PI * 66 * (1 - overallScore / 100)}`}
+                  strokeLinecap="round"
+                  fill="none"
+                  transform="rotate(-90 90 90)"
+                />
+              </Svg>
+              <View style={styles.modalGaugeCenterCol}>
+                <Text style={styles.modalGaugeScoreText}>{overallScore}%</Text>
+                <Text style={styles.modalGaugeSubLabel}>Match score</Text>
               </View>
             </View>
 
-            {/* Selected Resume Section */}
-            <View style={styles.tailorSection}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={styles.sectionHeaderTitle}>Selected Resume</Text>
-                <TouchableOpacity onPress={() => { setShowTailorModal(false); router.push('/resumes'); }}>
-                  <Text style={styles.changeResumeLinkText}>Change in Profile →</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.defaultResumeCard}>
-                <View style={styles.defaultResumeHeaderRow}>
-                  <View style={styles.defaultBadgePill}>
-                    <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
-                    <Text style={styles.defaultBadgeText}>Default Resume</Text>
-                  </View>
-
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() => { setShowTailorModal(false); router.push('/resumes'); }}
-                  >
-                    <Text style={styles.changeResumeLinkText}>Change →</Text>
-                  </TouchableOpacity>
+            {/* Improvement Section */}
+            <View style={styles.modalImprovementSection}>
+              <Text style={styles.modalImprovementHeader}>+30% Improve available</Text>
+              <View style={styles.modalChipsWrap}>
+                <View style={styles.modalGreenChip}>
+                  <Text style={styles.modalGreenChipText}>Add Missing Keywords</Text>
                 </View>
-
-                <View style={styles.defaultResumeFileRow}>
-                  <Ionicons name="document-text" size={20} color="#7C3AED" />
-                  <Text style={styles.defaultResumeFileName} numberOfLines={1}>
-                    {resumesList.find(r => String(r.id) === String(selectedResumeId))?.name || resumesList[0]?.name || 'Default Resume'}
-                  </Text>
+                <View style={styles.modalGreenChip}>
+                  <Text style={styles.modalGreenChipText}>Add Missing Skills</Text>
+                </View>
+                <View style={styles.modalGreenChip}>
+                  <Text style={styles.modalGreenChipText}>Paraphrasing</Text>
+                </View>
+                <View style={styles.modalGreenChip}>
+                  <Text style={styles.modalGreenChipText}>Add Soft Skills</Text>
                 </View>
               </View>
             </View>
 
-            {/* Match Resume & Cover Letter Button */}
+            {/* Action Buttons */}
             <TouchableOpacity
-              style={[styles.matchAiBtn, isMatchingWithAI && styles.matchAiBtnDisabled, { marginVertical: 16 }]}
-              activeOpacity={0.8}
-              onPress={handleStartAiMatch}
-              disabled={isMatchingWithAI}
-            >
-              {isMatchingWithAI ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
-                  <Text style={styles.matchAiBtnText}>Tailoring Resume & Cover Letter...</Text>
-                </View>
-              ) : (
-                <>
-                  <Text style={styles.matchAiBtnText}>Match Resume and Cover Letter</Text>
-                  <Ionicons name="sparkles" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* AI Generated Documents Preview (if generated) */}
-            {previewResumeUri || previewCoverLetter ? (
-              <View style={styles.tailorSection}>
-                <Text style={styles.sectionHeaderTitle}>AI Tailored Documents</Text>
-
-                {/* Inline Segmented Tabs */}
-                <View style={[styles.inlineTabRow, { marginTop: 12 }]}>
-                  <TouchableOpacity
-                    style={[styles.inlineTabBtn, previewTab === 'resume' && styles.inlineTabBtnActive]}
-                    onPress={() => setPreviewTab('resume')}
-                  >
-                    <Ionicons name="document-text" size={16} color={previewTab === 'resume' ? '#7C3AED' : '#64748B'} />
-                    <Text style={[styles.inlineTabText, previewTab === 'resume' && styles.inlineTabTextActive]}>
-                      Tailored Resume
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.inlineTabBtn, previewTab === 'cover_letter' && styles.inlineTabBtnActive]}
-                    onPress={() => setPreviewTab('cover_letter')}
-                  >
-                    <Ionicons name="mail" size={16} color={previewTab === 'cover_letter' ? '#7C3AED' : '#64748B'} />
-                    <Text style={[styles.inlineTabText, previewTab === 'cover_letter' && styles.inlineTabTextActive]}>
-                      Cover Letter
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={{ height: 350, marginTop: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#E2E8F0' }}>
-                  {previewTab === 'resume' ? (
-                    <WebView
-                      originWhitelist={['*']}
-                      source={{ html: previewResumeHtml }}
-                      style={{ flex: 1 }}
-                      scalesPageToFit={true}
-                    />
-                  ) : (
-                    <TextInput
-                      style={[styles.modalCoverLetterInput, { height: 350 }]}
-                      multiline={true}
-                      value={previewCoverLetter}
-                      onChangeText={setPreviewCoverLetter}
-                      textAlignVertical="top"
-                    />
-                  )}
-                </View>
-              </View>
-            ) : null}
-          </ScrollView>
-
-          {/* Modal Bottom Dock for Final Apply */}
-          <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}>
-            <TouchableOpacity
-              style={[styles.applyNowBtn, { backgroundColor: '#10B981' }]}
-              activeOpacity={0.8}
+              style={styles.applyWithoutCustomizingBtn}
+              activeOpacity={0.7}
               onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                hasOpenedApplyRef.current = true;
                 setShowTailorModal(false);
                 if (jobData?.absolute_url) {
                   router.push({
@@ -816,13 +667,405 @@ export default function JobDetailsScreen() {
                       company: companyName
                     }
                   });
-                } else {
-                  Alert.alert('Apply', 'Application URL is missing for this position.');
                 }
               }}
             >
-              <Text style={styles.applyNowBtnText}>PROCEED TO APPLY</Text>
-              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Text style={styles.applyWithoutCustomizingBtnText}>Apply without customizing</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.customizeBlackBtn}
+              activeOpacity={0.85}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setShowTailorModal(false);
+                const currentCredit = user?.credit ?? guestCredit ?? 0;
+                if (currentCredit <= 0) {
+                  router.push('/pricing' as any);
+                } else {
+                  handleStartAiTailoring();
+                }
+              }}
+            >
+              <Text style={styles.customizeBlackBtnText}>Customize resume & Cover letter</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* AI GENERATION PROGRESS MODAL */}
+      <Modal
+        visible={isMatchingWithAI}
+        animationType="fade"
+        transparent={false}
+      >
+        <View style={[styles.container, { paddingTop: insets.top + 10, paddingHorizontal: 20 }]}>
+          {/* Header Bar */}
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              style={styles.backCircleBtn}
+              activeOpacity={0.7}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setIsMatchingWithAI(false);
+              }}
+            >
+              {Platform.OS === 'ios' ? (
+                <SymbolView name="chevron.left" size={18} tintColor="#1E293B" resizeMode="scaleAspectFit" />
+              ) : (
+                <Ionicons name="chevron-back" size={22} color="#1E293B" />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.creditsPill}
+              activeOpacity={0.75}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/pricing' as any);
+              }}
+            >
+              <Text style={styles.creditsPillText}>{user?.credit ?? guestCredit ?? 1378}</Text>
+              <Text style={styles.creditsSparkleIcon}>✦</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={{ flex: 1, marginTop: 24 }} showsVerticalScrollIndicator={false}>
+            {/* Rewriting Your Resume Section */}
+            <View style={styles.progressSectionBlock}>
+              <Text style={styles.progressSectionTitle}>Rewriting Your Resume:</Text>
+              <View style={styles.progressListCol}>
+                <View style={styles.progressStepRow}>
+                  {aiStep >= 1 ? (
+                    <Ionicons name="checkmark" size={18} color="#16A34A" />
+                  ) : (
+                    <View style={styles.progressCircleHollow} />
+                  )}
+                  <Text style={[styles.progressStepText, aiStep >= 1 && styles.progressStepTextActive]}>
+                    Analyzing Career Criteria
+                  </Text>
+                </View>
+
+                <View style={styles.progressStepRow}>
+                  {aiStep >= 2 ? (
+                    <Ionicons name="checkmark" size={18} color="#16A34A" />
+                  ) : (
+                    <View style={styles.progressCircleHollow} />
+                  )}
+                  <Text style={[styles.progressStepText, aiStep >= 2 && styles.progressStepTextActive]}>
+                    Scanning your resume
+                  </Text>
+                </View>
+
+                <View style={styles.progressStepRow}>
+                  {aiStep >= 3 ? (
+                    <Ionicons name="checkmark" size={18} color="#16A34A" />
+                  ) : (
+                    <View style={styles.progressCircleHollow} />
+                  )}
+                  <Text style={[styles.progressStepText, aiStep >= 3 && styles.progressStepTextActive]}>
+                    Generating personalized suggestions
+                  </Text>
+                </View>
+
+                <View style={styles.progressStepRow}>
+                  {aiStep >= 4 ? (
+                    <Ionicons name="checkmark" size={18} color="#16A34A" />
+                  ) : (
+                    <View style={styles.progressCircleHollow} />
+                  )}
+                  <Text style={[styles.progressStepText, aiStep >= 4 && styles.progressStepTextActive]}>
+                    Preparing your result
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Writing Your Cover Letter Section */}
+            <View style={[styles.progressSectionBlock, { marginTop: 32 }]}>
+              <Text style={styles.progressSectionTitle}>Writing Your Cover Letter:</Text>
+              <View style={styles.progressListCol}>
+                <View style={styles.progressStepRow}>
+                  {aiStep >= 1 ? (
+                    <Ionicons name="checkmark" size={18} color="#16A34A" />
+                  ) : (
+                    <View style={styles.progressCircleHollow} />
+                  )}
+                  <Text style={[styles.progressStepText, aiStep >= 1 && styles.progressStepTextActive]}>
+                    Analyzing Career Criteria
+                  </Text>
+                </View>
+
+                <View style={styles.progressStepRow}>
+                  {aiStep >= 2 ? (
+                    <Ionicons name="checkmark" size={18} color="#16A34A" />
+                  ) : (
+                    <View style={styles.progressCircleHollow} />
+                  )}
+                  <Text style={[styles.progressStepText, aiStep >= 2 && styles.progressStepTextActive]}>
+                    Scanning your resume
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* TAILORED RESULT SCREEN MODAL */}
+      <Modal
+        visible={showMatchResultModal}
+        animationType="slide"
+        transparent={false}
+      >
+        <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
+          {/* Header Bar */}
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              style={styles.backCircleBtn}
+              activeOpacity={0.7}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowMatchResultModal(false);
+              }}
+            >
+              {Platform.OS === 'ios' ? (
+                <SymbolView name="chevron.left" size={18} tintColor="#1E293B" resizeMode="scaleAspectFit" />
+              ) : (
+                <Ionicons name="chevron-back" size={22} color="#1E293B" />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.creditsPill}
+              activeOpacity={0.75}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/pricing' as any);
+              }}
+            >
+              <Text style={styles.creditsPillText}>{user?.credit ?? guestCredit ?? 1378}</Text>
+              <Text style={styles.creditsSparkleIcon}>✦</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 130 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Top Match Score Circle Gauge */}
+            <View style={styles.modalGaugeWrapper}>
+              <Svg width={200} height={200} viewBox="0 0 200 200">
+                <Circle
+                  cx="100"
+                  cy="100"
+                  r="86"
+                  stroke="#CBD5E1"
+                  strokeWidth="2"
+                  strokeDasharray="4,6"
+                  fill="none"
+                />
+                <Circle
+                  cx="100"
+                  cy="100"
+                  r="74"
+                  stroke="#E2E8F0"
+                  strokeWidth="14"
+                  fill="none"
+                />
+                <Circle
+                  cx="100"
+                  cy="100"
+                  r="74"
+                  stroke="#000000"
+                  strokeWidth="14"
+                  strokeDasharray={`${2 * Math.PI * 74}`}
+                  strokeDashoffset={`${2 * Math.PI * 74 * 0.01}`}
+                  strokeLinecap="round"
+                  fill="none"
+                  transform="rotate(-90 100 100)"
+                />
+              </Svg>
+              <View style={styles.modalGaugeCenterCol}>
+                <Text style={styles.modalResultScoreText}>99%</Text>
+                <Text style={styles.modalResultScoreSub}>Match score</Text>
+              </View>
+            </View>
+
+            {/* Title & Subtitle */}
+            <Text style={styles.issuesFixedTitle}>7 issues Fixed</Text>
+            <Text style={styles.issuesFixedSubtitle}>
+              Awesome! Your score jumped{'\n'}from 68% to 99%
+            </Text>
+
+            {/* Horizontal Side-by-Side Documents Section */}
+            <View style={styles.documentsRowContainer}>
+              {/* Tailored Resume Column */}
+              <View style={styles.documentCol}>
+                <View style={styles.documentPreviewCard}>
+                  <Text style={styles.docHeaderName}>FIRST NAME LAST NAME</Text>
+                  <Text style={styles.docHeaderSub}>Job Title</Text>
+
+                  <Text style={styles.docSectionTitle}>DETAILS</Text>
+                  <Text style={styles.docLineText}>• 0(09) 1234 5678</Text>
+                  <Text style={styles.docLineText}>• email@example.com</Text>
+
+                  <Text style={styles.docSectionTitle}>PROFILE</Text>
+                  <Text style={styles.docParagraphText}>
+                    Short description of your background and professional project...
+                  </Text>
+
+                  <Text style={styles.docSectionTitle}>WORK EXPERIENCE</Text>
+                  <Text style={styles.docSubHead}>Job title</Text>
+                  <Text style={styles.docParagraphText}>Company name / 2020 - Current</Text>
+
+                  <Text style={styles.docSectionTitle}>SKILLS</Text>
+                  <Text style={styles.docLineText}>Skill 1, Skill 2, Skill 3</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.viewDocBtnPill}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                >
+                  <Ionicons name="eye-outline" size={16} color="#0F172A" />
+                  <Text style={styles.viewDocBtnText}>View resume</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Tailored Cover Letter Column */}
+              <View style={styles.documentCol}>
+                <View style={styles.documentPreviewCard}>
+                  <Text style={styles.docHeaderName}>FIRST NAME LAST NAME</Text>
+                  <Text style={styles.docHeaderSub}>Job Title</Text>
+
+                  <Text style={styles.docSectionTitle}>DETAILS</Text>
+                  <Text style={styles.docLineText}>• 0(09) 1234 5678</Text>
+                  <Text style={styles.docLineText}>• email@example.com</Text>
+
+                  <Text style={styles.docSectionTitle}>PROFILE</Text>
+                  <Text style={styles.docParagraphText}>
+                    Dear Hiring Manager, I am writing to express my strong enthusiasm...
+                  </Text>
+
+                  <Text style={styles.docSectionTitle}>WORK EXPERIENCE</Text>
+                  <Text style={styles.docSubHead}>Job title</Text>
+                  <Text style={styles.docParagraphText}>Company name / 2020 - Current</Text>
+
+                  <Text style={styles.docSectionTitle}>EDUCATION</Text>
+                  <Text style={styles.docLineText}>Diploma / training</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.viewDocBtnPill}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                >
+                  <Ionicons name="eye-outline" size={16} color="#0F172A" />
+                  <Text style={styles.viewDocBtnText}>View cover letter</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* Bottom Floating Black Button: Apply */}
+          <View style={[styles.bottomDockBar, { paddingBottom: insets.bottom + 8 }]}>
+            <TouchableOpacity
+              style={styles.blackTailorApplyBtn}
+              activeOpacity={0.85}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                hasOpenedApplyRef.current = true;
+                setShowMatchResultModal(false);
+                if (jobData?.absolute_url) {
+                  router.push({
+                    pathname: '/apply-job',
+                    params: {
+                      url: jobData.absolute_url,
+                      title: jobData.title || jobTitle,
+                      company: companyName
+                    }
+                  });
+                }
+              }}
+            >
+              <Text style={styles.blackTailorApplyBtnText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* DID YOU APPLY NATIVE iOS BOTTOM SHEET MODAL */}
+      <Modal
+        visible={showDidYouApplyModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowDidYouApplyModal(false)}
+      >
+        <View style={styles.modalOverlayBackdrop}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => setShowDidYouApplyModal(false)}
+          />
+          <View style={[styles.modalSheetCard, { paddingBottom: insets.bottom + 16 }]}>
+            {/* Header with Title and Close Button */}
+            <View style={styles.modalSheetHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.didYouApplyTitle}>Did you apply?</Text>
+                <Text style={styles.didYouApplySubtitle}>
+                  If you applied, we flagged it to keep track of the job.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.modalCloseCircleBtn}
+                activeOpacity={0.7}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setShowDidYouApplyModal(false);
+                }}
+              >
+                {Platform.OS === 'ios' ? (
+                  <SymbolView name="xmark" size={16} tintColor="#1F2937" resizeMode="scaleAspectFit" />
+                ) : (
+                  <Ionicons name="close" size={20} color="#1F2937" />
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Job Summary Box */}
+            <View style={styles.jobSummaryBoxRow}>
+              <View style={styles.violetCompanyLogoBox}>
+                <Ionicons name="sparkles-outline" size={24} color="#FFFFFF" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.jobSummaryBoxCompany}>{companyName}</Text>
+                <Text style={styles.jobSummaryBoxTitle} numberOfLines={1}>
+                  {jobTitle}
+                </Text>
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <TouchableOpacity
+              style={styles.yesAppliedBlackBtn}
+              activeOpacity={0.85}
+              onPress={handleMarkApplied}
+            >
+              <Text style={styles.yesAppliedBlackBtnText}>Yes, I applied</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.noDidntWhiteBtn}
+              activeOpacity={0.85}
+              onPress={handleMarkRejected}
+            >
+              <Text style={styles.noDidntWhiteBtnText}>No, I didn’t</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -831,645 +1074,683 @@ export default function JobDetailsScreen() {
   );
 }
 
-function cleanAndSummarizeJobText(html: string): { summary: string; fullText: string; isLong: boolean } {
-  if (!html) {
-    return {
-      summary: 'Detailed description for this role is available on the employer application board.',
-      fullText: '',
-      isLong: false,
-    };
-  }
-
-  let text = html
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .trim();
-
-  const boilerplateKeywords = [
-    'equal opportunity employer',
-    'export-controlled technology',
-    'all qualified applicants will receive consideration',
-    'without regard to race, color, religion',
-    'e-verify',
-    'accommodations for applicants with disabilities',
-    'employer may decline to proceed',
-  ];
-
-  const paragraphs = text.split(/\n\s*\n/).filter(p => {
-    const pLower = p.toLowerCase().trim();
-    if (pLower.length < 15) return false;
-    return !boilerplateKeywords.some(kw => pLower.includes(kw));
-  });
-
-  const cleanedFullText = paragraphs.join('\n\n');
-
-  let summaryParagraphs: string[] = [];
-  let currentLength = 0;
-
-  for (const p of paragraphs) {
-    summaryParagraphs.push(p);
-    currentLength += p.length;
-    if (currentLength >= 350 || summaryParagraphs.length >= 3) break;
-  }
-
-  const summary = summaryParagraphs.join('\n\n');
-  const isLong = cleanedFullText.length > summary.length + 50;
-
-  return {
-    summary: summary || cleanedFullText || text,
-    fullText: cleanedFullText || text,
-    isLong,
-  };
-}
-
-function stripHtml(html: string) {
-  if (!html) return '';
-  return html
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .trim();
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
+    backgroundColor: '#F8FAFC',
+  },
+  backCircleBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
     justifyContent: 'center',
-  },
-  shareBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F1F5F9',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  segmentedTabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 20,
-    padding: 3,
-  },
-  segmentedTabBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 17,
-  },
-  segmentedTabBtnActive: {
-    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
     elevation: 2,
   },
-  segmentedTabText: {
+  segmentedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EBECEE',
+    borderRadius: 25,
+    padding: 3,
+    width: 170,
+  },
+  segmentedTab: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentedTabActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  segmentedText: {
     fontSize: 13,
     fontWeight: '600',
     color: '#64748B',
   },
-  segmentedTabTextActive: {
-    color: '#000000',
+  segmentedTextActive: {
+    color: '#0F172A',
     fontWeight: '700',
   },
-
-  heroCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  heroTopRow: {
+  creditsPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  companyIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#7C3AED',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  companyIconInitial: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  heroCompanyName: {
-    fontSize: 16,
+  creditsPillText: {
+    fontSize: 14,
     fontWeight: '800',
     color: '#0F172A',
   },
-  heroCompanySubText: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  postedBadge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  postedBadgeText: {
-    color: '#15803D',
-    fontSize: 11,
+  creditsSparkleIcon: {
+    fontSize: 15,
+    color: '#FF5722',
     fontWeight: '700',
   },
-  heroJobTitle: {
+  topCardContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    marginHorizontal: 16,
+    marginTop: 10,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.7)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  companyTopHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  violetCompanyLogoBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#6D28D9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  companyTitleCol: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  companyNameText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  companySubText: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  timeBadgePill: {
+    backgroundColor: 'rgba(226, 232, 240, 0.75)',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  timeBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  mainJobTitleText: {
     fontSize: 22,
     fontWeight: '800',
     color: '#0F172A',
     lineHeight: 28,
-    marginBottom: 14,
+    marginBottom: 18,
   },
-  infoTagsRow: {
+  specsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    rowGap: 10,
   },
-  infoTag: {
+  specItem: {
+    width: '33.3%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
+    gap: 5,
   },
-  infoTagText: {
+  specItemText: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#334155',
+    fontWeight: '600',
   },
-
-  sectionContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    marginTop: 10,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
+  atsSectionContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.7)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  sectionHeaderTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#0F172A',
+  atsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
-
-  scoreGrid: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  scoreCard: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  scoreCardHighlight: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#6EE7B7',
-  },
-  scoreValueHighlight: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#047857',
-  },
-  scoreBadgeHighlight: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    marginTop: 4,
-  },
-  scoreBadgeTextHighlight: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  scoreValueText: {
-    fontSize: 20,
+  atsSectionTitle: {
+    fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
   },
-  scoreLabelText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#64748B',
-    marginTop: 4,
-    textAlign: 'center',
+  atsScoreFraction: {
+    fontSize: 14,
   },
-
-  skillsPillsWrapper: {
+  atsScoreValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  atsScoreTotal: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  progressBarTrack: {
+    height: 8,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#FF4500',
+    borderRadius: 4,
+  },
+  metricCardsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 18,
+  },
+  metricCard: {
+    flex: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  metricCardOrange: {
+    backgroundColor: '#FF4500',
+  },
+  metricCardGreen: {
+    backgroundColor: '#DCFCE7',
+  },
+  metricCardGray: {
+    backgroundColor: '#E2E8F0',
+  },
+  metricCardValueWhite: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  metricCardLabelWhite: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  metricCardValueGreen: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#166534',
+  },
+  metricCardLabelGreen: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#166534',
+    marginTop: 2,
+  },
+  metricCardValueGray: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#334155',
+  },
+  metricCardLabelGray: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#475569',
+    marginTop: 2,
+  },
+  skillsPillsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  matchedSkillPill: {
+  skillPillGreen: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#DCFCE7',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     gap: 4,
-    backgroundColor: '#A7F3D0',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 16,
   },
-  matchedSkillText: {
-    fontSize: 13,
+  thumbEmoji: {
+    fontSize: 11,
+  },
+  skillTextGreen: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#065F46',
+    color: '#15803D',
   },
-  missingSkillPill: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+  skillPillGray: {
+    backgroundColor: '#E2E8F0',
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  missingSkillText: {
-    fontSize: 13,
+  skillTextGray: {
+    fontSize: 12,
     fontWeight: '600',
     color: '#475569',
   },
-  summaryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F3E8FF',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  summaryBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#7C3AED',
-  },
-  showMoreBtn: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    paddingVertical: 4,
-  },
-  showMoreBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#7C3AED',
-  },
-
-  defaultResumeCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    padding: 14,
+  summarySectionContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(255, 255, 255, 0.7)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  jobSummaryTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
     marginBottom: 12,
   },
-  defaultResumeHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  defaultBadgePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#16A34A',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  defaultBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  changeResumeLinkText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#7C3AED',
-  },
-  defaultResumeFileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-  },
-  defaultResumeFileName: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-
-  matchAiBtn: {
-    backgroundColor: '#7C3AED',
-    height: 50,
-    borderRadius: 25,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  matchAiBtnDisabled: {
-    opacity: 0.7,
-  },
-  matchAiBtnText: {
-    color: '#FFFFFF',
+  jobSummarySalutation: {
     fontSize: 15,
-    fontWeight: '700',
-  },
-
-  previewLinksTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  previewLinksRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  previewLinkBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    gap: 6,
-  },
-  previewLinkBtnText: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-
-  jobDescriptionBodyText: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#334155',
-  },
-
-  companyInfoCard: {
-    gap: 12,
-  },
-  companyInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  companyInfoText: {
-    fontSize: 14,
     fontWeight: '600',
     color: '#334155',
+    marginBottom: 8,
   },
-  companyLinkText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#7C3AED',
-    textDecorationLine: 'underline',
+  jobSummaryBodyText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#475569',
   },
-
-  bottomBar: {
+  bottomDockBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     paddingHorizontal: 20,
     paddingTop: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 5,
   },
-  heartBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#F1F5F9',
+  blackTailorApplyBtn: {
+    backgroundColor: '#000000',
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
   },
-  applyNowBtn: {
-    flex: 1,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#10B981',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  applyNowBtnText: {
+  blackTailorApplyBtnText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    fontWeight: '700',
   },
-
-  modalOverlay: {
+  modalOverlayBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'flex-end',
   },
-  modalContent: {
+  modalSheetCard: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    height: '82%',
-    padding: 20,
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  modalHeader: {
+  modalSheetHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 16,
   },
-  modalHeaderTitle: {
+  modalSheetTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    flex: 1,
+    marginRight: 12,
+  },
+  modalCloseCircleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalGaugeWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
+    position: 'relative',
+  },
+  modalGaugeCenterCol: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalGaugeScoreText: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  modalGaugeSubLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  modalImprovementSection: {
+    marginVertical: 14,
+  },
+  modalImprovementHeader: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#16A34A',
+    marginBottom: 10,
+  },
+  modalChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  modalGreenChip: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+  },
+  modalGreenChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  applyWithoutCustomizingBtn: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  applyWithoutCustomizingBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  customizeBlackBtn: {
+    backgroundColor: '#000000',
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
+    marginBottom: 8,
+  },
+  customizeBlackBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  progressSectionBlock: {
+    marginBottom: 10,
+  },
+  progressSectionTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
+    marginBottom: 16,
   },
-  inlineTabRow: {
+  progressListCol: {
+    gap: 16,
+  },
+  progressStepRow: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    gap: 12,
   },
-  inlineTabBtn: {
+  progressCircleHollow: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: '#94A3B8',
+  },
+  progressStepText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#475569',
+  },
+  progressStepTextActive: {
+    fontWeight: '700',
+    color: '#16A34A',
+  },
+  modalResultScoreText: {
+    fontSize: 44,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  modalResultScoreSub: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  issuesFixedTitle: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#0F172A',
+    textAlign: 'center',
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  issuesFixedSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#334155',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  documentsRowContainer: {
+    flexDirection: 'row',
+    gap: 14,
+    marginTop: 4,
+  },
+  documentCol: {
     flex: 1,
+    alignItems: 'center',
+  },
+  documentPreviewCard: {
+    width: '100%',
+    height: 240,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  docHeaderName: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  docHeaderSub: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 8,
+  },
+  docSectionTitle: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 6,
+    marginBottom: 2,
+    letterSpacing: 0.5,
+  },
+  docLineText: {
+    fontSize: 7,
+    color: '#475569',
+    lineHeight: 10,
+  },
+  docSubHead: {
+    fontSize: 7.5,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  docParagraphText: {
+    fontSize: 7,
+    color: '#64748B',
+    lineHeight: 10,
+  },
+  viewDocBtnPill: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  inlineTabBtnActive: {
-    backgroundColor: '#F3E8FF',
-    borderColor: '#7C3AED',
-  },
-  inlineTabText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  inlineTabTextActive: {
-    color: '#7C3AED',
-  },
-  inlinePreviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  inlinePreviewTitleText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginRight: 8,
-  },
-  openPdfHeaderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-  },
-  openPdfHeaderBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#7C3AED',
-  },
-  copyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F3E8FF',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  copyBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#7C3AED',
-  },
-  modalCoverLetterInput: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#1E293B',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  tailorModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  tailorModalHeaderTitle: {
-    fontSize: 18,
+  viewDocBtnText: {
+    fontSize: 13,
     fontWeight: '700',
     color: '#0F172A',
   },
-  tailorTargetCard: {
+  didYouApplyTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  didYouApplySubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#475569',
+    lineHeight: 18,
+    marginRight: 10,
+  },
+  jobSummaryBoxRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 20,
-  },
-  tailorSection: {
-    marginBottom: 20,
-  },
-  resumeSelectCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 14,
-    borderRadius: 14,
+    marginVertical: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 10,
+    borderColor: '#F1F5F9',
   },
-  resumeSelectCardActive: {
-    borderColor: '#7C3AED',
-    backgroundColor: '#F5F3FF',
+  jobSummaryBoxCompany: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  jobSummaryBoxTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  yesAppliedBlackBtn: {
+    backgroundColor: '#000000',
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  yesAppliedBlackBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  noDidntWhiteBtn: {
+    backgroundColor: '#FFFFFF',
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    marginBottom: 8,
+  },
+  noDidntWhiteBtnText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

@@ -1,7 +1,10 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Icon, VectorIcon } from 'expo-router/unstable-native-tabs';
+import { SymbolView } from 'expo-symbols';
+import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import React, { useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,7 +28,6 @@ export default function ReportBug() {
 
     setSubmitting(true);
 
-    // Simulate submission to server
     setTimeout(() => {
       setSubmitting(false);
       Alert.alert(
@@ -43,14 +45,40 @@ export default function ReportBug() {
     >
       <LinearGradient colors={['#0f1d43', '#080d1e', '#050608']} style={StyleSheet.absoluteFillObject} />
 
-      {/* Header */}
+      {/* Glass Header */}
       <View style={[styles.header, { marginTop: insets.top }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Icon sf={{ default: 'chevron.backward', selected: 'chevron.backward' }} androidSrc={<VectorIcon family={MaterialIcons} name="arrow-back" />} />
+        <TouchableOpacity
+          style={styles.glassBackContainer}
+          activeOpacity={0.7}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.back();
+          }}
+        >
+          <BlurView intensity={80} tint="dark" style={styles.glassBackBlur}>
+            {Platform.OS === 'ios' ? (
+              <SymbolView name="chevron.left" size={18} tintColor="#FFFFFF" resizeMode="scaleAspectFit" />
+            ) : (
+              <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
+            )}
+          </BlurView>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.creditsBadge} activeOpacity={0.8} onPress={() => router.push('/pricing' as any)}>
-          <Icon sf={{ default: 'bolt.circle.fill', selected: 'bolt.circle.fill' }} androidSrc={<VectorIcon family={MaterialIcons} name="bolt" />} />
-          <Text style={[styles.creditsText, { marginLeft: 6 }]}>{user?.credit ?? guestCredit} Credits</Text>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/pricing' as any);
+          }}
+        >
+          <BlurView intensity={80} tint="dark" style={styles.glassCreditsBlur}>
+            {Platform.OS === 'ios' ? (
+              <SymbolView name="sparkles" size={15} tintColor="#F59E0B" resizeMode="scaleAspectFit" />
+            ) : (
+              <Ionicons name="sparkles" size={16} color="#F59E0B" />
+            )}
+            <Text style={[styles.creditsText, { marginLeft: 6 }]}>{user?.credit ?? guestCredit} Credits</Text>
+          </BlurView>
         </TouchableOpacity>
       </View>
 
@@ -149,28 +177,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  glassBackContainer: {
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  glassBackBlur: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  creditsBadge: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  glassCreditsBlur: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 10,
+    borderRadius: 22,
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   creditsText: {
     color: '#fff',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   content: {
     paddingHorizontal: 20,

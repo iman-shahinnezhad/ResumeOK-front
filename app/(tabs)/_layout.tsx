@@ -1,9 +1,7 @@
 import { Tabs } from 'expo-router';
-import { NativeTabs, Icon, Label, VectorIcon } from 'expo-router/unstable-native-tabs';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
 import React from 'react';
 import { Platform } from 'react-native';
-
 
 export default function TabLayout() {
     const isPad = Platform.OS === 'ios' && Platform.isPad;
@@ -22,6 +20,7 @@ export default function TabLayout() {
     // Static background for all tabs
     const tabBg = '#F8F9FA';
     const tint = '#007AFF';
+
     return (
         <NativeTabs
             backgroundColor={tabBg}
@@ -40,42 +39,48 @@ export default function TabLayout() {
                 }
             }}
         >
+            {/* 1. Jobs Tab */}
+            <NativeTabs.Trigger name="jobs" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
+                <Icon
+                    src={{
+                        default: require('../../assets/images/bottom-nav/job.png'),
+                        selected: require('../../assets/images/bottom-nav/job.png')
+                    }}
+                />
+                <Label>Jobs</Label>
+            </NativeTabs.Trigger>
+
+            {/* 2. Applications Tab */}
+            <NativeTabs.Trigger name="applications" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
+                <Icon
+                    src={{
+                        default: require('../../assets/images/bottom-nav/Application.png'),
+                        selected: require('../../assets/images/bottom-nav/Application.png')
+                    }}
+                />
+                <Label>Applications</Label>
+            </NativeTabs.Trigger>
+
+            {/* 3. Resume Tab */}
             <NativeTabs.Trigger name="index" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
                 <Icon
                     src={{
-                        default: require('../../assets/images/resume.png'),
-                        selected: require('../../assets/images/resume-active.png')
+                        default: require('../../assets/images/bottom-nav/resume.png'),
+                        selected: require('../../assets/images/bottom-nav/resume.png')
                     }}
                 />
                 <Label>Resume</Label>
             </NativeTabs.Trigger>
 
-            <NativeTabs.Trigger name="cover-letter" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
-                <Icon
-                    src={{
-                        default: require('../../assets/images/cover.png'),
-                        selected: require('../../assets/images/cover-active.png')
-                    }}
-                />
-                <Label>Cover Letter</Label>
-            </NativeTabs.Trigger>
-
-            <NativeTabs.Trigger name="library" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
-                <Icon
-                    src={{
-                        default: require('../../assets/images/doc.png'),
-                        selected: require('../../assets/images/doc-active.png')
-                    }}
-                />
-                <Label>Your Doc</Label>
-            </NativeTabs.Trigger>
-
+            {/* 4. Profile Tab */}
             <NativeTabs.Trigger name="account" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
                 <Icon
-                    sf={{ default: 'person', selected: 'person.fill' }}
-                    androidSrc={<VectorIcon family={Ionicons} name="person-outline" />}
+                    src={{
+                        default: require('../../assets/images/bottom-nav/profile.png'),
+                        selected: require('../../assets/images/bottom-nav/profile.png')
+                    }}
                 />
-                <Label>My Profile</Label>
+                <Label>Profile</Label>
             </NativeTabs.Trigger>
         </NativeTabs>
     );

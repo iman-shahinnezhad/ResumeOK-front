@@ -12,8 +12,11 @@ import {
 import { WebView } from 'react-native-webview';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { SymbolView } from 'expo-symbols';
+import { BlurView } from 'expo-blur';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ApplyJobScreen() {
@@ -76,48 +79,84 @@ export default function ApplyJobScreen() {
           let filled = 0;
 
           // First Name
-          document.querySelectorAll('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]').forEach(el => {
-            setNativeValue(el, '${firstName}');
-            filled++;
-          });
+          if ('${firstName}') {
+            document.querySelectorAll('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]').forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, '${firstName}');
+                filled++;
+              }
+            });
+          }
 
           // Last Name
-          document.querySelectorAll('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]').forEach(el => {
-            setNativeValue(el, '${lastName}');
-            filled++;
-          });
+          if ('${lastName}') {
+            document.querySelectorAll('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]').forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, '${lastName}');
+                filled++;
+              }
+            });
+          }
 
           // Full Name Fallback
-          document.querySelectorAll('input[name*="name" i]:not([name*="first"]):not([name*="last"]), input[id="name" i]').forEach(el => {
-            if (!el.value) { setNativeValue(el, '${fullName}'); filled++; }
-          });
+          if ('${fullName}') {
+            document.querySelectorAll('input[name*="name" i]:not([name*="first"]):not([name*="last"]), input[id="name" i]').forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, '${fullName}');
+                filled++;
+              }
+            });
+          }
 
           // Email
-          document.querySelectorAll('input[type="email" i], input[name*="email" i], input[id*="email" i]').forEach(el => {
-            setNativeValue(el, '${email}');
-            filled++;
-          });
+          if ('${email}') {
+            document.querySelectorAll('input[type="email" i], input[name*="email" i], input[id*="email" i]').forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, '${email}');
+                filled++;
+              }
+            });
+          }
 
           // Phone
-          document.querySelectorAll('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]').forEach(el => {
-            setNativeValue(el, '${phone}');
-            filled++;
-          });
+          if ('${phone}') {
+            document.querySelectorAll('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]').forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, '${phone}');
+                filled++;
+              }
+            });
+          }
 
           // LinkedIn
-          document.querySelectorAll('input[name*="linkedin" i], input[id*="linkedin" i]').forEach(el => {
-            if ('${linkedin}') { setNativeValue(el, '${linkedin}'); filled++; }
-          });
+          if ('${linkedin}') {
+            document.querySelectorAll('input[name*="linkedin" i], input[id*="linkedin" i]').forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, '${linkedin}');
+                filled++;
+              }
+            });
+          }
 
           // Portfolio / Website
-          document.querySelectorAll('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i]').forEach(el => {
-            if ('${portfolio}') { setNativeValue(el, '${portfolio}'); filled++; }
-          });
+          if ('${portfolio}') {
+            document.querySelectorAll('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i]').forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, '${portfolio}');
+                filled++;
+              }
+            });
+          }
 
           // Location / City
-          document.querySelectorAll('input[name*="location" i], input[name*="city" i], input[id*="location" i]').forEach(el => {
-            if ('${city}') { setNativeValue(el, '${city}'); filled++; }
-          });
+          if ('${city}') {
+            document.querySelectorAll('input[name*="location" i], input[name*="city" i], input[id*="location" i]').forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, '${city}');
+                filled++;
+              }
+            });
+          }
 
           window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'AUTOFILL_SUCCESS', count: filled }));
         } catch(e) {
@@ -129,6 +168,7 @@ export default function ApplyJobScreen() {
   };
 
   const handleTriggerAutofill = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (webViewRef.current && profileData) {
       webViewRef.current.injectJavaScript(getAutofillJS());
     } else {
@@ -137,6 +177,7 @@ export default function ApplyJobScreen() {
   };
 
   const handleCopyText = async (text: string, label: string) => {
+    Haptics.selectionAsync();
     if (text) {
       await Clipboard.setStringAsync(text);
       Alert.alert('Copied!', `${label} copied to clipboard.`);
@@ -147,8 +188,19 @@ export default function ApplyJobScreen() {
     <View style={styles.container}>
       {/* Header Bar */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
-          <Ionicons name="close" size={24} color="#1F2937" />
+        <TouchableOpacity
+          style={styles.closeBtn}
+          activeOpacity={0.7}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.back();
+          }}
+        >
+          {Platform.OS === 'ios' ? (
+            <SymbolView name="xmark" size={18} tintColor="#1F2937" resizeMode="scaleAspectFit" />
+          ) : (
+            <Ionicons name="close" size={24} color="#1F2937" />
+          )}
         </TouchableOpacity>
 
         <View style={styles.headerTitleCol}>
@@ -156,8 +208,19 @@ export default function ApplyJobScreen() {
           {companyName ? <Text style={styles.headerSubtitle} numberOfLines={1}>{companyName}</Text> : null}
         </View>
 
-        <TouchableOpacity style={styles.reloadBtn} onPress={() => webViewRef.current?.reload()}>
-          <Ionicons name="refresh" size={20} color="#6B7280" />
+        <TouchableOpacity
+          style={styles.reloadBtn}
+          activeOpacity={0.7}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            webViewRef.current?.reload();
+          }}
+        >
+          {Platform.OS === 'ios' ? (
+            <SymbolView name="arrow.clockwise" size={18} tintColor="#6B7280" resizeMode="scaleAspectFit" />
+          ) : (
+            <Ionicons name="refresh" size={20} color="#6B7280" />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -181,6 +244,7 @@ export default function ApplyJobScreen() {
               const data = JSON.parse(event.nativeEvent.data);
               if (data.type === 'AUTOFILL_SUCCESS' && data.count > 0) {
                 setAutofillCount(data.count);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               }
             } catch (e) {}
           }}
@@ -198,14 +262,18 @@ export default function ApplyJobScreen() {
       </View>
 
       {/* Floating Bottom Autofill Toolbar */}
-      <View style={[styles.bottomToolbar, { paddingBottom: insets.bottom + 8 }]}>
+      <BlurView intensity={Platform.OS === 'ios' ? 80 : 100} tint="light" style={[styles.bottomToolbar, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
           style={styles.autofillBtn}
           activeOpacity={0.85}
           onPress={handleTriggerAutofill}
         >
           <View style={styles.autofillIconWrap}>
-            <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+            {Platform.OS === 'ios' ? (
+              <SymbolView name="sparkles" size={18} tintColor="#FFFFFF" resizeMode="scaleAspectFit" />
+            ) : (
+              <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+            )}
           </View>
           <Text style={styles.autofillBtnText}>
             {autofillCount > 0 ? `Autofilled ${autofillCount} Fields` : '1-Click Autofill Form'}
@@ -220,7 +288,11 @@ export default function ApplyJobScreen() {
                 style={styles.chipBtn}
                 onPress={() => handleCopyText(profileData.email, 'Email')}
               >
-                <Ionicons name="copy-outline" size={13} color="#4B5563" />
+                {Platform.OS === 'ios' ? (
+                  <SymbolView name="doc.on.doc" size={13} tintColor="#4B5563" resizeMode="scaleAspectFit" />
+                ) : (
+                  <Ionicons name="copy-outline" size={13} color="#4B5563" />
+                )}
                 <Text style={styles.chipText}>Email</Text>
               </TouchableOpacity>
             ) : null}
@@ -230,7 +302,11 @@ export default function ApplyJobScreen() {
                 style={styles.chipBtn}
                 onPress={() => handleCopyText(profileData.phone, 'Phone')}
               >
-                <Ionicons name="copy-outline" size={13} color="#4B5563" />
+                {Platform.OS === 'ios' ? (
+                  <SymbolView name="doc.on.doc" size={13} tintColor="#4B5563" resizeMode="scaleAspectFit" />
+                ) : (
+                  <Ionicons name="copy-outline" size={13} color="#4B5563" />
+                )}
                 <Text style={styles.chipText}>Phone</Text>
               </TouchableOpacity>
             ) : null}
@@ -240,13 +316,17 @@ export default function ApplyJobScreen() {
                 style={styles.chipBtn}
                 onPress={() => handleCopyText(`${profileData.firstName} ${profileData.lastName || ''}`, 'Full Name')}
               >
-                <Ionicons name="copy-outline" size={13} color="#4B5563" />
+                {Platform.OS === 'ios' ? (
+                  <SymbolView name="doc.on.doc" size={13} tintColor="#4B5563" resizeMode="scaleAspectFit" />
+                ) : (
+                  <Ionicons name="copy-outline" size={13} color="#4B5563" />
+                )}
                 <Text style={styles.chipText}>Name</Text>
               </TouchableOpacity>
             ) : null}
           </View>
         )}
-      </View>
+      </BlurView>
     </View>
   );
 }
@@ -270,7 +350,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: '#F3F4F6',
-    justify: 'center',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   reloadBtn: {
@@ -278,7 +358,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: '#F3F4F6',
-    justify: 'center',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitleCol: {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, NavLink, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink, Link, useLocation } from 'react-router-dom';
 import { ChevronDown, Menu, X, ArrowRight } from 'lucide-react';
 import './App.css';
 
@@ -21,12 +21,16 @@ import JobDetails from './pages/JobDetails';
 import ProfileSections from './pages/ProfileSections';
 import Tasks from './pages/Tasks';
 import Settings from './pages/Settings';
+import Partnership from './pages/Partnership';
 
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:3030'
   : 'http://188.166.164.115:3030';
 
-export default function App() {
+function MainAppContent() {
+  const location = useLocation();
+  const isPartnershipPage = location.pathname === '/partnership';
+
   const [credits, setCredits] = useState(100);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bannerVisible, setBannerVisible] = useState(true);
@@ -82,22 +86,22 @@ export default function App() {
   };
 
   return (
-    <Router>
-      <div className="app-layout">
-        {/* 1. Top Announcement Bar */}
-        {bannerVisible && (
-          <div className="top-announcement-bar no-print">
-            <div className="announcement-content">
-              <span>14 job seekers landed offers this week 👏 </span>
-              <a href="#stories" className="announcement-link">See their stories</a>
-            </div>
-            <button className="announcement-close-btn" onClick={() => setBannerVisible(false)} aria-label="Close">
-              ✕
-            </button>
+    <div className="app-layout">
+      {/* 1. Top Announcement Bar (Hidden on /partnership) */}
+      {!isPartnershipPage && bannerVisible && (
+        <div className="top-announcement-bar no-print">
+          <div className="announcement-content">
+            <span>14 job seekers landed offers this week 👏 </span>
+            <a href="#stories" className="announcement-link">See their stories</a>
           </div>
-        )}
+          <button className="announcement-close-btn" onClick={() => setBannerVisible(false)} aria-label="Close">
+            ✕
+          </button>
+        </div>
+      )}
 
-        {/* 2. Top Navigation Bar */}
+      {/* 2. Top Navigation Bar (Hidden on /partnership) */}
+      {!isPartnershipPage && (
         <nav className="navbar no-print">
           <div className="nav-container-resumeok">
             <div className="nav-brand-group">
@@ -144,6 +148,7 @@ export default function App() {
                   Resources <ChevronDown className="w-3 h-3 ml-0.5 inline-block opacity-75" />
                 </span>
                 <div className="resumeok-dropdown-menu">
+                  <Link to="/partnership">Partner Program</Link>
                   <Link to="/tasks">Daily Rewards</Link>
                   <Link to="/settings">Help & Support</Link>
                 </div>
@@ -187,6 +192,7 @@ export default function App() {
 
                 <div className="mobile-menu-section">
                   <div className="mobile-menu-label">COMPANY & RESOURCES</div>
+                  <Link to="/partnership" onClick={() => setMenuOpen(false)} className="mobile-nav-link">Partner Program</Link>
                   <Link to="/settings" onClick={() => setMenuOpen(false)} className="mobile-nav-link">About us</Link>
                   <Link to="/pricing" onClick={() => setMenuOpen(false)} className="mobile-nav-link">Pricing</Link>
                   <Link to="/library" onClick={() => setMenuOpen(false)} className="mobile-nav-link">Library</Link>
@@ -206,46 +212,57 @@ export default function App() {
             </div>
           )}
         </nav>
+      )}
 
-        {/* Page Content Routes */}
-        <div style={{ flex: 1 }}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/match" element={<Match credits={credits} deductCredits={deductCredits} refundCredits={refundCredits} apiUrl={API_URL} />} />
-            <Route path="/build" element={<Builder />} />
-            <Route path="/audit" element={<Audit />} />
-            <Route path="/cover-letter" element={<CoverLetter credits={credits} deductCredits={deductCredits} refundCredits={refundCredits} apiUrl={API_URL} />} />
-            <Route path="/jobs" element={<Jobs />} />
-            <Route path="/jobs/:id" element={<JobDetails />} />
-            <Route path="/profile-sections" element={<ProfileSections />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/library" element={<Library />} />
-            <Route path="/login" element={<Login onLogin={handleLogin} API_URL={API_URL} />} />
-            <Route path="/profile" element={<Profile user={user} setUser={setUser} token={token} credits={credits} API_URL={API_URL} />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/checkout" element={<Checkout user={user} setUser={setUser} token={token} API_URL={API_URL} />} />
-          </Routes>
-        </div>
-
-        {/* Footer */}
-        <footer className="resumeok-footer no-print">
-          <div className="container footer-content">
-            <p className="footer-text">
-              © {new Date().getFullYear()} ResumeOK. Built using Google Gemini AI, 100% Private.
-            </p>
-            <div className="footer-links">
-              <a href="https://pixflow.net/pixflow-resumeok-app-privacy-policy/" target="_blank" rel="noopener noreferrer">
-                Privacy Policy
-              </a>
-              <span>|</span>
-              <a href="https://pixflow.net/pixflow-app-user-agreement/" target="_blank" rel="noopener noreferrer">
-                Terms of Service
-              </a>
-            </div>
-          </div>
-        </footer>
+      {/* Page Content Routes */}
+      <div style={{ flex: 1 }}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/match" element={<Match credits={credits} deductCredits={deductCredits} refundCredits={refundCredits} apiUrl={API_URL} />} />
+          <Route path="/build" element={<Builder />} />
+          <Route path="/audit" element={<Audit />} />
+          <Route path="/cover-letter" element={<CoverLetter credits={credits} deductCredits={deductCredits} refundCredits={refundCredits} apiUrl={API_URL} />} />
+          <Route path="/jobs" element={<Jobs />} />
+          <Route path="/jobs/:id" element={<JobDetails />} />
+          <Route path="/profile-sections" element={<ProfileSections />} />
+          <Route path="/tasks" element={<Tasks />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/library" element={<Library />} />
+          <Route path="/login" element={<Login onLogin={handleLogin} API_URL={API_URL} />} />
+          <Route path="/profile" element={<Profile user={user} setUser={setUser} token={token} credits={credits} API_URL={API_URL} />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/partnership" element={<Partnership />} />
+          <Route path="/checkout" element={<Checkout user={user} setUser={setUser} token={token} API_URL={API_URL} />} />
+        </Routes>
       </div>
+
+      {/* Footer */}
+      <footer className="resumeok-footer no-print">
+        <div className="container footer-content">
+          <p className="footer-text">
+            © {new Date().getFullYear()} ResumeOK. 100% Private.
+          </p>
+          <div className="footer-links">
+            <Link to="/partnership">Partner Program</Link>
+            <span>|</span>
+            <a href="https://pixflow.net/pixflow-resumeok-app-privacy-policy/" target="_blank" rel="noopener noreferrer">
+              Privacy Policy
+            </a>
+            <span>|</span>
+            <a href="https://pixflow.net/pixflow-app-user-agreement/" target="_blank" rel="noopener noreferrer">
+              Terms of Service
+            </a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <MainAppContent />
     </Router>
   );
 }

@@ -1,0 +1,568 @@
+/* Partnership Page Styling - Light Mode Design System */
+
+.partnership-container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background-color: #fafbfc;
+  color: #0f172a;
+  padding: 60px 0 100px;
+  overflow: hidden;
+}
+
+/* Background Glow Effects (Light Mode Pastel Blur) */
+.partnership-bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(120px);
+  z-index: 0;
+}
+
+.glow-top {
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 700px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, rgba(59, 130, 246, 0.05) 50%, rgba(255, 255, 255, 0) 100%);
+}
+
+.glow-middle {
+  top: 45%;
+  right: -100px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, rgba(243, 244, 246, 0) 70%);
+}
+
+.partnership-wrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* 1. Header Section */
+.partnership-header {
+  max-width: 800px;
+  margin: 0 auto 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.partnership-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 16px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #047857;
+  margin-bottom: 24px;
+}
+
+.partnership-title {
+  font-size: 42px;
+  line-height: 1.18;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.partnership-subtitle {
+  font-size: 17px;
+  line-height: 1.6;
+  color: #475569;
+  font-weight: 400;
+  max-width: 720px;
+}
+
+/* 2. Featured Partner Card */
+.featured-partner-card {
+  position: relative;
+  background: #ffffff;
+  border: 2px solid #10b981;
+  border-radius: 24px;
+  padding: 40px;
+  margin-bottom: 48px;
+  box-shadow: 0 12px 40px -10px rgba(16, 185, 129, 0.16), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.featured-partner-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 48px -10px rgba(16, 185, 129, 0.22), 0 6px 16px -2px rgba(0, 0, 0, 0.05);
+}
+
+.featured-card-header {
+  margin-bottom: 32px;
+}
+
+.featured-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 4px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.featured-card-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.featured-card-desc {
+  font-size: 15px;
+  color: #64748b;
+}
+
+.featured-benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 36px;
+}
+
+.benefit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 18px 20px;
+  border-radius: 16px;
+}
+
+.benefit-icon-wrapper {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.benefit-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.benefit-content strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.benefit-content span {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.featured-card-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Primary CTA Button */
+.btn-partner-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 14px 28px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
+}
+
+.btn-partner-primary:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.22);
+}
+
+.btn-partner-lg {
+  padding: 16px 36px;
+  font-size: 16px;
+  border-radius: 16px;
+}
+
+/* 3. Information Cards Grid */
+.partnership-grid-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 64px;
+}
+
+.partnership-info-card {
+  display: flex;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.partnership-info-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.07);
+}
+
+.card-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.card-sidebar-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.card-sidebar-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.card-content-body {
+  flex: 1;
+  padding: 32px;
+}
+
+.partnership-checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.partnership-checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.bullet-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #10b981;
+  flex-shrink: 0;
+  margin-top: 8px;
+}
+
+.partnership-checklist p {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: #334155;
+  margin: 0;
+}
+
+/* 4. Who We Are Section (Clean format: no box, white background, black text) */
+.who-we-are-clean-section {
+  background: transparent;
+  padding: 60px 20px 40px;
+  text-align: center;
+}
+
+.who-we-are-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: #000000;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.who-we-are-desc {
+  font-size: 17px;
+  line-height: 1.55;
+  color: #111111;
+  max-width: 800px;
+  margin: 0 auto 56px;
+  font-weight: 400;
+}
+
+.stats-clean-row {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 80px;
+  margin-bottom: 56px;
+}
+
+.stat-clean-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 140px;
+}
+
+.stat-clean-item .stat-number {
+  font-size: 58px;
+  font-weight: 400;
+  color: #000000;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-bottom: 12px;
+  font-family: var(--font-heading), -apple-system, sans-serif;
+}
+
+.stat-clean-item .stat-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #222222;
+  line-height: 1.35;
+  text-transform: capitalize;
+}
+
+.who-we-are-cta {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-partner-pill {
+  background: #000000;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 14px 36px;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+.btn-partner-pill:hover {
+  background: #222222;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Modal Overlay & Form */
+.partner-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.partner-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 36px;
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.25);
+  animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.modal-close-btn:hover {
+  background: #e2e8f0;
+}
+
+.form-header {
+  margin-bottom: 24px;
+}
+
+.form-header h3 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.form-header p {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.partner-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-row {
+  display: flex;
+  gap: 14px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 11px 14px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: #10b981;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.full-w {
+  width: 100%;
+}
+
+.modal-success-state {
+  padding: 30px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.success-icon-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.modal-success-state h3 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 10px;
+}
+
+.modal-success-state p {
+  font-size: 14.5px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+/* Responsive Layout */
+@media (max-width: 900px) {
+  .featured-benefits-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .partnership-info-card {
+    flex-direction: column;
+  }
+
+  .card-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 24px;
+  }
+
+  .card-content-body {
+    padding: 24px;
+  }
+
+  .stats-cards-row {
+    grid-template-columns: 1fr;
+  }
+
+  .partnership-title {
+    font-size: 32px;
+  }
+}

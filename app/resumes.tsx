@@ -104,6 +104,11 @@ export default function ResumesScreen() {
           ...profileData,
           defaultResumeId: defaultItem.id,
           defaultResumeFile: defaultItem,
+          resumeFile: defaultItem.uri ? {
+            name: defaultItem.name,
+            uri: defaultItem.uri,
+            size: defaultItem.size ? Math.round(parseFloat(defaultItem.size) * 1024 * 1024) : undefined
+          } : null
         };
         await FileSystem.writeAsStringAsync(profilePath, JSON.stringify(updatedProfile));
       }

@@ -6,11 +6,15 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Platform,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { SymbolView } from 'expo-symbols';
+import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
 import Svg, { Circle } from 'react-native-svg';
 
@@ -32,7 +36,6 @@ export default function Account() {
 
   const loadRealData = async () => {
     try {
-      // 1. Read onboarding profile
       const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
       const profileInfo = await FileSystem.getInfoAsync(profilePath);
       let loadedProfile: any = null;
@@ -42,7 +45,6 @@ export default function Account() {
         setProfileData(loadedProfile);
       }
 
-      // 2. Read resumes count
       const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
       const resumesInfo = await FileSystem.getInfoAsync(resumesPath);
       let count = 0;
@@ -57,52 +59,32 @@ export default function Account() {
       }
       setResumesCount(count);
 
-      // 3. Calculate Overall Profile Completion Percentage Across 3 Pillars
-      // Pillar A: Personal Info (11 required fields)
-      const checkFields = [
-        'firstName',
-        'lastName',
-        'email',
-        'phone',
-        'city',
-        'expectedSalary',
-        'dob',
-        'gender',
-        'ethnicity',
-        'disability',
-        'citizenship',
-      ];
       let personalFilled = 0;
       if (loadedProfile) {
-        checkFields.forEach((field) => {
-          if (field === 'city') {
-            if (loadedProfile.city || loadedProfile.address) personalFilled++;
-          } else if (field === 'expectedSalary') {
-            if (loadedProfile.expectedSalary && (loadedProfile.expectedSalary.min || loadedProfile.expectedSalary)) personalFilled++;
-          } else if (loadedProfile[field] && String(loadedProfile[field]).trim().length > 0) {
-            personalFilled++;
-          }
-        });
+        if (loadedProfile.firstName?.trim()) personalFilled++;
+        if (loadedProfile.lastName?.trim()) personalFilled++;
+        if (loadedProfile.email?.trim()) personalFilled++;
+        if (loadedProfile.phone?.trim()) personalFilled++;
+        if (loadedProfile.city?.trim()) personalFilled++;
+        if (loadedProfile.title?.trim()) personalFilled++;
+        if (loadedProfile.bio?.trim()) personalFilled++;
+        if (loadedProfile.linkedin?.trim()) personalFilled++;
+        if (loadedProfile.github?.trim()) personalFilled++;
+        if (loadedProfile.portfolio?.trim()) personalFilled++;
+        if (loadedProfile.experience?.trim()) personalFilled++;
       }
-      const missingPersonal = checkFields.length - personalFilled;
-      setPersonalInfoMissing(missingPersonal);
+      setPersonalInfoMissing(11 - personalFilled);
 
-      // Pillar B: Professional Detail (12 required items target)
-      const summaryRemaining = Math.max(0, 2 - (loadedProfile?.summaries?.length || (loadedProfile?.jobTitle ? 1 : 0)));
-      const expRemaining = Math.max(0, 2 - (loadedProfile?.experiences?.length || 0));
-      const projectRemaining = Math.max(0, 3 - (loadedProfile?.projects?.length || 0));
-      const eduRemaining = Math.max(0, 1 - (loadedProfile?.educations?.length || 0));
-      const techCount = loadedProfile?.skills?.length || 0;
-      const softCount = loadedProfile?.softSkills?.length || 0;
-      const skillRemaining = Math.max(0, 3 - (techCount + softCount));
-      const langRemaining = Math.max(0, 1 - (loadedProfile?.languages?.length || 0));
+      let profFilled = 0;
+      if (loadedProfile) {
+        if (loadedProfile.experience?.trim()) profFilled += 2;
+        if (loadedProfile.expectedSalary?.min) profFilled += 2;
+        if (Array.isArray(loadedProfile.skills) && loadedProfile.skills.length > 0) profFilled += 4;
+        if (Array.isArray(loadedProfile.interests) && loadedProfile.interests.length > 0) profFilled += 4;
+      }
 
-      const profFilled = (2 - summaryRemaining) + (2 - expRemaining) + (3 - projectRemaining) + (1 - eduRemaining) + (3 - skillRemaining) + (1 - langRemaining);
+      let resumeFilled = count > 0 ? 1 : 0;
 
-      // Pillar C: Resumes (1 required resume target)
-      const resumeFilled = count > 0 ? 1 : 0;
-
-      // Total Target = 11 + 12 + 1 = 24 items
       const totalTarget = 24;
       const totalFilled = personalFilled + profFilled + resumeFilled;
 
@@ -116,19 +98,17 @@ export default function Account() {
 
   const totalCredits = user?.credit ?? guestCredit ?? 0;
 
-  // Real display name resolution
   const fullName = profileData
     ? `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim()
     : user?.name || 'Omid Moradi';
 
   const displayName = fullName.length > 0 ? fullName : 'Omid Moradi';
 
-  // SVG Circular Ring Math
   const ringSize = 84;
   const strokeWidth = 4;
   const center = ringSize / 2;
-  const radius = (ringSize - strokeWidth) / 2; // 40
-  const circumference = 2 * Math.PI * radius; // ~251.32
+  const radius = (ringSize - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (circumference * completionRate) / 100;
 
   return (
@@ -142,25 +122,38 @@ export default function Account() {
           <TouchableOpacity
             style={styles.creditsBadge}
             activeOpacity={0.8}
-            onPress={() => router.push('/pricing' as any)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/pricing' as any);
+            }}
           >
             <Text style={styles.creditsText}>{totalCredits}</Text>
-            <Ionicons name="sparkles" size={16} color="#000000" />
+            <Image
+              source={require('../assets/images/header-icon.png')}
+              style={{ width: 14, height: 14, marginLeft: 4, resizeMode: 'contain' }}
+            />
           </TouchableOpacity>
 
           {/* Settings Gear Button */}
           <TouchableOpacity
-            style={styles.settingsBtn}
+            style={styles.settingsCircleBtn}
             activeOpacity={0.8}
-            onPress={() => router.push('/settings')}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/settings');
+            }}
           >
-            <Ionicons name="settings-outline" size={22} color="#000000" />
+            {Platform.OS === 'ios' ? (
+              <SymbolView name="gearshape" size={18} tintColor="#0F172A" resizeMode="scaleAspectFit" />
+            ) : (
+              <Ionicons name="settings-outline" size={22} color="#0F172A" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
 
       {/* ANNOUNCEMENT BANNER (ONLY DISPLAY IF COMPLETION < 100%) */}
-      {completionRate < 100 && (
+      {completionRate < 70 && (
         <View style={styles.bannerContainer}>
           <Text style={styles.bannerText}>
             Complete your profile to get better job matches 🤫
@@ -227,12 +220,12 @@ export default function Account() {
         {/* PLAN & CREDIT CARD */}
         <View style={styles.planCreditCard}>
           <View style={styles.planCol}>
-            <Text style={styles.planLabel}>Plan:</Text>
+            <Text style={styles.planLabel}>PLAN:</Text>
             <Text style={styles.planValue}>Free</Text>
           </View>
 
           <View style={styles.planCol}>
-            <Text style={styles.planLabel}>Credit:</Text>
+            <Text style={styles.planLabel}>CREDIT:</Text>
             <Text style={styles.planValue}>{totalCredits}</Text>
           </View>
 
@@ -254,8 +247,8 @@ export default function Account() {
             activeOpacity={0.7}
             onPress={() => router.push('/personal-info')}
           >
-            <View style={[styles.menuIconBox, { backgroundColor: '#F0EEFF' }]}>
-              <Ionicons name="person" size={22} color="#7C3AED" />
+            <View style={styles.menuIconBox}>
+              <Ionicons name="person" size={24} color="#000000" />
             </View>
 
             <View style={styles.menuTextCol}>
@@ -282,12 +275,12 @@ export default function Account() {
             activeOpacity={0.7}
             onPress={() => router.push('/professional-detail' as any)}
           >
-            <View style={[styles.menuIconBox, { backgroundColor: '#E0F2FE' }]}>
-              <Ionicons name="briefcase" size={22} color="#0284C7" />
+            <View style={styles.menuIconBox}>
+              <Ionicons name="briefcase" size={24} color="#000000" />
             </View>
 
             <View style={styles.menuTextCol}>
-              <Text style={styles.menuTitle}>Professional Detail</Text>
+              <Text style={styles.menuTitle}>Professional Detial</Text>
               <Text style={styles.menuSubtitle}>Experiences, Skills, Education, and ...</Text>
             </View>
 
@@ -326,13 +319,13 @@ export default function Account() {
             activeOpacity={0.7}
             onPress={() => router.push('/resumes' as any)}
           >
-            <View style={[styles.menuIconBox, { backgroundColor: '#EBF3FF' }]}>
-              <Ionicons name="document-text" size={22} color="#2563EB" />
+            <View style={styles.menuIconBox}>
+              <Ionicons name="document-text" size={24} color="#000000" />
             </View>
 
             <View style={styles.menuTextCol}>
               <Text style={styles.menuTitle}>Resume</Text>
-              <Text style={styles.menuSubtitle}>Manage & upload your resumes</Text>
+              <Text style={styles.menuSubtitle}>View and update your resume</Text>
             </View>
 
             {resumesCount === 0 ? (
@@ -354,8 +347,8 @@ export default function Account() {
             activeOpacity={0.7}
             onPress={() => router.push('/tasks' as any)}
           >
-            <View style={[styles.menuIconBox, { backgroundColor: '#FEE2E2' }]}>
-              <Ionicons name="flame" size={22} color="#DC2626" />
+            <View style={styles.menuIconBox}>
+              <Ionicons name="megaphone" size={24} color="#000000" />
             </View>
 
             <View style={styles.menuTextCol}>
@@ -364,7 +357,8 @@ export default function Account() {
             </View>
 
             <View style={styles.taskRewardBadgePill}>
-              <Text style={styles.taskRewardBadgeText}>✦ +30</Text>
+              <Ionicons name="sparkles" size={12} color="#FFFFFF" />
+              <Text style={styles.taskRewardBadgeText}>3000</Text>
             </View>
 
             <Ionicons name="chevron-forward" size={18} color="#999999" style={{ marginLeft: 4 }} />
@@ -379,7 +373,7 @@ export default function Account() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F7',
+    backgroundColor: '#F4F4F5',
   },
   header: {
     flexDirection: 'row',
@@ -387,7 +381,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: '#F5F5F7',
+    backgroundColor: '#F4F4F5',
   },
   headerTitle: {
     fontSize: 28,
@@ -401,38 +395,42 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   creditsBadge: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FDE047',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.03,
     shadowRadius: 4,
     elevation: 2,
   },
-  creditsText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#000000',
-  },
-  backBtn: {
+  settingsCircleBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
     elevation: 2,
   },
-  settingsBtn: {
+  creditsText: {
+    color: '#000000',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -469,17 +467,12 @@ const styles = StyleSheet.create({
   },
 
   userProfileCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 16,
+    backgroundColor: 'transparent',
+    paddingVertical: 16,
+    paddingHorizontal: 4,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
+    gap: 16,
   },
   avatarRingContainer: {
     position: 'relative',
@@ -507,11 +500,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -4,
     backgroundColor: '#2563EB',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 2.5,
+    borderColor: '#F4F4F5',
   },
   completionBadgeGreen: {
     backgroundColor: '#16A34A',
@@ -549,39 +542,35 @@ const styles = StyleSheet.create({
   },
 
   planCreditCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    backgroundColor: '#E4E4E7',
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 1,
   },
   planCol: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 4,
   },
   planLabel: {
-    fontSize: 14,
-    color: '#666666',
-    fontWeight: '500',
+    fontSize: 10,
+    color: '#71717A',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   planValue: {
-    fontSize: 15,
+    fontSize: 20,
     fontWeight: '700',
     color: '#000000',
   },
   upgradeBtn: {
     backgroundColor: '#000000',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
   },
   upgradeBtnText: {
     color: '#FFFFFF',
@@ -594,21 +583,20 @@ const styles = StyleSheet.create({
   },
   menuCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 16,
+    borderRadius: 24,
+    padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
     shadowRadius: 8,
-    elevation: 1,
+    elevation: 2,
   },
   menuIconBox: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -628,8 +616,8 @@ const styles = StyleSheet.create({
   },
 
   badgePillRed: {
-    backgroundColor: '#DC2626',
-    paddingHorizontal: 10,
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 12,
   },
@@ -651,6 +639,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   taskRewardBadgeText: {
     color: '#FFFFFF',

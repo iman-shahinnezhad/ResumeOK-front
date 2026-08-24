@@ -1261,7 +1261,11 @@ Bachelor of Science in Computer Science | Stanford University (2018 - 2022)`;
         </View>
 
         <TouchableOpacity style={styles.creditsBadge} activeOpacity={0.8} onPress={() => router.push('/pricing')}>
-          <Text style={styles.creditsText}>{userCredit} Credits</Text>
+          <Text style={styles.creditsText}>{userCredit}</Text>
+          <Image
+            source={require('../assets/images/header-icon.png')}
+            style={{ width: 14, height: 14, marginLeft: 4, resizeMode: 'contain' }}
+          />
         </TouchableOpacity>
       </View>
 
@@ -1639,19 +1643,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
-    shadowRadius: 6,
+    shadowRadius: 4,
     elevation: 2,
   },
   creditsText: {
     color: '#000000',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
   scrollContent: {
     paddingHorizontal: 24,

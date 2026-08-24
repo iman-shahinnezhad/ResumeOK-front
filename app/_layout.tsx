@@ -1,5 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
@@ -8,7 +8,6 @@ import { Appearance, Alert, Linking } from 'react-native';
 import * as Application from 'expo-application';
 import { ThemeProvider, DefaultTheme } from '@react-navigation/native';
 import ErrorBoundary from '../components/ErrorBoundary';
-import Splash from '../components/Splash';
 import { AuthProvider } from '../context/AuthContext';
 
 // Force the app's JS layer to always run in light mode
@@ -18,10 +17,32 @@ Appearance.setColorScheme('light');
 SplashScreen.preventAutoHideAsync().catch(() => { });
 
 export default function RootLayout() {
-  const router = useRouter();
-  const [appReady, setAppReady] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [checkingStorage, setCheckingStorage] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    const checkOnboardingStates = async () => {
+      try {
+        const completedPath = `${FileSystem.documentDirectory}onboarding_completed.txt`;
+        const seenPath = `${FileSystem.documentDirectory}has_seen_onboarding.txt`;
+
+        const [completedInfo, seenInfo] = await Promise.all([
+          FileSystem.getInfoAsync(completedPath).catch(() => ({ exists: false })),
+          FileSystem.getInfoAsync(seenPath).catch(() => ({ exists: false })),
+        ]);
+
+        const hasCompletedOnboarding = completedInfo.exists || seenInfo.exists;
+        setShowOnboarding(!hasCompletedOnboarding);
+      } catch (e) {
+        setShowOnboarding(true);
+      } finally {
+        setCheckingStorage(false);
+        await SplashScreen.hideAsync().catch(() => {});
+      }
+    };
+
+    checkOnboardingStates();
+  }, []);
 
   useEffect(() => {
     const checkAppUpdate = async () => {
@@ -95,40 +116,6 @@ export default function RootLayout() {
     checkAppUpdate();
   }, []);
 
-  useEffect(() => {
-    const checkOnboardingStates = async () => {
-      try {
-        const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
-        const completedPath = `${FileSystem.documentDirectory}onboarding_completed.txt`;
-
-        const profileInfo = await FileSystem.getInfoAsync(profilePath);
-        const completedInfo = await FileSystem.getInfoAsync(completedPath);
-
-        // Always show onboarding on startup in Expo as requested
-        setShowOnboarding(true);
-      } catch (e) {
-        setShowOnboarding(false);
-      } finally {
-        setCheckingStorage(false);
-        try {
-          await SplashScreen.hideAsync();
-        } catch (e) {
-          // Safe to ignore if native splash screen is already auto-hidden
-        }
-      }
-    };
-    checkOnboardingStates();
-  }, []);
-
-  const handleContinue = () => {
-    if (showOnboarding) {
-      router.replace('/onboarding');
-    } else {
-      router.replace('/(tabs)');
-    }
-    setAppReady(true);
-  };
-
   if (checkingStorage) {
     return null;
   }
@@ -141,18 +128,44 @@ export default function RootLayout() {
 
           <ThemeProvider value={DefaultTheme}>
             <Stack
+              initialRouteName={showOnboarding ? 'onboarding' : '(tabs)'}
               screenOptions={{
                 headerShown: false,
                 animation: 'default',
               }}
             >
+              <Stack.Screen name="onboarding" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="audit" />
-              <Stack.Screen name="pricing" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+              <Stack.Screen
+                name="pricing"
+                options={{
+                  presentation: 'formSheet',
+                  sheetAllowedDetents: [0.85, 1.0],
+                  sheetGrabberVisible: true,
+                  sheetCornerRadius: 28,
+                }}
+              />
               <Stack.Screen name="account" />
-              <Stack.Screen name="report-bug" />
+              <Stack.Screen
+                name="report-bug"
+                options={{
+                  presentation: 'formSheet',
+                  sheetAllowedDetents: [0.8, 1.0],
+                  sheetGrabberVisible: true,
+                  sheetCornerRadius: 28,
+                }}
+              />
+              <Stack.Screen
+                name="apply-job"
+                options={{
+                  presentation: 'pageSheet',
+                  sheetAllowedDetents: [0.92, 1.0],
+                  sheetGrabberVisible: true,
+                  sheetCornerRadius: 28,
+                }}
+              />
               <Stack.Screen name="referral-onboarding" />
-              <Stack.Screen name="onboarding" />
               <Stack.Screen name="jobs" />
               <Stack.Screen name="job-details" />
               <Stack.Screen name="build-resume" />
@@ -174,8 +187,6 @@ export default function RootLayout() {
               <Stack.Screen name="professional-detail" />
             </Stack>
           </ThemeProvider>
-
-          {!appReady && <Splash onContinue={handleContinue} />}
         </AuthProvider>
       </SafeAreaProvider>
     </ErrorBoundary>
