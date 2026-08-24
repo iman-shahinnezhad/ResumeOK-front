@@ -2084,21 +2084,18 @@ export default function JobsScreen() {
       <Modal
         visible={showSearchModal}
         animationType="slide"
-        transparent={true}
+        presentationStyle="pageSheet"
+        transparent={false}
         onRequestClose={() => setShowSearchModal(false)}
+        onDismiss={() => setShowSearchModal(false)}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.searchModalOverlay}
-        >
-          <TouchableOpacity
+        <SafeAreaView style={styles.pageSheetContainer}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ flex: 1 }}
-            activeOpacity={1}
-            onPress={() => setShowSearchModal(false)}
-          />
-
-          <View style={[styles.searchModalContent, { paddingBottom: insets.bottom + 20 }]}>
-            {/* Modal Header (Pinned at Top) */}
+          >
+            <View style={styles.pageSheetContent}>
+              {/* Modal Header (Pinned at Top) */}
             <View style={styles.searchModalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Ionicons name="options-outline" size={20} color="#7C3AED" style={{ marginRight: 6 }} />
@@ -2168,7 +2165,8 @@ export default function JobsScreen() {
 
             {/* SCROLLABLE CHIP FILTERS */}
             <ScrollView
-              style={{ maxHeight: 320 }}
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingBottom: 24 }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
@@ -2251,14 +2249,15 @@ export default function JobsScreen() {
             </ScrollView>
 
             <TouchableOpacity
-              style={styles.applyFilterBtn}
-              activeOpacity={0.8}
-              onPress={() => setShowSearchModal(false)}
-            >
-              <Text style={styles.applyFilterBtnText}>Apply & Filter Jobs</Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
+                style={[styles.applyFilterBtn, { marginBottom: Platform.OS === 'ios' ? 0 : 12 }]}
+                activeOpacity={0.8}
+                onPress={() => setShowSearchModal(false)}
+              >
+                <Text style={styles.applyFilterBtnText}>Apply & Filter Jobs</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </Modal>
     </View>
   );
@@ -3459,6 +3458,16 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
+  },
+  pageSheetContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  pageSheetContent: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: Platform.OS === 'ios' ? 12 : 24,
   },
   searchModalHeader: {
     flexDirection: 'row',
