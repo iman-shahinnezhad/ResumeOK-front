@@ -2085,11 +2085,6 @@ export default function JobsScreen() {
         visible={showSearchModal}
         animationType="slide"
         transparent={true}
-        onShow={() => {
-          setTimeout(() => {
-            searchInputRef.current?.focus();
-          }, 100);
-        }}
         onRequestClose={() => setShowSearchModal(false)}
       >
         <KeyboardAvoidingView
