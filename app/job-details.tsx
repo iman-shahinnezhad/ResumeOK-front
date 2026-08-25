@@ -44,6 +44,7 @@ export default function JobDetailsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user, guestCredit } = useAuth();
+  const totalCredits = user?.credit ?? guestCredit ?? 0;
 
   const [jobData, setJobData] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(true);
@@ -368,7 +369,7 @@ export default function JobDetailsScreen() {
             router.push('/pricing' as any);
           }}
         >
-          <Text style={styles.creditsPillText}>1378</Text>
+          <Text style={styles.creditsPillText}>{totalCredits}</Text>
           <Text style={styles.creditsSparkleIcon}>✦</Text>
         </TouchableOpacity>
       </View>
@@ -727,7 +728,7 @@ export default function JobDetailsScreen() {
                 router.push('/pricing' as any);
               }}
             >
-              <Text style={styles.creditsPillText}>{user?.credit ?? guestCredit ?? 1378}</Text>
+              <Text style={styles.creditsPillText}>{totalCredits}</Text>
               <Text style={styles.creditsSparkleIcon}>✦</Text>
             </TouchableOpacity>
           </View>
@@ -846,7 +847,7 @@ export default function JobDetailsScreen() {
                 router.push('/pricing' as any);
               }}
             >
-              <Text style={styles.creditsPillText}>{user?.credit ?? guestCredit ?? 1378}</Text>
+              <Text style={styles.creditsPillText}>{totalCredits}</Text>
               <Text style={styles.creditsSparkleIcon}>✦</Text>
             </TouchableOpacity>
           </View>
