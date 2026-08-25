@@ -37,14 +37,18 @@ interface SelectedResumeFile {
   date?: string;
   size?: string;
   isDefault?: boolean;
+  mimeType?: string;
+  isBuilt?: boolean;
 }
 
 export default function JobDetailsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { user, guestCredit } = useAuth();
+  const { user, guestCredit, deductCredits } = useAuth();
   const totalCredits = user?.credit ?? guestCredit ?? 0;
+  const [tailoredResumeUri, setTailoredResumeUri] = useState<string>('');
+  const [tailoredCoverLetterUri, setTailoredCoverLetterUri] = useState<string>('');
 
   const [jobData, setJobData] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(true);
@@ -78,29 +82,197 @@ export default function JobDetailsScreen() {
     }, [])
   );
 
-  const handleStartAiTailoring = () => {
+  const stripHtml = (html: string) => {
+    if (!html) return '';
+    return html.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+  };
+
+  const handleStartAiTailoring = async () => {
+    if (!selectedResume || !selectedResume.uri) {
+      Alert.alert("Resume Required", "Please select or upload a resume first.");
+      return;
+    }
+
     setIsMatchingWithAI(true);
     setAiStep(1);
 
-    setTimeout(() => {
+    try {
+      // 1. Deduct 2 credits securely
+      const success = await deductCredits(2);
+      if (!success) {
+        setIsMatchingWithAI(false);
+        Alert.alert("Match Failed", "Failed to deduct credits. Please purchase more credits.");
+        return;
+      }
+
       setAiStep(2);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }, 1200);
 
-    setTimeout(() => {
+      // 2. Prepare FormData
+      const formData = new FormData();
+      const resumeFileObj: any = {
+        uri: selectedResume.uri,
+        name: selectedResume.name || 'resume.pdf',
+        type: selectedResume.mimeType || 'application/pdf'
+      };
+      formData.append('resume', resumeFileObj);
+
+      // 3. Make POST request to backend
+      const session = await getSession();
+      const headers: any = {
+        'Accept': 'application/json',
+      };
+      if (session && session.accessToken) {
+        headers['Authorization'] = `Bearer ${session.accessToken}`;
+      }
+
+      const matchRes = await fetch(`${API_URL}/api/jobs/${jobData.id}/match`, {
+        method: 'POST',
+        headers,
+        body: formData
+      });
+
+      if (!matchRes.ok) {
+        const errText = await matchRes.text();
+        throw new Error(`Server match failed: ${matchRes.status} - ${errText}`);
+      }
+
+      const matchData = await matchRes.json();
+      if (!matchData.success) {
+        throw new Error(matchData.error || "Failed to analyze match from server.");
+      }
+
       setAiStep(3);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }, 2400);
 
-    setTimeout(() => {
+      const tailoredHtml = matchData.tailoredResumeHtml || "";
+      const generatedCL = matchData.coverLetter || "";
+
       setAiStep(4);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }, 3600);
 
-    setTimeout(() => {
+      // 4. Generate Tailored Resume PDF
+      const userPrefix = (userProfile?.firstName && userProfile?.lastName)
+        ? `${userProfile.firstName}_${userProfile.lastName}`
+        : userProfile?.firstName
+          ? userProfile.firstName
+          : 'User';
+
+      const cleanUserPrefix = userPrefix.replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanCompanyForFile = companyName.replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanTitleForFile = jobTitle.replace(/[^a-zA-Z0-9]/g, '_');
+      
+      const formattedResumeName = `${cleanUserPrefix}_${cleanCompanyForFile}_${cleanTitleForFile}.pdf`;
+      const cleanResumeUri = `${FileSystem.documentDirectory}${formattedResumeName}`;
+
+      const formattedHtml = `
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; margin: 40px; color: #2E1A8E; line-height: 1.5; font-size: 11pt; }
+              h1, h2, h3 { color: #7C3AED; margin-top: 16px; margin-bottom: 6px; }
+              p { margin-bottom: 12px; text-align: justify; }
+              ul { padding-left: 20px; margin-top: 4px; }
+              li { margin-bottom: 4px; }
+            </style>
+          </head>
+          <body>
+            ${tailoredHtml}
+          </body>
+        </html>
+      `;
+
+      const printResult = await Print.printToFileAsync({ html: formattedHtml });
+      await FileSystem.copyAsync({ from: printResult.uri, to: cleanResumeUri });
+      setTailoredResumeUri(cleanResumeUri);
+
+      // Save tailored resume back to local Resumes list
+      const newResumeEntry: SelectedResumeFile = {
+        id: `tailored_${Date.now()}`,
+        name: formattedResumeName,
+        date: new Date().toLocaleDateString(),
+        uri: cleanResumeUri,
+        mimeType: 'application/pdf',
+        isBuilt: true
+      };
+
+      const updatedList = [newResumeEntry, ...resumesList];
+      const resumesJsonPath = `${FileSystem.documentDirectory}resumes.json`;
+      await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(updatedList));
+      setResumesList(updatedList);
+      setSelectedResume(newResumeEntry);
+
+      // 5. Generate Cover Letter PDF
+      const formattedCLName = `${cleanUserPrefix}_${cleanCompanyForFile}_CL_${cleanTitleForFile}.pdf`;
+      const cleanCLUri = `${FileSystem.documentDirectory}${formattedCLName}`;
+
+      const formattedCLHtml = `
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; margin: 50px; color: #1E293B; line-height: 1.6; font-size: 11pt; }
+              .header { margin-bottom: 24px; border-bottom: 2px solid #E2E8F0; padding-bottom: 12px; }
+              .name { font-size: 22px; font-weight: bold; color: #0F172A; text-transform: uppercase; }
+              .contact { font-size: 12px; color: #64748B; margin-top: 4px; }
+              .date { color: #64748B; margin-bottom: 20px; font-weight: 500; }
+              .recipient { font-weight: bold; margin-bottom: 16px; color: #0F172A; }
+              .body { text-align: justify; white-space: pre-line; }
+              .signature { margin-top: 24px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="name">${userProfile?.firstName || 'First'} ${userProfile?.lastName || 'Last'}</div>
+              <div class="contact">${userProfile?.email || ''} &bull; ${userProfile?.phone || ''}</div>
+            </div>
+            <div class="date">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+            <div class="recipient">
+              Hiring Committee / Recruitment Team<br/>
+              ${companyName}
+            </div>
+            <p>Dear Hiring Manager,</p>
+            <div class="body">${generatedCL}</div>
+            <div class="signature">
+              Sincerely,<br/><br/>
+              <strong>${userProfile?.firstName || 'First'} ${userProfile?.lastName || 'Last'}</strong>
+            </div>
+          </body>
+        </html>
+      `;
+
+      const clPrintResult = await Print.printToFileAsync({ html: formattedCLHtml });
+      await FileSystem.copyAsync({ from: clPrintResult.uri, to: cleanCLUri });
+      setTailoredCoverLetterUri(cleanCLUri);
+
+      // Save generated cover letter to local cover_letters.json
+      const coverLettersPath = `${FileSystem.documentDirectory}cover_letters.json`;
+      let currentLetters: any[] = [];
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(coverLettersPath);
+        if (fileInfo.exists) {
+          const content = await FileSystem.readAsStringAsync(coverLettersPath);
+          currentLetters = JSON.parse(content);
+        }
+      } catch (e) { }
+
+      const newLetter = {
+        id: Date.now().toString(),
+        company: companyName,
+        jobTitle: jobTitle,
+        date: new Date().toLocaleDateString(),
+        coverLetterText: generatedCL,
+        jobUrl: jobData?.absolute_url || '',
+        resumeName: formattedResumeName
+      };
+
+      const updatedLetters = [newLetter, ...currentLetters];
+      await FileSystem.writeAsStringAsync(coverLettersPath, JSON.stringify(updatedLetters));
+
       setIsMatchingWithAI(false);
       setShowMatchResultModal(true);
-    }, 4400);
+    } catch (err: any) {
+      setIsMatchingWithAI(false);
+      Alert.alert("AI Match Failed", err.message || "Failed to tailor resume and cover letter.");
+    }
   };
 
   useEffect(() => {
@@ -937,9 +1109,20 @@ export default function JobDetailsScreen() {
                 <TouchableOpacity
                   style={styles.viewDocBtnPill}
                   activeOpacity={0.8}
-                  onPress={() => {
+                  onPress={async () => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setShowResumePreview(true);
+                    if (tailoredResumeUri) {
+                      try {
+                        await Print.printAsync({ uri: tailoredResumeUri });
+                      } catch (e) {
+                        console.log('Error opening resume PDF:', e);
+                        if (await Sharing.isAvailableAsync()) {
+                          await Sharing.shareAsync(tailoredResumeUri);
+                        }
+                      }
+                    } else {
+                      Alert.alert("Error", "No tailored resume PDF file found.");
+                    }
                   }}
                 >
                   <Ionicons name="eye-outline" size={16} color="#0F172A" />
@@ -979,9 +1162,20 @@ export default function JobDetailsScreen() {
                 <TouchableOpacity
                   style={styles.viewDocBtnPill}
                   activeOpacity={0.8}
-                  onPress={() => {
+                  onPress={async () => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setShowCoverLetterPreview(true);
+                    if (tailoredCoverLetterUri) {
+                      try {
+                        await Print.printAsync({ uri: tailoredCoverLetterUri });
+                      } catch (e) {
+                        console.log('Error opening cover letter PDF:', e);
+                        if (await Sharing.isAvailableAsync()) {
+                          await Sharing.shareAsync(tailoredCoverLetterUri);
+                        }
+                      }
+                    } else {
+                      Alert.alert("Error", "No tailored cover letter PDF file found.");
+                    }
                   }}
                 >
                   <Ionicons name="eye-outline" size={16} color="#0F172A" />
@@ -1016,220 +1210,7 @@ export default function JobDetailsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* TAILORED RESUME PREVIEW MODAL */}
-          <Modal
-            visible={showResumePreview}
-            animationType="slide"
-            transparent={false}
-            presentationStyle="pageSheet"
-            onRequestClose={() => setShowResumePreview(false)}
-            onDismiss={() => setShowResumePreview(false)}
-          >
-            <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
-              {/* Header Bar */}
-              <View style={styles.headerRow}>
-                <TouchableOpacity
-                  style={styles.backCircleBtn}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setShowResumePreview(false);
-                  }}
-                >
-                  {Platform.OS === 'ios' ? (
-                    <SymbolView name="chevron.left" size={18} tintColor="#1E293B" resizeMode="scaleAspectFit" />
-                  ) : (
-                    <Ionicons name="chevron-back" size={22} color="#1E293B" />
-                  )}
-                </TouchableOpacity>
-                
-                <Text style={{ fontSize: 18, fontWeight: '700', color: '#0F172A' }}>Tailored Resume</Text>
-                
-                <View style={{ width: 44 }} />
-              </View>
 
-              <ScrollView
-                contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40, paddingTop: 12 }}
-                showsVerticalScrollIndicator={false}
-                style={{ backgroundColor: '#FFFFFF', flex: 1 }}
-              >
-                <View style={styles.paperSheet}>
-                  {/* Header */}
-                  <Text style={styles.paperName}>{`${userProfile?.firstName || 'FIRST NAME'} ${userProfile?.lastName || 'LAST NAME'}`.toUpperCase()}</Text>
-                  <Text style={styles.paperTitle}>{`${jobTitle}`.toUpperCase()}</Text>
-                  
-                  <View style={styles.paperContactRow}>
-                    <Text style={styles.paperContactText}>{userProfile?.email || 'email@example.com'}</Text>
-                    <Text style={styles.paperContactDivider}>•</Text>
-                    <Text style={styles.paperContactText}>{userProfile?.phone || '0(09) 1234 5678'}</Text>
-                    {userProfile?.city && (
-                      <>
-                        <Text style={styles.paperContactDivider}>•</Text>
-                        <Text style={styles.paperContactText}>{userProfile?.city}</Text>
-                      </>
-                    )}
-                  </View>
-
-                  {/* Line Divider */}
-                  <View style={styles.paperDivider} />
-
-                  {/* Professional Summary */}
-                  <Text style={styles.paperSectionHeader}>PROFESSIONAL SUMMARY</Text>
-                  <Text style={styles.paperBodyText}>
-                    Highly motivated and results-driven professional seeking to leverage my background to contribute to {companyName} as a {jobTitle}. Proactive problem solver with a strong focus on efficiency, execution, and driving business value. Optimized with keywords and matching criteria for target expectations at {companyName}.
-                  </Text>
-
-                  {/* Work Experience */}
-                  <Text style={styles.paperSectionHeader}>WORK EXPERIENCE</Text>
-                  {userProfile?.workExperience && userProfile.workExperience.length > 0 ? (
-                    userProfile.workExperience.map((exp: any, idx: number) => (
-                      <View key={`paper-exp-${idx}`} style={{ marginBottom: 12 }}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Text style={styles.paperSubHead}>{exp.role || exp.jobTitle || 'Job Title'}</Text>
-                          <Text style={styles.paperDurationText}>{exp.duration || '2020 - Current'}</Text>
-                        </View>
-                        <Text style={styles.paperCompanyText}>{exp.company || 'Company Name'}</Text>
-                        <Text style={styles.paperBodyText}>{exp.description || 'Responsible for driving core project initiatives and collaborating with cross-functional teams.'}</Text>
-                      </View>
-                    ))
-                  ) : (
-                    <View style={{ marginBottom: 12 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={styles.paperSubHead}>{jobTitle}</Text>
-                        <Text style={styles.paperDurationText}>2020 - Current</Text>
-                      </View>
-                      <Text style={styles.paperCompanyText}>Current Employer</Text>
-                      <Text style={styles.paperBodyText}>Collaborating with engineering, design, and management teams to design and build product solutions.</Text>
-                    </View>
-                  )}
-
-                  {/* Skills */}
-                  <Text style={styles.paperSectionHeader}>SKILLS</Text>
-                  <Text style={styles.paperBodyText}>
-                    {userProfile?.skills && Array.isArray(userProfile.skills) 
-                      ? userProfile.skills.join(', ') 
-                      : (typeof userProfile?.skills === 'string' ? userProfile.skills : 'Communication, Collaboration, Problem Solving, Project Management')}
-                  </Text>
-
-                  {/* Education */}
-                  <Text style={styles.paperSectionHeader}>EDUCATION</Text>
-                  {userProfile?.education && userProfile.education.length > 0 ? (
-                    userProfile.education.map((edu: any, idx: number) => (
-                      <View key={`paper-edu-${idx}`} style={{ marginBottom: 8 }}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Text style={styles.paperSubHead}>{edu.degree || edu.study || 'Degree / Diploma'}</Text>
-                          <Text style={styles.paperDurationText}>{edu.duration || ''}</Text>
-                        </View>
-                        <Text style={styles.paperCompanyText}>{edu.school || edu.university || 'Educational Institution'}</Text>
-                      </View>
-                    ))
-                  ) : (
-                    <View style={{ marginBottom: 8 }}>
-                      <Text style={styles.paperSubHead}>Bachelor's Degree</Text>
-                      <Text style={styles.paperCompanyText}>University / College</Text>
-                    </View>
-                  )}
-                </View>
-              </ScrollView>
-            </View>
-          </Modal>
-
-          {/* TAILORED COVER LETTER PREVIEW MODAL */}
-          <Modal
-            visible={showCoverLetterPreview}
-            animationType="slide"
-            transparent={false}
-            presentationStyle="pageSheet"
-            onRequestClose={() => setShowCoverLetterPreview(false)}
-            onDismiss={() => setShowCoverLetterPreview(false)}
-          >
-            <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
-              {/* Header Bar */}
-              <View style={styles.headerRow}>
-                <TouchableOpacity
-                  style={styles.backCircleBtn}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setShowCoverLetterPreview(false);
-                  }}
-                >
-                  {Platform.OS === 'ios' ? (
-                    <SymbolView name="chevron.left" size={18} tintColor="#1E293B" resizeMode="scaleAspectFit" />
-                  ) : (
-                    <Ionicons name="chevron-back" size={22} color="#1E293B" />
-                  )}
-                </TouchableOpacity>
-                
-                <Text style={{ fontSize: 18, fontWeight: '700', color: '#0F172A' }}>Tailored Cover Letter</Text>
-                
-                <View style={{ width: 44 }} />
-              </View>
-
-              <ScrollView
-                contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40, paddingTop: 12 }}
-                showsVerticalScrollIndicator={false}
-                style={{ backgroundColor: '#FFFFFF', flex: 1 }}
-              >
-                <View style={styles.paperSheet}>
-                  {/* Header */}
-                  <Text style={styles.paperName}>{`${userProfile?.firstName || 'FIRST NAME'} ${userProfile?.lastName || 'LAST NAME'}`.toUpperCase()}</Text>
-                  
-                  <View style={styles.paperContactRow}>
-                    <Text style={styles.paperContactText}>{userProfile?.email || 'email@example.com'}</Text>
-                    <Text style={styles.paperContactDivider}>•</Text>
-                    <Text style={styles.paperContactText}>{userProfile?.phone || '0(09) 1234 5678'}</Text>
-                  </View>
-
-                  {/* Line Divider */}
-                  <View style={styles.paperDivider} />
-
-                  {/* Date */}
-                  <Text style={[styles.paperBodyText, { marginTop: 12, marginBottom: 16, color: '#64748B', fontWeight: '500' }]}>
-                    {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  </Text>
-
-                  {/* Recipient */}
-                  <Text style={[styles.paperBodyText, { fontWeight: '700', color: '#1E293B', marginBottom: 2 }]}>
-                    Hiring Committee / Recruitment Team
-                  </Text>
-                  <Text style={[styles.paperBodyText, { fontWeight: '700', color: '#1E293B', marginBottom: 16 }]}>
-                    {companyName}
-                  </Text>
-
-                  {/* Salutation */}
-                  <Text style={[styles.paperBodyText, { marginBottom: 14 }]}>
-                    Dear Hiring Manager,
-                  </Text>
-
-                  {/* Body */}
-                  <Text style={[styles.paperBodyText, { marginBottom: 14, lineHeight: 22 }]}>
-                    I am writing to express my enthusiastic interest in the <Text style={{ fontWeight: '700' }}>{jobTitle}</Text> position at <Text style={{ fontWeight: '700' }}>{companyName}</Text>, as advertised. With a proven track record in {userProfile?.targetRole || 'industry-standard practices'} and a strong commitment to team collaboration and excellence, I am confident that I can make a significant contribution to your organization.
-                  </Text>
-
-                  <Text style={[styles.paperBodyText, { marginBottom: 14, lineHeight: 22 }]}>
-                    Throughout my career, I have successfully demonstrated my ability to solve complex problems, optimize workflows, and drive meaningful project execution. My technical proficiency, combined with my communication and strategic planning skills, aligns closely with the qualifications you are seeking for the {jobTitle} role.
-                  </Text>
-
-                  <Text style={[styles.paperBodyText, { marginBottom: 14, lineHeight: 22 }]}>
-                    I am particularly drawn to {companyName} because of your dedication to innovation and quality. I am excited about the opportunity to bring my skills to your team and contribute to your ongoing success.
-                  </Text>
-
-                  <Text style={[styles.paperBodyText, { marginBottom: 24, lineHeight: 22 }]}>
-                    Thank you for your time and consideration. I welcome the opportunity to discuss how my qualifications and experience make me a perfect fit for this role.
-                  </Text>
-
-                  {/* Sign-off */}
-                  <Text style={[styles.paperBodyText, { marginBottom: 6 }]}>
-                    Sincerely,
-                  </Text>
-                  <Text style={[styles.paperBodyText, { fontWeight: '700', color: '#0F172A' }]}>
-                    {`${userProfile?.firstName || 'First'} ${userProfile?.lastName || 'Last'}`}
-                  </Text>
-                </View>
-              </ScrollView>
-            </View>
-          </Modal>
         </View>
       </Modal>
 
