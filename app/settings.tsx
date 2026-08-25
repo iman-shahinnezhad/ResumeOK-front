@@ -81,7 +81,7 @@ export default function Settings() {
   React.useEffect(() => {
     async function fetchReferralStats() {
       try {
-        const response = await fetch(`${API_URL}/api/users/stats?deviceId=${user?.id || guestId}`);
+        const response = await fetch(`${API_URL}/api/guest/${user?.id || guestId}/referral-stats`);
         if (response.ok) {
           const data = await response.json();
           if (data.referralCode) setReferralCode(data.referralCode);
