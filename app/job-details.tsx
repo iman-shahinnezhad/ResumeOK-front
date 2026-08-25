@@ -1023,6 +1023,7 @@ export default function JobDetailsScreen() {
             transparent={false}
             presentationStyle="pageSheet"
             onRequestClose={() => setShowResumePreview(false)}
+            onDismiss={() => setShowResumePreview(false)}
           >
             <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
               {/* Header Bar */}
@@ -1140,6 +1141,7 @@ export default function JobDetailsScreen() {
             transparent={false}
             presentationStyle="pageSheet"
             onRequestClose={() => setShowCoverLetterPreview(false)}
+            onDismiss={() => setShowCoverLetterPreview(false)}
           >
             <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
               {/* Header Bar */}
