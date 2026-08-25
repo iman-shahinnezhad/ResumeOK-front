@@ -323,14 +323,7 @@ export default function JobsScreen() {
     return { opacity };
   });
 
-  useEffect(() => {
-    // Load next page of jobs when swiped near the end of loaded listings
-    if (currentIndex >= filteredJobs.length - 5 && hasMore && !isFetchingMore && !isLoadingJobs && filteredJobs.length > 0) {
-      const nextPage = currentPage + 1;
-      setCurrentPage(nextPage);
-      fetchJobsFromAllBoards(nextPage, true, filterQuery, selectedCompanyFilter);
-    }
-  }, [currentIndex, filteredJobs.length, hasMore, isFetchingMore, isLoadingJobs]);
+
 
   // Filter role query state
   const [filterQuery, setFilterQuery] = useState('');
@@ -368,9 +361,17 @@ export default function JobsScreen() {
   const [filterWorkModel, setFilterWorkModel] = useState<string>('ALL');
   const [filterExperience, setFilterExperience] = useState<string>('ALL');
   const [filterSalary, setFilterSalary] = useState<string>('ALL');
-  const [filterDepartment, setFilterDepartment] = useState<string>('ALL');
+  const [filterLocation, setFilterLocation] = useState<string>('');
   const searchInputRef = useRef<TextInput>(null);
   const webViewRef = useRef<WebView>(null);
+
+  useEffect(() => {
+    if (currentIndex >= filteredJobs.length - 5 && hasMore && !isFetchingMore && !isLoadingJobs && filteredJobs.length > 0) {
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      fetchJobsFromAllBoards(nextPage, true, filterQuery, selectedCompanyFilter, filterLocation);
+    }
+  }, [currentIndex, filteredJobs.length, hasMore, isFetchingMore, isLoadingJobs, filterLocation]);
 
   // Load config, resumes, and popular jobs on focus
   useFocusEffect(
@@ -413,18 +414,10 @@ export default function JobsScreen() {
               setFilterQuery(onboardingRole);
             }
 
-            // Department category auto-selection from onboarding roles (e.g. Design if 3 design roles selected)
-            const roleText = (onboardingRole + ' ' + onboardingRoles.join(' ')).toLowerCase();
-            if (roleText.includes('design') || roleText.includes('ux') || roleText.includes('ui')) {
-              setFilterDepartment('Design');
-            } else if (roleText.includes('engineer') || roleText.includes('develop') || roleText.includes('software')) {
-              setFilterDepartment('Engineering');
-            } else if (roleText.includes('product') || roleText.includes('pm')) {
-              setFilterDepartment('Product');
-            } else if (roleText.includes('market')) {
-              setFilterDepartment('Marketing');
-            } else if (roleText.includes('sale')) {
-              setFilterDepartment('Sales');
+            // Location auto-selection from onboarding profile
+            const onboardingLoc = loadedProfile.city || loadedProfile.location || '';
+            if (onboardingLoc && !filterLocation) {
+              setFilterLocation(onboardingLoc);
             }
 
             // Experience Seniority auto-selection
@@ -503,19 +496,20 @@ export default function JobsScreen() {
     }, [])
   );
 
-  const fetchJobsFromAllBoards = async (pageToFetch = 1, append = false, queryStr = filterQuery, companyStr = selectedCompanyFilter) => {
+  const fetchJobsFromAllBoards = async (pageToFetch = 1, append = false, queryStr = filterQuery, companyStr = selectedCompanyFilter, locationStr = filterLocation) => {
     if (pageToFetch === 1) {
       setIsLoadingJobs(true);
     } else {
       setIsFetchingMore(true);
     }
-    console.log(`Fetching jobs from backend aggregator: page=${pageToFetch}, q=${queryStr}, company=${companyStr}`);
+    console.log(`Fetching jobs from backend aggregator: page=${pageToFetch}, q=${queryStr}, company=${companyStr}, location=${locationStr}`);
     try {
       const qParam = queryStr.trim() ? `&q=${encodeURIComponent(queryStr.trim())}` : '';
       const companyParam = companyStr && companyStr !== 'ALL' ? `&company=${encodeURIComponent(companyStr)}` : '';
+      const locParam = locationStr.trim() ? `&location=${encodeURIComponent(locationStr.trim())}` : '';
       const currentUserId = user?.id || guestId || '';
       const userIdParam = currentUserId ? `&userId=${encodeURIComponent(currentUserId)}` : '';
-      const response = await fetch(`${API_URL}/api/jobs?limit=50&page=${pageToFetch}${qParam}${companyParam}${userIdParam}`);
+      const response = await fetch(`${API_URL}/api/jobs?limit=50&page=${pageToFetch}${qParam}${companyParam}${userIdParam}${locParam}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && Array.isArray(data.jobs)) {
@@ -581,14 +575,13 @@ export default function JobsScreen() {
     }
   };
 
-  // Debounced search and company filter effect (server-side query)
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
-      fetchJobsFromAllBoards(1, false, filterQuery, selectedCompanyFilter);
+      fetchJobsFromAllBoards(1, false, filterQuery, selectedCompanyFilter, filterLocation);
     }, 450); // 450ms debounce to prevent flooding search requests
 
     return () => clearTimeout(delayDebounce);
-  }, [filterQuery, selectedCompanyFilter]);
+  }, [filterQuery, selectedCompanyFilter, filterLocation]);
 
   // Client-side multi-filter effect (Work Model, Experience Level, Department)
   useEffect(() => {
@@ -608,17 +601,16 @@ export default function JobsScreen() {
       });
     }
 
-    if (filterDepartment !== 'ALL') {
+    if (filterLocation.trim() !== '') {
+      const target = filterLocation.toLowerCase().trim();
       result = result.filter(job => {
-        const dept = (job.departments?.[0]?.name || '').toLowerCase();
-        const title = (job.title || '').toLowerCase();
-        const target = filterDepartment.toLowerCase();
-        return dept.includes(target) || title.includes(target);
+        const loc = (job.location?.name || '').toLowerCase();
+        return loc.includes(target);
       });
     }
 
     setFilteredJobs(result);
-  }, [allJobs, filterWorkModel, filterExperience, filterDepartment, userProfile]);
+  }, [allJobs, filterWorkModel, filterExperience, filterLocation, userProfile]);
 
   // Reset active card index when filtered list changes
   useEffect(() => {
@@ -1362,7 +1354,7 @@ export default function JobsScreen() {
       {/* SUB-HEADER MATCHING DESIGN MOCKUP */}
       <View style={styles.subHeaderRow}>
         <Text style={styles.subHeaderTitle}>
-          {`${((filterWorkModel !== 'ALL' || filterExperience !== 'ALL' || filterDepartment !== 'ALL' || filterQuery.trim() !== '') ? filteredJobs.length : (totalJobsCount > 0 ? totalJobsCount : filteredJobs.length)).toLocaleString()} Jobs Match to your resume`}
+          {`${((filterWorkModel !== 'ALL' || filterExperience !== 'ALL' || filterLocation.trim() !== '' || filterQuery.trim() !== '') ? filteredJobs.length : (totalJobsCount > 0 ? totalJobsCount : filteredJobs.length)).toLocaleString()} Jobs Match to your resume`}
         </Text>
 
         <TouchableOpacity
@@ -1392,7 +1384,7 @@ export default function JobsScreen() {
             if (isCloseToBottom && hasMore && !isFetchingMore && !isLoadingJobs && filteredJobs.length > 0) {
               const nextPage = currentPage + 1;
               setCurrentPage(nextPage);
-              fetchJobsFromAllBoards(nextPage, true, filterQuery, selectedCompanyFilter);
+              fetchJobsFromAllBoards(nextPage, true, filterQuery, selectedCompanyFilter, filterLocation);
             }
           }}
           contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24, paddingTop: 4 }}
@@ -2110,7 +2102,7 @@ export default function JobsScreen() {
                     setFilterWorkModel('ALL');
                     setFilterExperience('ALL');
                     setFilterSalary('ALL');
-                    setFilterDepartment('ALL');
+                    setFilterLocation('');
                     setSelectedCompanyFilter('ALL');
                   }}
                 >
@@ -2230,18 +2222,46 @@ export default function JobsScreen() {
                 </ScrollView>
               </View>
 
-              {/* SECTION 4: DEPARTMENT / CATEGORY */}
-              <View style={{ marginTop: 14 }}>
-                <Text style={styles.searchLabel}>Department Category</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
-                  {['ALL', 'Design', 'Engineering', 'Product', 'Marketing', 'Sales'].map((dept) => (
+              {/* SECTION 4: LOCATION FILTER */}
+              <View style={{ marginTop: 18 }}>
+                <Text style={styles.searchLabel}>Location</Text>
+                
+                {/* Search input for Location */}
+                <View style={styles.locationInputWrapper}>
+                  <Ionicons name="location-outline" size={18} color="#64748B" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.locationInputText}
+                    placeholder="Search city, state, or country..."
+                    placeholderTextColor="#94A3B8"
+                    value={filterLocation}
+                    onChangeText={setFilterLocation}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  {filterLocation.length > 0 && (
+                    <TouchableOpacity onPress={() => setFilterLocation('')}>
+                      <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Quick select Location Chips */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterChipRow, { marginTop: 8 }]}>
+                  {[
+                    { label: 'All Locations', value: '' },
+                    { label: 'San Francisco, CA', value: 'San Francisco' },
+                    { label: 'New York, NY', value: 'New York' },
+                    { label: 'London, UK', value: 'London' },
+                    { label: 'Berlin, DE', value: 'Berlin' },
+                    { label: 'Toronto, CA', value: 'Toronto' }
+                  ].map((loc) => (
                     <TouchableOpacity
-                      key={`dept-${dept}`}
-                      style={[styles.filterChip, filterDepartment === dept && styles.filterChipActive]}
-                      onPress={() => setFilterDepartment(dept)}
+                      key={`loc-chip-${loc.label}`}
+                      style={[styles.filterChip, filterLocation.toLowerCase() === loc.value.toLowerCase() && styles.filterChipActive]}
+                      onPress={() => setFilterLocation(loc.value)}
                     >
-                      <Text style={[styles.filterChipText, filterDepartment === dept && styles.filterChipTextActive]}>
-                        {dept}
+                      <Text style={[styles.filterChipText, filterLocation.toLowerCase() === loc.value.toLowerCase() && styles.filterChipTextActive]}>
+                        📍 {loc.label}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -3459,6 +3479,22 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
+  },
+  locationInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 6,
+  },
+  locationInputText: {
+    flex: 1,
+    fontSize: 15,
+    color: '#0F172A',
   },
   pageSheetContainer: {
     flex: 1,
