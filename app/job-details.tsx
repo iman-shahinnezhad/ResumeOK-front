@@ -906,24 +906,32 @@ export default function JobDetailsScreen() {
               {/* Tailored Resume Column */}
               <View style={styles.documentCol}>
                 <View style={styles.documentPreviewCard}>
-                  <Text style={styles.docHeaderName}>FIRST NAME LAST NAME</Text>
-                  <Text style={styles.docHeaderSub}>Job Title</Text>
+                  <Text style={styles.docHeaderName}>{`${userProfile?.firstName || 'FIRST'} ${userProfile?.lastName || 'LAST'}`.toUpperCase()}</Text>
+                  <Text style={styles.docHeaderSub} numberOfLines={1}>{jobTitle}</Text>
 
                   <Text style={styles.docSectionTitle}>DETAILS</Text>
-                  <Text style={styles.docLineText}>• 0(09) 1234 5678</Text>
-                  <Text style={styles.docLineText}>• email@example.com</Text>
+                  <Text style={styles.docLineText} numberOfLines={1}>• {userProfile?.phone || '0(09) 1234 5678'}</Text>
+                  <Text style={styles.docLineText} numberOfLines={1}>• {userProfile?.email || 'email@example.com'}</Text>
 
                   <Text style={styles.docSectionTitle}>PROFILE</Text>
-                  <Text style={styles.docParagraphText}>
-                    Short description of your background and professional project...
+                  <Text style={styles.docParagraphText} numberOfLines={3}>
+                    {userProfile?.summary || 'Highly motivated professional seeking to contribute to company goals...'}
                   </Text>
 
                   <Text style={styles.docSectionTitle}>WORK EXPERIENCE</Text>
-                  <Text style={styles.docSubHead}>Job title</Text>
-                  <Text style={styles.docParagraphText}>Company name / 2020 - Current</Text>
+                  <Text style={styles.docSubHead} numberOfLines={1}>
+                    {userProfile?.workExperience?.[0]?.role || userProfile?.workExperience?.[0]?.jobTitle || 'Job Title'}
+                  </Text>
+                  <Text style={styles.docParagraphText} numberOfLines={1}>
+                    {userProfile?.workExperience?.[0]?.company || 'Company'} / {userProfile?.workExperience?.[0]?.duration || '2020 - Current'}
+                  </Text>
 
                   <Text style={styles.docSectionTitle}>SKILLS</Text>
-                  <Text style={styles.docLineText}>Skill 1, Skill 2, Skill 3</Text>
+                  <Text style={styles.docLineText} numberOfLines={1}>
+                    {userProfile?.skills && Array.isArray(userProfile.skills) 
+                      ? userProfile.skills.slice(0, 3).join(', ') 
+                      : (typeof userProfile?.skills === 'string' ? userProfile.skills : 'Skill 1, Skill 2, Skill 3')}
+                  </Text>
                 </View>
 
                 <TouchableOpacity
@@ -942,24 +950,30 @@ export default function JobDetailsScreen() {
               {/* Tailored Cover Letter Column */}
               <View style={styles.documentCol}>
                 <View style={styles.documentPreviewCard}>
-                  <Text style={styles.docHeaderName}>FIRST NAME LAST NAME</Text>
-                  <Text style={styles.docHeaderSub}>Job Title</Text>
+                  <Text style={styles.docHeaderName}>{`${userProfile?.firstName || 'FIRST'} ${userProfile?.lastName || 'LAST'}`.toUpperCase()}</Text>
+                  <Text style={styles.docHeaderSub} numberOfLines={1}>{jobTitle}</Text>
 
                   <Text style={styles.docSectionTitle}>DETAILS</Text>
-                  <Text style={styles.docLineText}>• 0(09) 1234 5678</Text>
-                  <Text style={styles.docLineText}>• email@example.com</Text>
+                  <Text style={styles.docLineText} numberOfLines={1}>• {userProfile?.phone || '0(09) 1234 5678'}</Text>
+                  <Text style={styles.docLineText} numberOfLines={1}>• {userProfile?.email || 'email@example.com'}</Text>
 
                   <Text style={styles.docSectionTitle}>PROFILE</Text>
-                  <Text style={styles.docParagraphText}>
-                    Dear Hiring Manager, I am writing to express my strong enthusiasm...
+                  <Text style={styles.docParagraphText} numberOfLines={3}>
+                    Dear Hiring Manager, I am writing to express my strong enthusiasm for the {jobTitle} position at {companyName}...
                   </Text>
 
                   <Text style={styles.docSectionTitle}>WORK EXPERIENCE</Text>
-                  <Text style={styles.docSubHead}>Job title</Text>
-                  <Text style={styles.docParagraphText}>Company name / 2020 - Current</Text>
+                  <Text style={styles.docSubHead} numberOfLines={1}>
+                    {userProfile?.workExperience?.[0]?.role || userProfile?.workExperience?.[0]?.jobTitle || 'Job Title'}
+                  </Text>
+                  <Text style={styles.docParagraphText} numberOfLines={1}>
+                    {userProfile?.workExperience?.[0]?.company || 'Company'} / {userProfile?.workExperience?.[0]?.duration || '2020 - Current'}
+                  </Text>
 
                   <Text style={styles.docSectionTitle}>EDUCATION</Text>
-                  <Text style={styles.docLineText}>Diploma / training</Text>
+                  <Text style={styles.docLineText} numberOfLines={1}>
+                    {userProfile?.education?.[0]?.degree || userProfile?.education?.[0]?.study || 'Diploma / training'}
+                  </Text>
                 </View>
 
                 <TouchableOpacity
@@ -1081,6 +1095,7 @@ export default function JobDetailsScreen() {
         visible={showResumePreview}
         animationType="slide"
         transparent={false}
+        presentationStyle="pageSheet"
         onRequestClose={() => setShowResumePreview(false)}
       >
         <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
@@ -1197,6 +1212,7 @@ export default function JobDetailsScreen() {
         visible={showCoverLetterPreview}
         animationType="slide"
         transparent={false}
+        presentationStyle="pageSheet"
         onRequestClose={() => setShowCoverLetterPreview(false)}
       >
         <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
