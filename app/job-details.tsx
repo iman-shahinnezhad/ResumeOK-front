@@ -61,6 +61,8 @@ export default function JobDetailsScreen() {
   const [showTailorModal, setShowTailorModal] = useState(false);
   const [isMatchingWithAI, setIsMatchingWithAI] = useState(false);
   const [showMatchResultModal, setShowMatchResultModal] = useState(false);
+  const [showResumePreview, setShowResumePreview] = useState(false);
+  const [showCoverLetterPreview, setShowCoverLetterPreview] = useState(false);
   const [showDidYouApplyModal, setShowDidYouApplyModal] = useState(false);
   const [isApplied, setIsApplied] = useState(false);
   const [aiStep, setAiStep] = useState(1);
@@ -928,6 +930,7 @@ export default function JobDetailsScreen() {
                   activeOpacity={0.8}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowResumePreview(true);
                   }}
                 >
                   <Ionicons name="eye-outline" size={16} color="#0F172A" />
@@ -963,6 +966,7 @@ export default function JobDetailsScreen() {
                   activeOpacity={0.8}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowCoverLetterPreview(true);
                   }}
                 >
                   <Ionicons name="eye-outline" size={16} color="#0F172A" />
@@ -1070,11 +1074,299 @@ export default function JobDetailsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* TAILORED RESUME PREVIEW MODAL */}
+      <Modal
+        visible={showResumePreview}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowResumePreview(false)}
+      >
+        <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
+          {/* Header Bar */}
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              style={styles.backCircleBtn}
+              activeOpacity={0.7}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowResumePreview(false);
+              }}
+            >
+              {Platform.OS === 'ios' ? (
+                <SymbolView name="chevron.left" size={18} tintColor="#1E293B" resizeMode="scaleAspectFit" />
+              ) : (
+                <Ionicons name="chevron-back" size={22} color="#1E293B" />
+              )}
+            </TouchableOpacity>
+            
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#0F172A' }}>Tailored Resume</Text>
+            
+            <View style={{ width: 44 }} />
+          </View>
+
+          <ScrollView
+            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40, paddingTop: 12 }}
+            showsVerticalScrollIndicator={false}
+            style={{ backgroundColor: '#FFFFFF', flex: 1 }}
+          >
+            <View style={styles.paperSheet}>
+              {/* Header */}
+              <Text style={styles.paperName}>{`${userProfile?.firstName || 'FIRST NAME'} ${userProfile?.lastName || 'LAST NAME'}`.toUpperCase()}</Text>
+              <Text style={styles.paperTitle}>{`${jobTitle}`.toUpperCase()}</Text>
+              
+              <View style={styles.paperContactRow}>
+                <Text style={styles.paperContactText}>{userProfile?.email || 'email@example.com'}</Text>
+                <Text style={styles.paperContactDivider}>•</Text>
+                <Text style={styles.paperContactText}>{userProfile?.phone || '0(09) 1234 5678'}</Text>
+                {userProfile?.city && (
+                  <>
+                    <Text style={styles.paperContactDivider}>•</Text>
+                    <Text style={styles.paperContactText}>{userProfile?.city}</Text>
+                  </>
+                )}
+              </View>
+
+              {/* Line Divider */}
+              <View style={styles.paperDivider} />
+
+              {/* Professional Summary */}
+              <Text style={styles.paperSectionHeader}>PROFESSIONAL SUMMARY</Text>
+              <Text style={styles.paperBodyText}>
+                Highly motivated and results-driven professional seeking to leverage my background to contribute to {companyName} as a {jobTitle}. Proactive problem solver with a strong focus on efficiency, execution, and driving business value. Optimized with keywords and matching criteria for target expectations at {companyName}.
+              </Text>
+
+              {/* Work Experience */}
+              <Text style={styles.paperSectionHeader}>WORK EXPERIENCE</Text>
+              {userProfile?.workExperience && userProfile.workExperience.length > 0 ? (
+                userProfile.workExperience.map((exp: any, idx: number) => (
+                  <View key={`paper-exp-${idx}`} style={{ marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={styles.paperSubHead}>{exp.role || exp.jobTitle || 'Job Title'}</Text>
+                      <Text style={styles.paperDurationText}>{exp.duration || '2020 - Current'}</Text>
+                    </View>
+                    <Text style={styles.paperCompanyText}>{exp.company || 'Company Name'}</Text>
+                    <Text style={styles.paperBodyText}>{exp.description || 'Responsible for driving core project initiatives and collaborating with cross-functional teams.'}</Text>
+                  </View>
+                ))
+              ) : (
+                <View style={{ marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={styles.paperSubHead}>{jobTitle}</Text>
+                    <Text style={styles.paperDurationText}>2020 - Current</Text>
+                  </View>
+                  <Text style={styles.paperCompanyText}>Current Employer</Text>
+                  <Text style={styles.paperBodyText}>Collaborating with engineering, design, and management teams to design and build product solutions.</Text>
+                </View>
+              )}
+
+              {/* Skills */}
+              <Text style={styles.paperSectionHeader}>SKILLS</Text>
+              <Text style={styles.paperBodyText}>
+                {userProfile?.skills && Array.isArray(userProfile.skills) 
+                  ? userProfile.skills.join(', ') 
+                  : (typeof userProfile?.skills === 'string' ? userProfile.skills : 'Communication, Collaboration, Problem Solving, Project Management')}
+              </Text>
+
+              {/* Education */}
+              <Text style={styles.paperSectionHeader}>EDUCATION</Text>
+              {userProfile?.education && userProfile.education.length > 0 ? (
+                userProfile.education.map((edu: any, idx: number) => (
+                  <View key={`paper-edu-${idx}`} style={{ marginBottom: 8 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={styles.paperSubHead}>{edu.degree || edu.study || 'Degree / Diploma'}</Text>
+                      <Text style={styles.paperDurationText}>{edu.duration || ''}</Text>
+                    </View>
+                    <Text style={styles.paperCompanyText}>{edu.school || edu.university || 'Educational Institution'}</Text>
+                  </View>
+                ))
+              ) : (
+                <View style={{ marginBottom: 8 }}>
+                  <Text style={styles.paperSubHead}>Bachelor's Degree</Text>
+                  <Text style={styles.paperCompanyText}>University / College</Text>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* TAILORED COVER LETTER PREVIEW MODAL */}
+      <Modal
+        visible={showCoverLetterPreview}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowCoverLetterPreview(false)}
+      >
+        <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
+          {/* Header Bar */}
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              style={styles.backCircleBtn}
+              activeOpacity={0.7}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowCoverLetterPreview(false);
+              }}
+            >
+              {Platform.OS === 'ios' ? (
+                <SymbolView name="chevron.left" size={18} tintColor="#1E293B" resizeMode="scaleAspectFit" />
+              ) : (
+                <Ionicons name="chevron-back" size={22} color="#1E293B" />
+              )}
+            </TouchableOpacity>
+            
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#0F172A' }}>Tailored Cover Letter</Text>
+            
+            <View style={{ width: 44 }} />
+          </View>
+
+          <ScrollView
+            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40, paddingTop: 12 }}
+            showsVerticalScrollIndicator={false}
+            style={{ backgroundColor: '#FFFFFF', flex: 1 }}
+          >
+            <View style={styles.paperSheet}>
+              {/* Header */}
+              <Text style={styles.paperName}>{`${userProfile?.firstName || 'FIRST NAME'} ${userProfile?.lastName || 'LAST NAME'}`.toUpperCase()}</Text>
+              
+              <View style={styles.paperContactRow}>
+                <Text style={styles.paperContactText}>{userProfile?.email || 'email@example.com'}</Text>
+                <Text style={styles.paperContactDivider}>•</Text>
+                <Text style={styles.paperContactText}>{userProfile?.phone || '0(09) 1234 5678'}</Text>
+              </View>
+
+              {/* Line Divider */}
+              <View style={styles.paperDivider} />
+
+              {/* Date */}
+              <Text style={[styles.paperBodyText, { marginTop: 12, marginBottom: 16, color: '#64748B', fontWeight: '500' }]}>
+                {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </Text>
+
+              {/* Recipient */}
+              <Text style={[styles.paperBodyText, { fontWeight: '700', color: '#1E293B', marginBottom: 2 }]}>
+                Hiring Committee / Recruitment Team
+              </Text>
+              <Text style={[styles.paperBodyText, { fontWeight: '700', color: '#1E293B', marginBottom: 16 }]}>
+                {companyName}
+              </Text>
+
+              {/* Salutation */}
+              <Text style={[styles.paperBodyText, { marginBottom: 14 }]}>
+                Dear Hiring Manager,
+              </Text>
+
+              {/* Body */}
+              <Text style={[styles.paperBodyText, { marginBottom: 14, lineHeight: 22 }]}>
+                I am writing to express my enthusiastic interest in the <Text style={{ fontWeight: '700' }}>{jobTitle}</Text> position at <Text style={{ fontWeight: '700' }}>{companyName}</Text>, as advertised. With a proven track record in {userProfile?.targetRole || 'industry-standard practices'} and a strong commitment to team collaboration and excellence, I am confident that I can make a significant contribution to your organization.
+              </Text>
+
+              <Text style={[styles.paperBodyText, { marginBottom: 14, lineHeight: 22 }]}>
+                Throughout my career, I have successfully demonstrated my ability to solve complex problems, optimize workflows, and drive meaningful project execution. My technical proficiency, combined with my communication and strategic planning skills, aligns closely with the qualifications you are seeking for the {jobTitle} role.
+              </Text>
+
+              <Text style={[styles.paperBodyText, { marginBottom: 14, lineHeight: 22 }]}>
+                I am particularly drawn to {companyName} because of your dedication to innovation and quality. I am excited about the opportunity to bring my skills to your team and contribute to your ongoing success.
+              </Text>
+
+              <Text style={[styles.paperBodyText, { marginBottom: 24, lineHeight: 22 }]}>
+                Thank you for your time and consideration. I welcome the opportunity to discuss how my qualifications and experience make me a perfect fit for this role.
+              </Text>
+
+              {/* Sign-off */}
+              <Text style={[styles.paperBodyText, { marginBottom: 6 }]}>
+                Sincerely,
+              </Text>
+              <Text style={[styles.paperBodyText, { fontWeight: '700', color: '#0F172A' }]}>
+                {`${userProfile?.firstName || 'First'} ${userProfile?.lastName || 'Last'}`}
+              </Text>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  paperSheet: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingVertical: 12,
+  },
+  paperName: {
+    color: '#0F172A',
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  paperTitle: {
+    color: '#475569',
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  paperContactRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 12,
+  },
+  paperContactText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  paperContactDivider: {
+    color: '#94A3B8',
+    fontSize: 12,
+  },
+  paperDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 4,
+    width: '100%',
+  },
+  paperSectionHeader: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginTop: 18,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingBottom: 4,
+  },
+  paperBodyText: {
+    color: '#334155',
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '400',
+  },
+  paperSubHead: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  paperDurationText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  paperCompanyText: {
+    color: '#7C3AED',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
