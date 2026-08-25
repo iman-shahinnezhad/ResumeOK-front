@@ -364,6 +364,7 @@ export default function JobsScreen() {
   const [filterLocation, setFilterLocation] = useState<string>('');
   const searchInputRef = useRef<TextInput>(null);
   const webViewRef = useRef<WebView>(null);
+  const isProfileDefaultsLoaded = useRef(false);
 
   useEffect(() => {
     if (currentIndex >= filteredJobs.length - 5 && hasMore && !isFetchingMore && !isLoadingJobs && filteredJobs.length > 0) {
@@ -404,44 +405,48 @@ export default function JobsScreen() {
             if (loadedProfile.lastName) finalLastName = loadedProfile.lastName;
             if (loadedProfile.email) finalEmail = loadedProfile.email;
 
-            // Auto-populate filter values from onboarding choices
-            const onboardingRoles = Array.isArray(loadedProfile.skills) && loadedProfile.skills.length > 0
-              ? loadedProfile.skills
-              : (Array.isArray(loadedProfile.roles) ? loadedProfile.roles : []);
+            if (!isProfileDefaultsLoaded.current) {
+              // Auto-populate filter values from onboarding choices
+              const onboardingRoles = Array.isArray(loadedProfile.skills) && loadedProfile.skills.length > 0
+                ? loadedProfile.skills
+                : (Array.isArray(loadedProfile.roles) ? loadedProfile.roles : []);
 
-            const onboardingRole = loadedProfile.jobTitle || loadedProfile.targetRole || onboardingRoles[0] || '';
-            if (onboardingRole && !filterQuery) {
-              setFilterQuery(onboardingRole);
-            }
-
-            // Location auto-selection from onboarding profile
-            const onboardingLoc = loadedProfile.city || loadedProfile.location || '';
-            if (onboardingLoc && !filterLocation) {
-              setFilterLocation(onboardingLoc);
-            }
-
-            // Experience Seniority auto-selection
-            const onboardingExp = loadedProfile.experienceLevel || loadedProfile.experience || '';
-            if (onboardingExp && filterExperience === 'ALL') {
-              if (onboardingExp.includes('5+') || onboardingExp.includes('7+') || onboardingExp.toLowerCase().includes('senior')) {
-                setFilterExperience('Senior');
-              } else if (onboardingExp.includes('3+') || onboardingExp.includes('1-3') || onboardingExp.toLowerCase().includes('mid')) {
-                setFilterExperience('Mid');
-              } else if (onboardingExp.toLowerCase().includes('entry') || onboardingExp.toLowerCase().includes('junior')) {
-                setFilterExperience('Junior');
+              const onboardingRole = loadedProfile.jobTitle || loadedProfile.targetRole || onboardingRoles[0] || '';
+              if (onboardingRole && !filterQuery) {
+                setFilterQuery(onboardingRole);
               }
-            }
 
-            // Salary Range auto-selection
-            if (loadedProfile.expectedSalary && filterSalary === 'ALL') {
-              const minS = typeof loadedProfile.expectedSalary === 'object' ? (loadedProfile.expectedSalary.min || 0) : 0;
-              if (minS >= 180000) {
-                setFilterSalary('$180K+');
-              } else if (minS >= 100000) {
-                setFilterSalary('$100K - $180K');
-              } else if (minS >= 50000) {
-                setFilterSalary('$50K - $100K');
+              // Location auto-selection from onboarding profile
+              const onboardingLoc = loadedProfile.city || loadedProfile.location || '';
+              if (onboardingLoc && !filterLocation) {
+                setFilterLocation(onboardingLoc);
               }
+
+              // Experience Seniority auto-selection
+              const onboardingExp = loadedProfile.experienceLevel || loadedProfile.experience || '';
+              if (onboardingExp && filterExperience === 'ALL') {
+                if (onboardingExp.includes('5+') || onboardingExp.includes('7+') || onboardingExp.toLowerCase().includes('senior')) {
+                  setFilterExperience('Senior');
+                } else if (onboardingExp.includes('3+') || onboardingExp.includes('1-3') || onboardingExp.toLowerCase().includes('mid')) {
+                  setFilterExperience('Mid');
+                } else if (onboardingExp.toLowerCase().includes('entry') || onboardingExp.toLowerCase().includes('junior')) {
+                  setFilterExperience('Junior');
+                }
+              }
+
+              // Salary Range auto-selection
+              if (loadedProfile.expectedSalary && filterSalary === 'ALL') {
+                const minS = typeof loadedProfile.expectedSalary === 'object' ? (loadedProfile.expectedSalary.min || 0) : 0;
+                if (minS >= 180000) {
+                  setFilterSalary('$180K+');
+                } else if (minS >= 100000) {
+                  setFilterSalary('$100K - $180K');
+                } else if (minS >= 50000) {
+                  setFilterSalary('$50K - $100K');
+                }
+              }
+              
+              isProfileDefaultsLoaded.current = true;
             }
           }
 
