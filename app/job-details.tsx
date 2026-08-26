@@ -420,7 +420,7 @@ export default function JobDetailsScreen() {
   const jobDetailsHtml = jobData?.content || '';
 
   const overallScore = matchResult ? matchResult.overallScore : 68;
-  const matchPercent = matchResult ? matchResult.overallScore : 90;
+  const matchPercent = matchResult ? matchResult.industryScore : 90;
   const skillsPercent = matchResult ? matchResult.skillsScore : 40;
   const resumePercent = matchResult ? matchResult.expLevelScore : 66;
 

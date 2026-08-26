@@ -7,13 +7,49 @@ export interface JobMatchResult {
   missingSkills: string[];
 }
 
-const COMMON_TECH_SKILLS = [
-  'React', 'React Native', 'JavaScript', 'TypeScript', 'Node.js', 'Python',
-  'Java', 'Kotlin', 'Swift', 'C++', 'C#', 'Go', 'Golang', 'Ruby', 'PHP',
-  'SQL', 'PostgreSQL', 'MongoDB', 'GraphQL', 'REST API', 'AWS', 'Docker',
-  'Kubernetes', 'CI/CD', 'Git', 'HTML', 'CSS', 'Tailwind', 'Redux',
-  'Next.js', 'Express', 'Figma', 'System Design', 'Agile', 'Jira'
+const SKILL_KEYWORDS = [
+  // Tech / Engineering
+  'react', 'react native', 'javascript', 'typescript', 'node.js', 'python',
+  'java', 'kotlin', 'swift', 'c++', 'c#', 'go', 'golang', 'ruby', 'php',
+  'sql', 'postgresql', 'mongodb', 'graphql', 'rest api', 'aws', 'docker',
+  'kubernetes', 'ci/cd', 'git', 'html', 'css', 'tailwind', 'redux',
+  'next.js', 'express', 'figma', 'system design', 'agile', 'jira',
+  // UI/UX / Design
+  'ui/ux', 'ui design', 'ux design', 'product design', 'interaction design',
+  'wireframing', 'prototyping', 'user research', 'information architecture',
+  'design systems', 'mobile design', 'web design', 'user flows', 'mockups',
+  'usability testing', 'visual design', 'adobe xd', 'sketch', 'photoshop',
+  'illustrator', 'b2b products', 'saas', 'graphics', 'typography',
+  // Management / Business
+  'product management', 'project management', 'agile methodologies', 'scrum',
+  'roadmap', 'analytics', 'seo', 'marketing', 'sales', 'customer support',
+  'leadership', 'team collaboration', 'communication', 'problem solving'
 ];
+
+function matchesSkill(userSkill: string, jobSkill: string): boolean {
+  const u = userSkill.toLowerCase().trim();
+  const j = jobSkill.toLowerCase().trim();
+  if (u === j) return true;
+  
+  // Direct substring match
+  if (u.includes(j) || j.includes(u)) return true;
+  
+  // Token match
+  const uTokens = u.split(/[\s/&-]+/);
+  const jTokens = j.split(/[\s/&-]+/);
+  
+  const common = uTokens.filter(t => t.length > 1 && jTokens.includes(t));
+  if (common.length > 0) {
+    const genericWords = ['design', 'development', 'systems', 'management', 'software', 'engineering', 'products', 'services'];
+    const significantCommon = common.filter(t => !genericWords.includes(t));
+    if (significantCommon.length > 0) return true;
+    
+    if (uTokens.length > 1 && jTokens.length > 1 && common.length >= Math.min(uTokens.length, jTokens.length)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 export function calculateJobMatch(jobContent: string, jobTitle: string, userProfile: any): JobMatchResult {
   const contentLower = (jobContent + ' ' + jobTitle).toLowerCase();
@@ -27,7 +63,7 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
   const extraRoles = [userProfile?.jobTitle, userProfile?.role, userProfile?.title].filter(Boolean) as string[];
 
   const allUserKeywords = [...userSkills, ...userInterests, ...userSoftSkills, ...userRoles, ...extraRoles]
-    .map(s => s.trim().toLowerCase())
+    .map(s => s.trim())
     .filter(Boolean);
   const userExpStr = (userProfile?.experience || '').toLowerCase();
 
@@ -45,88 +81,105 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
     };
   }
 
-  // 1. Matched and Missing Skills
-  const matchedSkillsSet = new Set<string>();
-  const missingSkillsSet = new Set<string>();
-
-  COMMON_TECH_SKILLS.forEach(skill => {
-    const skillLower = skill.toLowerCase();
-    if (contentLower.includes(skillLower)) {
-      if (allUserKeywords.some(us => us.includes(skillLower) || skillLower.includes(us))) {
-        matchedSkillsSet.add(skill);
-      } else {
-        missingSkillsSet.add(skill);
-      }
+  // 1. Scan Job for Required Skills
+  const jobRequiredSkills: string[] = [];
+  SKILL_KEYWORDS.forEach(skill => {
+    if (contentLower.includes(skill)) {
+      // Format nicely for display
+      const formattedName = skill.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      jobRequiredSkills.push(formattedName);
     }
   });
 
-  // Direct user skills present in job
-  userSkills.forEach(skill => {
-    if (contentLower.includes(skill.toLowerCase())) {
-      matchedSkillsSet.add(skill);
+  // Fallback if no predefined skill keywords match the job description
+  if (jobRequiredSkills.length === 0) {
+    if (titleLower.includes('design') || titleLower.includes('ui') || titleLower.includes('ux') || titleLower.includes('creative')) {
+      jobRequiredSkills.push('UI/UX Design', 'Design Systems', 'Figma', 'Prototyping', 'User Research');
+    } else {
+      jobRequiredSkills.push('React', 'JavaScript', 'TypeScript', 'Agile', 'Team Collaboration');
+    }
+  }
+
+  // 2. Compute Matched vs Missing Skills
+  const matchedSkillsSet = new Set<string>();
+  const missingSkillsSet = new Set<string>();
+
+  jobRequiredSkills.forEach(jobSkill => {
+    const isMatched = allUserKeywords.some(userSkill => matchesSkill(userSkill, jobSkill));
+    if (isMatched) {
+      matchedSkillsSet.add(jobSkill);
+    } else {
+      missingSkillsSet.add(jobSkill);
+    }
+  });
+
+  // Also include user skills that are mentioned in the job but might not have been caught in SKILL_KEYWORDS
+  userSkills.forEach(userSkill => {
+    if (contentLower.includes(userSkill.toLowerCase())) {
+      matchedSkillsSet.add(userSkill);
     }
   });
 
   const matchedSkills = Array.from(matchedSkillsSet);
   const missingSkills = Array.from(missingSkillsSet).slice(0, 6);
 
-  // 2. Experience Level Score (0% to 100%)
-  let expLevelScore = 0;
-  const isSeniorJob = titleLower.includes('senior') || titleLower.includes('lead') || titleLower.includes('principal') || contentLower.includes('5+ years') || contentLower.includes('5 years');
+  // 3. Experience Level Score (0% to 100%)
+  let expLevelScore = 65; // default mid range
+  const isSeniorJob = titleLower.includes('senior') || titleLower.includes('lead') || titleLower.includes('principal') || titleLower.includes('sr') || contentLower.includes('5+ years') || contentLower.includes('5 years');
   const isMidJob = titleLower.includes('mid') || contentLower.includes('3+ years') || contentLower.includes('3-5 years');
   const isJuniorJob = titleLower.includes('junior') || titleLower.includes('intern') || titleLower.includes('associate') || contentLower.includes('1-2 years');
 
   if (userExpStr) {
     if (userExpStr.includes('5+')) {
-      expLevelScore = isSeniorJob ? 100 : (isMidJob ? 85 : 60);
+      expLevelScore = isSeniorJob ? 95 : (isMidJob ? 85 : 60);
     } else if (userExpStr.includes('3-5')) {
-      expLevelScore = isSeniorJob ? 65 : (isMidJob ? 95 : 70);
+      expLevelScore = isSeniorJob ? 70 : (isMidJob ? 95 : 75);
     } else if (userExpStr.includes('1-3')) {
-      expLevelScore = isSeniorJob ? 30 : (isJuniorJob ? 95 : 60);
+      expLevelScore = isSeniorJob ? 40 : (isJuniorJob ? 95 : 70);
     } else if (userExpStr.includes('0-1')) {
-      expLevelScore = isSeniorJob ? 10 : (isJuniorJob ? 90 : 40);
-    } else {
-      expLevelScore = isSeniorJob ? 40 : 60;
+      expLevelScore = isSeniorJob ? 20 : (isJuniorJob ? 95 : 50);
     }
-  }
-
-  // 3. Skill & Keyword Match Ratio
-  let matchedKeywordCount = 0;
-  allUserKeywords.forEach(kw => {
-    if (titleLower.includes(kw) || contentLower.includes(kw)) {
-      matchedKeywordCount++;
-    }
-  });
-
-  const keywordRatio = allUserKeywords.length > 0 ? matchedKeywordCount / allUserKeywords.length : 0;
-
-  // Excellent Match (0% to 95%)
-  let overallScore = 0;
-  if (keywordRatio >= 0.7) {
-    overallScore = Math.round(75 + (keywordRatio - 0.7) * 50);
-  } else if (keywordRatio >= 0.3) {
-    overallScore = Math.round(45 + (keywordRatio - 0.3) * 60);
-  } else if (keywordRatio > 0) {
-    overallScore = Math.round(20 + keywordRatio * 80);
   } else {
-    overallScore = 0;
+    expLevelScore = isSeniorJob ? 50 : 75;
   }
-  overallScore = Math.min(95, Math.max(0, overallScore));
 
-  // Fair Match (0% to 55%)
-  const skillsScore = overallScore > 0 ? Math.min(55, Math.max(10, Math.round(overallScore * 0.55))) : 0;
+  // 4. Skills Match Score (0% to 100%)
+  const skillsRatio = jobRequiredSkills.length > 0 ? matchedSkills.length / jobRequiredSkills.length : 0.7;
+  const skillsScore = Math.round(skillsRatio * 100);
 
-  // Perfect Match (0% to 98%)
-  const industryScore = (expLevelScore > 0 || overallScore > 0)
-    ? Math.min(98, Math.max(10, Math.round((expLevelScore * 0.45) + (overallScore * 0.55))))
-    : 0;
+  // 5. Role Match Score (0% to 100%)
+  let roleMatchScore = 50;
+  const userRoleTitles = [...userRoles, userProfile?.jobTitle, userProfile?.role].filter(Boolean).map(r => r.toLowerCase());
+  const wordsInJobTitle = titleLower.split(/[\s/&-]+/);
+
+  const matchesTitleWord = userRoleTitles.some(uRole => 
+    wordsInJobTitle.some(jWord => jWord.length > 2 && (uRole.includes(jWord) || jWord.includes(uRole)))
+  );
+
+  if (matchesTitleWord) {
+    roleMatchScore = 95;
+  } else if (titleLower.includes('designer') && userRoleTitles.some(r => r.includes('design'))) {
+    roleMatchScore = 90;
+  } else if (titleLower.includes('developer') && userRoleTitles.some(r => r.includes('developer') || r.includes('engineer'))) {
+    roleMatchScore = 90;
+  }
+
+  // 6. Overall Match Score Calculation
+  const overallScore = Math.min(98, Math.max(10, Math.round(
+    (skillsScore * 0.50) + (expLevelScore * 0.30) + (roleMatchScore * 0.20)
+  )));
+
+  // 7. Industry / Job Match Score
+  const industryScore = Math.min(98, Math.max(10, Math.round(
+    (overallScore * 0.8) + (roleMatchScore * 0.2)
+  )));
 
   return {
     overallScore,
     expLevelScore,
     skillsScore,
     industryScore,
-    matchedSkills: matchedSkills.length > 0 ? matchedSkills : (userSkills.length > 0 ? userSkills : ['Design', 'UI/UX', 'Product']),
+    matchedSkills: matchedSkills.length > 0 ? matchedSkills : (userSkills.length > 0 ? userSkills : ['UI/UX Design', 'Design Systems', 'Figma']),
     missingSkills,
   };
 }
