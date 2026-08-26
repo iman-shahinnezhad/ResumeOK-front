@@ -3838,8 +3838,7 @@ function getJobPostedTime(job: GreenhouseJob): string {
 
 // Calculate 4 distinct, dynamic match percentages per job using calculateJobMatch from utils/jobMatch
 function calculateJobMatchScores(job: GreenhouseJob, profile: any) {
-  const content = (job.content || '') + ' ' + (job.title || '') + ' ' + (job.location?.name || '');
-  const matchResult = calculateJobMatch(content, job.title || '', profile);
+  const matchResult = calculateJobMatch(job.content || '', job.title || '', profile);
 
   return {
     expMatch: `${matchResult.expLevelScore}%`,

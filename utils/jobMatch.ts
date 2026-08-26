@@ -23,10 +23,15 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
   const userSkills: string[] = Array.isArray(userProfile?.skills) ? userProfile.skills : [];
   const userInterests: string[] = Array.isArray(userProfile?.interests) ? userProfile.interests : [];
   const userSoftSkills: string[] = Array.isArray(userProfile?.softSkills) ? userProfile.softSkills : [];
-  const allUserKeywords = [...userSkills, ...userInterests, ...userSoftSkills].map(s => s.trim().toLowerCase()).filter(Boolean);
+  const userRoles: string[] = Array.isArray(userProfile?.roles) ? userProfile.roles : [];
+  const extraRoles = [userProfile?.jobTitle, userProfile?.role, userProfile?.title].filter(Boolean) as string[];
+
+  const allUserKeywords = [...userSkills, ...userInterests, ...userSoftSkills, ...userRoles, ...extraRoles]
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean);
   const userExpStr = (userProfile?.experience || '').toLowerCase();
 
-  const hasProfileData = Boolean(userExpStr || allUserKeywords.length > 0 || userProfile?.resumeFile || userProfile?.title);
+  const hasProfileData = Boolean(userExpStr || allUserKeywords.length > 0 || userProfile?.resumeFile || userProfile?.title || userProfile?.jobTitle || userProfile?.role);
 
   // If user has not filled out profile or uploaded resume, return 0% for all scores
   if (!userProfile || !hasProfileData) {
