@@ -341,7 +341,7 @@ export default function Account() {
             <Ionicons name="chevron-forward" size={18} color="#999999" style={{ marginLeft: 4 }} />
           </TouchableOpacity>
 
-          {/* ITEM 4: Task & Rewards */}
+          {/* ITEM 4: Task & Rewards
           <TouchableOpacity
             style={styles.menuCard}
             activeOpacity={0.7}
@@ -363,6 +363,7 @@ export default function Account() {
 
             <Ionicons name="chevron-forward" size={18} color="#999999" style={{ marginLeft: 4 }} />
           </TouchableOpacity>
+          */}
 
         </View>
       </ScrollView>
