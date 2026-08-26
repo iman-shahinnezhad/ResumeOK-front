@@ -150,6 +150,8 @@ export default function TasksScreen() {
             if (loadedProfile.city || loadedProfile.address) personalFilled++;
           } else if (field === 'expectedSalary') {
             if (loadedProfile.expectedSalary && (loadedProfile.expectedSalary.min || loadedProfile.expectedSalary)) personalFilled++;
+          } else if (field === 'phone') {
+            if (loadedProfile.phone || loadedProfile.phoneNumber || loadedProfile.mobile) personalFilled++;
           } else if (loadedProfile[field] && String(loadedProfile[field]).trim().length > 0) {
             personalFilled++;
           }

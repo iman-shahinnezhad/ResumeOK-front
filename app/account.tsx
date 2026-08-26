@@ -64,13 +64,13 @@ export default function Account() {
         if (loadedProfile.firstName?.trim()) personalFilled++;
         if (loadedProfile.lastName?.trim()) personalFilled++;
         if (loadedProfile.email?.trim()) personalFilled++;
-        if (loadedProfile.phone?.trim()) personalFilled++;
-        if (loadedProfile.city?.trim()) personalFilled++;
-        if (loadedProfile.title?.trim()) personalFilled++;
-        if (loadedProfile.bio?.trim()) personalFilled++;
-        if (loadedProfile.linkedin?.trim()) personalFilled++;
+        if (loadedProfile.phone?.trim() || loadedProfile.phoneNumber?.trim() || loadedProfile.mobile?.trim()) personalFilled++;
+        if (loadedProfile.city?.trim() || loadedProfile.address?.trim()) personalFilled++;
+        if (loadedProfile.title?.trim() || loadedProfile.jobTitle?.trim() || loadedProfile.role?.trim()) personalFilled++;
+        if (loadedProfile.bio?.trim() || loadedProfile.summary?.trim()) personalFilled++;
+        if (loadedProfile.linkedin?.trim() || loadedProfile.linkedinUrl?.trim()) personalFilled++;
         if (loadedProfile.github?.trim()) personalFilled++;
-        if (loadedProfile.portfolio?.trim()) personalFilled++;
+        if (loadedProfile.portfolio?.trim() || loadedProfile.portfolioUrl?.trim()) personalFilled++;
         if (loadedProfile.experience?.trim()) personalFilled++;
       }
       setPersonalInfoMissing(11 - personalFilled);
@@ -78,8 +78,8 @@ export default function Account() {
       let profFilled = 0;
       if (loadedProfile) {
         if (loadedProfile.experience?.trim()) profFilled += 2;
-        if (loadedProfile.expectedSalary?.min) profFilled += 2;
-        if (Array.isArray(loadedProfile.skills) && loadedProfile.skills.length > 0) profFilled += 4;
+        if (loadedProfile.expectedSalary?.min || loadedProfile.expectedSalary) profFilled += 2;
+        if ((Array.isArray(loadedProfile.skills) && loadedProfile.skills.length > 0) || (Array.isArray(loadedProfile.selectedRoles) && loadedProfile.selectedRoles.length > 0)) profFilled += 4;
         if (Array.isArray(loadedProfile.interests) && loadedProfile.interests.length > 0) profFilled += 4;
       }
 
