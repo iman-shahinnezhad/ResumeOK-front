@@ -3451,28 +3451,57 @@ const styles = StyleSheet.create({
   matchPillsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 6,
+    gap: 8,
     marginBottom: 20,
   },
-  matchPillCard: {
+  metricCard: {
     flex: 1,
-    backgroundColor: '#DCFCE7',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 4,
+    borderRadius: 14,
+    paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  matchPillScore: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#15803D',
-    marginBottom: 2,
+  metricCardOrange: {
+    backgroundColor: '#FF4500',
   },
-  matchPillLabel: {
+  metricCardGreen: {
+    backgroundColor: '#DCFCE7',
+  },
+  metricCardGray: {
+    backgroundColor: '#E2E8F0',
+  },
+  metricCardValueWhite: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  metricCardLabelWhite: {
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  metricCardValueGreen: {
+    fontSize: 16,
+    fontWeight: '900',
     color: '#166534',
-    textAlign: 'center',
+  },
+  metricCardLabelGreen: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#166534',
+    marginTop: 2,
+  },
+  metricCardValueGray: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#334155',
+  },
+  metricCardLabelGray: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#475569',
+    marginTop: 2,
   },
   qualificationsTitle: {
     fontSize: 18,
@@ -3883,15 +3912,7 @@ function getMatchPillColors(scoreStr: string) {
   };
 }
 
-function MatchPillCard({ score, label }: { score: string; label: string }) {
-  const colors = getMatchPillColors(score);
-  return (
-    <View style={[styles.matchPillCard, { backgroundColor: colors.bg }]}>
-      <Text style={[styles.matchPillScore, { color: colors.scoreColor }]}>{score}</Text>
-      <Text style={[styles.matchPillLabel, { color: colors.labelColor }]}>{label}</Text>
-    </View>
-  );
-}
+
 
 interface JobListItemCardProps {
   item: GreenhouseJob;
@@ -4102,12 +4123,27 @@ const JobCardContent = React.memo(({ item, isActive, userProfile, likeStyle, nop
         {/* Divider */}
         <View style={styles.cardDividerLine} />
 
-        {/* 4 Match Cards with Dynamic Threshold Colors */}
+        {/* 4 Match Cards styled exactly like the details screen */}
         <View style={styles.matchPillsRow}>
-          <MatchPillCard score={scores.expMatch} label="Experience Level" />
-          <MatchPillCard score={scores.excellentMatch} label="Excellent Match" />
-          <MatchPillCard score={scores.fairMatch} label="Fair Match" />
-          <MatchPillCard score={scores.perfectMatch} label="Perfect Match" />
+          <View style={[styles.metricCard, styles.metricCardOrange]}>
+            <Text style={styles.metricCardValueWhite}>{scores.excellentMatch}</Text>
+            <Text style={styles.metricCardLabelWhite}>OVERALL</Text>
+          </View>
+
+          <View style={[styles.metricCard, styles.metricCardGreen]}>
+            <Text style={styles.metricCardValueGreen}>{scores.perfectMatch}</Text>
+            <Text style={styles.metricCardLabelGreen}>JOB MATCH</Text>
+          </View>
+
+          <View style={[styles.metricCard, styles.metricCardGray]}>
+            <Text style={styles.metricCardValueGray}>{scores.fairMatch}</Text>
+            <Text style={styles.metricCardLabelGray}>SKILLS</Text>
+          </View>
+
+          <View style={[styles.metricCard, styles.metricCardGray]}>
+            <Text style={styles.metricCardValueGray}>{scores.expMatch}</Text>
+            <Text style={styles.metricCardLabelGray}>RESUME</Text>
+          </View>
         </View>
 
         {/* Qualifications */}
