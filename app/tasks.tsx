@@ -419,7 +419,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     paddingHorizontal: 16,
-    paddingVertical: 8,
     borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -429,6 +428,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 4,
     elevation: 2,
+    height: 40,
   },
   creditsText: {
     color: '#000000',
