@@ -96,8 +96,16 @@ export default function JobDetailsScreen() {
       .replace(/&bull;/g, '•')
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/p>/gi, '\n\n')
-      .replace(/<\/li>/gi, '\n');
-    return decoded.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+      .replace(/<\/h[1-6]>/gi, '\n\n')
+      .replace(/<\/li>/gi, '\n')
+      .replace(/<li>/gi, '• ');
+    
+    const withoutTags = decoded.replace(/<[^>]*>?/gm, '');
+    return withoutTags
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\n\s*\n\s*\n+/g, '\n\n')
+      .trim();
   };
 
   const cleanLocation = (loc: string) => {
@@ -696,30 +704,12 @@ export default function JobDetailsScreen() {
               </View>
             </View>
 
-            {/* JOB SUMMARY SECTION */}
+            {/* JOB DESCRIPTION SECTION */}
             <View style={styles.summarySectionContainer}>
-              <Text style={styles.jobSummaryTitle}>Job Summary</Text>
-              <Text
-                style={[styles.jobSummaryBodyText, { lineHeight: 22 }]}
-                numberOfLines={showFullDescription ? undefined : 4}
-              >
-                {stripHtml(jobDetailsHtml) || 'No job summary description available.'}
+              <Text style={styles.jobSummaryTitle}>Job Description</Text>
+              <Text style={[styles.jobSummaryBodyText, { lineHeight: 22 }]}>
+                {stripHtml(jobDetailsHtml) || 'No job description available.'}
               </Text>
-
-              {stripHtml(jobDetailsHtml).length > 200 && (
-                <TouchableOpacity
-                  style={{ marginTop: 8, alignSelf: 'flex-start' }}
-                  activeOpacity={0.75}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setShowFullDescription(!showFullDescription);
-                  }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#7C3AED' }}>
-                    {showFullDescription ? 'Read Less' : 'Read More'}
-                  </Text>
-                </TouchableOpacity>
-              )}
             </View>
           </>
         ) : (
