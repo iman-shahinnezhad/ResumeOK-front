@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingBottom: 32,
+    paddingBottom: 140,
   },
   headerRow: {
     marginBottom: 20,
@@ -441,9 +441,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 24,
     paddingTop: 16,
+    zIndex: 999,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
