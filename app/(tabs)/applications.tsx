@@ -215,60 +215,66 @@ export default function ApplicationsTab() {
   return (
     <View style={styles.container}>
       {/* HEADER */}
-      <BlurView intensity={90} tint="light" style={[styles.header, { paddingTop: 80 }]}>
-        {/* Centered Segmented Control */}
-        <View style={styles.segmentedContainer}>
-          <Animated.View
-            style={[
-              styles.animatedBackgroundPill,
-              {
-                transform: [{ translateX: slideAnim }],
-              },
-            ]}
-          />
-
+      <BlurView intensity={90} tint="light" style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        {/* Top Row: Title & Credits */}
+        <View style={styles.headerTopRow}>
+          <Text style={styles.headerTitleText}>Applications</Text>
+          
           <TouchableOpacity
-            style={styles.segmentedTab}
-            activeOpacity={0.75}
+            style={styles.creditsBadgeHeader}
+            activeOpacity={0.8}
             onPress={() => {
-              Haptics.selectionAsync();
-              setActiveSegment('applied');
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/pricing' as any);
             }}
           >
-            <Text style={[styles.segmentedText, activeSegment === 'applied' && styles.segmentedTextActive]}>
-              Applied
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.segmentedTab}
-            activeOpacity={0.75}
-            onPress={() => {
-              Haptics.selectionAsync();
-              setActiveSegment('skipped');
-            }}
-          >
-            <Text style={[styles.segmentedText, activeSegment === 'skipped' && styles.segmentedTextActive]}>
-              Skip
-            </Text>
+            <Text style={styles.creditsText}>{totalCredits}</Text>
+            <Image
+              source={require('../../assets/images/header-icon.png')}
+              style={{ width: 14, height: 14, marginLeft: 4, resizeMode: 'contain' }}
+            />
           </TouchableOpacity>
         </View>
 
-        {/* Absolute Right Side Credit Pill */}
-        <TouchableOpacity
-          style={[styles.creditsBadgeAbsolute, { top: insets.top > 0 ? insets.top + 8 : 44 }]}
-          activeOpacity={0.8}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push('/pricing' as any);
-          }}
-        >
-          <Text style={styles.creditsText}>{totalCredits}</Text>
-          <Image
-            source={require('../../assets/images/header-icon.png')}
-            style={{ width: 14, height: 14, marginLeft: 4, resizeMode: 'contain' }}
-          />
-        </TouchableOpacity>
+        {/* Bottom Row: Segmented Control */}
+        <View style={styles.segmentedWrapper}>
+          <View style={styles.segmentedContainer}>
+            <Animated.View
+              style={[
+                styles.animatedBackgroundPill,
+                {
+                  transform: [{ translateX: slideAnim }],
+                },
+              ]}
+            />
+
+            <TouchableOpacity
+              style={styles.segmentedTab}
+              activeOpacity={0.75}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setActiveSegment('applied');
+              }}
+            >
+              <Text style={[styles.segmentedText, activeSegment === 'applied' && styles.segmentedTextActive]}>
+                Applied
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.segmentedTab}
+              activeOpacity={0.75}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setActiveSegment('skipped');
+              }}
+            >
+              <Text style={[styles.segmentedText, activeSegment === 'skipped' && styles.segmentedTextActive]}>
+                Skip
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </BlurView>
 
       {/* LIST OF JOBS */}
@@ -281,7 +287,7 @@ export default function ApplicationsTab() {
           data={currentList}
           keyExtractor={(item, index) => (item && item.id) ? String(item.id) : `app-job-${index}`}
           renderItem={renderJobCard}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100, paddingTop: safeTop + 68 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100, paddingTop: insets.top + 130 }}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -309,14 +315,43 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 10,
     zIndex: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(226, 232, 240, 0.4)',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 8,
+  },
+  headerTitleText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  creditsBadgeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  segmentedWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   creditsBadgeAbsolute: {
     position: 'absolute',
