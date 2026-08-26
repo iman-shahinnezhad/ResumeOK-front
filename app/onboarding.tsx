@@ -1137,24 +1137,47 @@ export default function Onboarding() {
   const saveProfileData = async () => {
     try {
       const path = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+      
+      let existingProfile: any = {};
+      try {
+        const info = await FileSystem.getInfoAsync(path);
+        if (info.exists) {
+          const content = await FileSystem.readAsStringAsync(path);
+          existingProfile = JSON.parse(content);
+        }
+      } catch (readErr) {
+        console.log('No existing onboarding profile to merge:', readErr);
+      }
+
+      const mainRole = selectedRoles[0] || existingProfile.jobTitle || existingProfile.role || '';
+
       const profile = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.trim(),
-        skills: selectedRoles,
-        interests: selectedInterests,
-        challenge: selectedChallenge,
-        city: selectedCity,
-        experience: selectedExperience,
-        expectedSalary: { min: minSalary, max: maxSalary },
-        hearAbout: selectedHearAbout,
+        ...existingProfile,
+        firstName: firstName.trim() || existingProfile.firstName || '',
+        lastName: lastName.trim() || existingProfile.lastName || '',
+        email: email.trim() || existingProfile.email || '',
+        jobTitle: mainRole,
+        role: mainRole,
+        roles: selectedRoles.length > 0 ? selectedRoles : (existingProfile.roles || [mainRole]),
+        skills: existingProfile.skills && existingProfile.skills.length > 0 ? existingProfile.skills : selectedRoles,
+        interests: selectedInterests.length > 0 ? selectedInterests : (existingProfile.interests || []),
+        challenge: selectedChallenge || existingProfile.challenge || '',
+        city: selectedCity || existingProfile.city || '',
+        experience: selectedExperience || existingProfile.experience || '',
+        expectedSalary: { 
+          min: minSalary || existingProfile.expectedSalary?.min || 100000, 
+          max: maxSalary || existingProfile.expectedSalary?.max || 180000 
+        },
+        hearAbout: selectedHearAbout || existingProfile.hearAbout || '',
         resumeFile: selectedResume ? {
           name: selectedResume.name,
           uri: selectedResume.uri,
           size: selectedResume.size
-        } : null
+        } : (existingProfile.resumeFile || null)
       };
-      await FileSystem.writeAsStringAsync(path, JSON.stringify(profile));
+
+      await FileSystem.writeAsStringAsync(path, JSON.stringify(profile, null, 2));
+      await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}resume_builder_form_data.json`, JSON.stringify(profile, null, 2));
       await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}onboarding_completed.txt`, "true");
 
       // Save resume to resumes.json if selected
