@@ -100,6 +100,18 @@ export default function JobDetailsScreen() {
     return decoded.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
   };
 
+  const cleanLocation = (loc: string) => {
+    if (!loc) return '';
+    const parts = loc.split(',').map(p => p.trim());
+    if (parts.length > 1) {
+      if (parts[0].toLowerCase().includes('remote')) {
+        return parts[1];
+      }
+      return parts[0];
+    }
+    return loc;
+  };
+
   const handleStartAiTailoring = async () => {
     if (!selectedResume || !selectedResume.uri) {
       Alert.alert("Resume Required", "Please select or upload a resume first.");
@@ -587,7 +599,7 @@ export default function JobDetailsScreen() {
           <View style={styles.specsGrid}>
             <View style={styles.specItem}>
               <Ionicons name="location-outline" size={15} color="#475569" />
-              <Text style={styles.specItemText}>{locationName}</Text>
+              <Text style={styles.specItemText}>{cleanLocation(locationName)}</Text>
             </View>
 
             <View style={styles.specItem}>
@@ -1543,9 +1555,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     rowGap: 10,
+    columnGap: 16,
   },
   specItem: {
-    width: '33.3%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
