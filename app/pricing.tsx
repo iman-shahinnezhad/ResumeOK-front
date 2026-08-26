@@ -190,7 +190,7 @@ export default function Pricing() {
         style={StyleSheet.absoluteFillObject}
       />
 
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 35 }]}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingTop: 35 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={24} color="#000000" />
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingBottom: 160,
+    paddingBottom: 32,
   },
   headerRow: {
     marginBottom: 20,
@@ -441,14 +441,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 24,
     paddingTop: 16,
-    zIndex: 999,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
