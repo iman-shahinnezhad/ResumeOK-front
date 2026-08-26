@@ -280,9 +280,10 @@ export default function JobDetailsScreen() {
       setIsLoadingDetails(true);
       try {
         let jobObj: any = null;
-        if (params.job) {
+        const jobJsonStr = params.jobJson || params.job;
+        if (jobJsonStr) {
           try {
-            jobObj = JSON.parse(params.job as string);
+            jobObj = JSON.parse(jobJsonStr as string);
           } catch (e) {
             console.log("Error parsing job param:", e);
           }
@@ -673,9 +674,27 @@ export default function JobDetailsScreen() {
             {/* JOB SUMMARY SECTION */}
             <View style={styles.summarySectionContainer}>
               <Text style={styles.jobSummaryTitle}>Job Summary</Text>
-              <Text style={[styles.jobSummaryBodyText, { lineHeight: 22 }]}>
+              <Text
+                style={[styles.jobSummaryBodyText, { lineHeight: 22 }]}
+                numberOfLines={showFullDescription ? undefined : 4}
+              >
                 {stripHtml(jobDetailsHtml) || 'No job summary description available.'}
               </Text>
+
+              {stripHtml(jobDetailsHtml).length > 200 && (
+                <TouchableOpacity
+                  style={{ marginTop: 8, alignSelf: 'flex-start' }}
+                  activeOpacity={0.75}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowFullDescription(!showFullDescription);
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#7C3AED' }}>
+                    {showFullDescription ? 'Read Less' : 'Read More'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </>
         ) : (
