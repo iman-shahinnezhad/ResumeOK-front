@@ -645,68 +645,36 @@ export default function JobDetailsScreen() {
 
               {/* SKILLS PILLS GRID (Green matched vs Muted gray) */}
               <View style={styles.skillsPillsContainer}>
-                <View style={styles.skillPillGreen}>
-                  <Text style={styles.thumbEmoji}>👍</Text>
-                  <Text style={styles.skillTextGreen}>Developer relation</Text>
-                </View>
+                {matchResult?.matchedSkills && matchResult.matchedSkills.length > 0 ? (
+                  matchResult.matchedSkills.map((skill, index) => (
+                    <View key={`matched-${index}`} style={styles.skillPillGreen}>
+                      <Text style={styles.thumbEmoji}>👍</Text>
+                      <Text style={styles.skillTextGreen}>{skill}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={{ fontSize: 13, color: '#64748B', fontStyle: 'italic', marginVertical: 4, paddingHorizontal: 4 }}>
+                    No matched skills found.
+                  </Text>
+                )}
 
-                <View style={styles.skillPillGreen}>
-                  <Text style={styles.thumbEmoji}>👍</Text>
-                  <Text style={styles.skillTextGreen}>Frontend</Text>
-                </View>
-
-                <View style={styles.skillPillGreen}>
-                  <Text style={styles.thumbEmoji}>👍</Text>
-                  <Text style={styles.skillTextGreen}>Soft Skills</Text>
-                </View>
-
-                <View style={styles.skillPillGreen}>
-                  <Text style={styles.thumbEmoji}>👍</Text>
-                  <Text style={styles.skillTextGreen}>Team managment</Text>
-                </View>
-
-                <View style={styles.skillPillGreen}>
-                  <Text style={styles.thumbEmoji}>👍</Text>
-                  <Text style={styles.skillTextGreen}>Project Coordination</Text>
-                </View>
-
-                <View style={styles.skillPillGray}>
-                  <Text style={styles.skillTextGray}>Developer relation</Text>
-                </View>
-
-                <View style={styles.skillPillGray}>
-                  <Text style={styles.skillTextGray}>Frontend</Text>
-                </View>
-
-                <View style={styles.skillPillGray}>
-                  <Text style={styles.skillTextGray}>Backend</Text>
-                </View>
-
-                <View style={styles.skillPillGray}>
-                  <Text style={styles.skillTextGray}>Fullstack</Text>
-                </View>
-
-                <View style={styles.skillPillGray}>
-                  <Text style={styles.skillTextGray}>Frontend</Text>
-                </View>
-
-                <View style={styles.skillPillGray}>
-                  <Text style={styles.skillTextGray}>Backend</Text>
-                </View>
-
-                <View style={styles.skillPillGray}>
-                  <Text style={styles.skillTextGray}>DevOps</Text>
-                </View>
+                {matchResult?.missingSkills && matchResult.missingSkills.length > 0 ? (
+                  matchResult.missingSkills.map((skill, index) => (
+                    <View key={`missing-${index}`} style={styles.skillPillGray}>
+                      <Text style={styles.skillTextGray}>{skill}</Text>
+                    </View>
+                  ))
+                ) : (
+                  null
+                )}
               </View>
             </View>
 
             {/* JOB SUMMARY SECTION */}
             <View style={styles.summarySectionContainer}>
               <Text style={styles.jobSummaryTitle}>Job Summary</Text>
-
-              <Text style={styles.jobSummarySalutation}>Dear Hiring Manager,</Text>
-              <Text style={styles.jobSummaryBodyText}>
-                I am writing to express my strong interest in the Product Designer position at your company. With a passion for creating intuitive and engaging user experiences, I bring a wealth of experience in...
+              <Text style={[styles.jobSummaryBodyText, { lineHeight: 22 }]}>
+                {stripHtml(jobDetailsHtml) || 'No job summary description available.'}
               </Text>
             </View>
           </>
@@ -1077,33 +1045,47 @@ export default function JobDetailsScreen() {
             <View style={styles.documentsRowContainer}>
               {/* Tailored Resume Column */}
               <View style={styles.documentCol}>
-                <View style={styles.documentPreviewCard}>
-                  <Text style={styles.docHeaderName}>{`${userProfile?.firstName || 'FIRST'} ${userProfile?.lastName || 'LAST'}`.toUpperCase()}</Text>
-                  <Text style={styles.docHeaderSub} numberOfLines={1}>{jobTitle}</Text>
+                <View style={[styles.documentPreviewCard, { padding: tailoredResumeUri ? 0 : 16, overflow: 'hidden' }]}>
+                  {tailoredResumeUri ? (
+                    <WebView
+                      source={{ uri: tailoredResumeUri }}
+                      style={{ flex: 1 }}
+                      scrollEnabled={false}
+                      scalesPageToFit={true}
+                      originWhitelist={['*']}
+                      allowFileAccess={true}
+                      allowUniversalAccessFromFileURLs={true}
+                    />
+                  ) : (
+                    <>
+                      <Text style={styles.docHeaderName}>{`${userProfile?.firstName || 'FIRST'} ${userProfile?.lastName || 'LAST'}`.toUpperCase()}</Text>
+                      <Text style={styles.docHeaderSub} numberOfLines={1}>{jobTitle}</Text>
 
-                  <Text style={styles.docSectionTitle}>DETAILS</Text>
-                  <Text style={styles.docLineText} numberOfLines={1}>• {userProfile?.phone || '0(09) 1234 5678'}</Text>
-                  <Text style={styles.docLineText} numberOfLines={1}>• {userProfile?.email || 'email@example.com'}</Text>
+                      <Text style={styles.docSectionTitle}>DETAILS</Text>
+                      <Text style={styles.docLineText} numberOfLines={1}>• {userProfile?.phone || '0(09) 1234 5678'}</Text>
+                      <Text style={styles.docLineText} numberOfLines={1}>• {userProfile?.email || 'email@example.com'}</Text>
 
-                  <Text style={styles.docSectionTitle}>PROFILE</Text>
-                  <Text style={styles.docParagraphText} numberOfLines={3}>
-                    {userProfile?.summary || 'Highly motivated professional seeking to contribute to company goals...'}
-                  </Text>
+                      <Text style={styles.docSectionTitle}>PROFILE</Text>
+                      <Text style={styles.docParagraphText} numberOfLines={3}>
+                        {userProfile?.summary || 'Highly motivated professional seeking to contribute to company goals...'}
+                      </Text>
 
-                  <Text style={styles.docSectionTitle}>WORK EXPERIENCE</Text>
-                  <Text style={styles.docSubHead} numberOfLines={1}>
-                    {userProfile?.workExperience?.[0]?.role || userProfile?.workExperience?.[0]?.jobTitle || 'Job Title'}
-                  </Text>
-                  <Text style={styles.docParagraphText} numberOfLines={1}>
-                    {userProfile?.workExperience?.[0]?.company || 'Company'} / {userProfile?.workExperience?.[0]?.duration || '2020 - Current'}
-                  </Text>
+                      <Text style={styles.docSectionTitle}>WORK EXPERIENCE</Text>
+                      <Text style={styles.docSubHead} numberOfLines={1}>
+                        {userProfile?.workExperience?.[0]?.role || userProfile?.workExperience?.[0]?.jobTitle || 'Job Title'}
+                      </Text>
+                      <Text style={styles.docParagraphText} numberOfLines={1}>
+                        {userProfile?.workExperience?.[0]?.company || 'Company'} / {userProfile?.workExperience?.[0]?.duration || '2020 - Current'}
+                      </Text>
 
-                  <Text style={styles.docSectionTitle}>SKILLS</Text>
-                  <Text style={styles.docLineText} numberOfLines={1}>
-                    {userProfile?.skills && Array.isArray(userProfile.skills) 
-                      ? userProfile.skills.slice(0, 3).join(', ') 
-                      : (typeof userProfile?.skills === 'string' ? userProfile.skills : 'Skill 1, Skill 2, Skill 3')}
-                  </Text>
+                      <Text style={styles.docSectionTitle}>SKILLS</Text>
+                      <Text style={styles.docLineText} numberOfLines={1}>
+                        {userProfile?.skills && Array.isArray(userProfile.skills) 
+                          ? userProfile.skills.slice(0, 3).join(', ') 
+                          : (typeof userProfile?.skills === 'string' ? userProfile.skills : 'Skill 1, Skill 2, Skill 3')}
+                      </Text>
+                    </>
+                  )}
                 </View>
 
                 <TouchableOpacity
@@ -1132,31 +1114,45 @@ export default function JobDetailsScreen() {
 
               {/* Tailored Cover Letter Column */}
               <View style={styles.documentCol}>
-                <View style={styles.documentPreviewCard}>
-                  <Text style={styles.docHeaderName}>{`${userProfile?.firstName || 'FIRST'} ${userProfile?.lastName || 'LAST'}`.toUpperCase()}</Text>
-                  <Text style={styles.docHeaderSub} numberOfLines={1}>{jobTitle}</Text>
+                <View style={[styles.documentPreviewCard, { padding: tailoredCoverLetterUri ? 0 : 16, overflow: 'hidden' }]}>
+                  {tailoredCoverLetterUri ? (
+                    <WebView
+                      source={{ uri: tailoredCoverLetterUri }}
+                      style={{ flex: 1 }}
+                      scrollEnabled={false}
+                      scalesPageToFit={true}
+                      originWhitelist={['*']}
+                      allowFileAccess={true}
+                      allowUniversalAccessFromFileURLs={true}
+                    />
+                  ) : (
+                    <>
+                      <Text style={styles.docHeaderName}>{`${userProfile?.firstName || 'FIRST'} ${userProfile?.lastName || 'LAST'}`.toUpperCase()}</Text>
+                      <Text style={styles.docHeaderSub} numberOfLines={1}>{jobTitle}</Text>
 
-                  <Text style={styles.docSectionTitle}>DETAILS</Text>
-                  <Text style={styles.docLineText} numberOfLines={1}>• {userProfile?.phone || '0(09) 1234 5678'}</Text>
-                  <Text style={styles.docLineText} numberOfLines={1}>• {userProfile?.email || 'email@example.com'}</Text>
+                      <Text style={styles.docSectionTitle}>DETAILS</Text>
+                      <Text style={styles.docLineText} numberOfLines={1}>• {userProfile?.phone || '0(09) 1234 5678'}</Text>
+                      <Text style={styles.docLineText} numberOfLines={1}>• {userProfile?.email || 'email@example.com'}</Text>
 
-                  <Text style={styles.docSectionTitle}>PROFILE</Text>
-                  <Text style={styles.docParagraphText} numberOfLines={3}>
-                    Dear Hiring Manager, I am writing to express my strong enthusiasm for the {jobTitle} position at {companyName}...
-                  </Text>
+                      <Text style={styles.docSectionTitle}>PROFILE</Text>
+                      <Text style={styles.docParagraphText} numberOfLines={3}>
+                        Dear Hiring Manager, I am writing to express my strong enthusiasm for the {jobTitle} position at {companyName}...
+                      </Text>
 
-                  <Text style={styles.docSectionTitle}>WORK EXPERIENCE</Text>
-                  <Text style={styles.docSubHead} numberOfLines={1}>
-                    {userProfile?.workExperience?.[0]?.role || userProfile?.workExperience?.[0]?.jobTitle || 'Job Title'}
-                  </Text>
-                  <Text style={styles.docParagraphText} numberOfLines={1}>
-                    {userProfile?.workExperience?.[0]?.company || 'Company'} / {userProfile?.workExperience?.[0]?.duration || '2020 - Current'}
-                  </Text>
+                      <Text style={styles.docSectionTitle}>WORK EXPERIENCE</Text>
+                      <Text style={styles.docSubHead} numberOfLines={1}>
+                        {userProfile?.workExperience?.[0]?.role || userProfile?.workExperience?.[0]?.jobTitle || 'Job Title'}
+                      </Text>
+                      <Text style={styles.docParagraphText} numberOfLines={1}>
+                        {userProfile?.workExperience?.[0]?.company || 'Company'} / {userProfile?.workExperience?.[0]?.duration || '2020 - Current'}
+                      </Text>
 
-                  <Text style={styles.docSectionTitle}>EDUCATION</Text>
-                  <Text style={styles.docLineText} numberOfLines={1}>
-                    {userProfile?.education?.[0]?.degree || userProfile?.education?.[0]?.study || 'Diploma / training'}
-                  </Text>
+                      <Text style={styles.docSectionTitle}>EDUCATION</Text>
+                      <Text style={styles.docLineText} numberOfLines={1}>
+                        {userProfile?.education?.[0]?.degree || userProfile?.education?.[0]?.study || 'Diploma / training'}
+                      </Text>
+                    </>
+                  )}
                 </View>
 
                 <TouchableOpacity
