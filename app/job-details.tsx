@@ -84,7 +84,20 @@ export default function JobDetailsScreen() {
 
   const stripHtml = (html: string) => {
     if (!html) return '';
-    return html.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+    const decoded = html
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&middot;/g, '•')
+      .replace(/&bull;/g, '•')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<\/li>/gi, '\n');
+    return decoded.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
   };
 
   const handleStartAiTailoring = async () => {

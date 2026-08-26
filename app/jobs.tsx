@@ -568,7 +568,7 @@ export default function JobsScreen() {
             setAllJobs(processed);
             setFilteredJobs(processed);
             setCurrentPage(1);
-
+            setCurrentIndex(0);
           }
         }
       }
@@ -615,12 +615,11 @@ export default function JobsScreen() {
     }
 
     setFilteredJobs(result);
+    // Reset active card index when filter changes, but NOT during background fetches
+    if (!isFetchingMore) {
+      setCurrentIndex(0);
+    }
   }, [allJobs, filterWorkModel, filterExperience, filterLocation, userProfile]);
-
-  // Reset active card index when filtered list changes
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [filteredJobs]);
 
   const viewJobDetails = async (job: GreenhouseJob) => {
     try {
@@ -643,7 +642,12 @@ export default function JobsScreen() {
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&#39;/g, "'")
       .replace(/&nbsp;/g, ' ')
+      .replace(/&middot;/g, '•')
+      .replace(/&bull;/g, '•')
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/p>/gi, '\n\n')
       .replace(/<\/li>/gi, '\n')
@@ -3673,7 +3677,12 @@ function stripHtml(html: string) {
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, ' ')
+    .replace(/&middot;/g, '•')
+    .replace(/&bull;/g, '•')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n\n')
     .replace(/<\/li>/gi, '\n')
