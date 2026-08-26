@@ -351,7 +351,7 @@ export default function JobDetailsScreen() {
         // Calculate initial match score
         if (jobObj && (profileObj || defaultRes)) {
           setIsCalculatingMatch(true);
-          const calculated = await calculateJobMatch(jobObj, profileObj, defaultRes);
+          const calculated = calculateJobMatch(jobObj.content || '', jobObj.title || '', profileObj);
           setMatchResult(calculated);
           setIsCalculatingMatch(false);
         }
