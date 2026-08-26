@@ -448,6 +448,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 24,
     paddingTop: 16,
+    zIndex: 999,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
   },
   continueBtn: {
     backgroundColor: '#4C2BE6',
