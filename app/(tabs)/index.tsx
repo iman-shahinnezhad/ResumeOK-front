@@ -19,6 +19,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useAuth } from '../../context/AuthContext';
@@ -63,12 +65,12 @@ export default function Home() {
   const slideAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.spring(slideAnim, {
-      toValue: activeSubTab === 'resumes' ? 0 : width / 2,
+      toValue: activeSubTab === 'resumes' ? 0 : 106,
       tension: 42,
       friction: 8,
       useNativeDriver: true,
     }).start();
-  }, [activeSubTab, width]);
+  }, [activeSubTab]);
 
   // Detail Modal States
   const [selectedLetter, setSelectedLetter] = useState<SavedCoverLetter | null>(null);
@@ -509,15 +511,19 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
-      {/* HEADER CONTAINER */}
-      <View style={[styles.headerContainer, { paddingTop: insets.top > 0 ? insets.top + 8 : 40 }]}>
-        {/* Top Row: Credit Badge */}
-        <View style={styles.topHeaderRow}>
-          <View />
+      {/* HEADER */}
+      <BlurView intensity={90} tint="light" style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        {/* Top Row: Title & Credits */}
+        <View style={styles.headerTopRow}>
+          <Text style={styles.headerTitleText}>Resume</Text>
+          
           <TouchableOpacity
-            style={styles.creditsBadge}
+            style={styles.creditsBadgeHeader}
             activeOpacity={0.8}
-            onPress={() => router.push('/pricing' as any)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/pricing' as any);
+            }}
           >
             <Text style={styles.creditsText}>{userCredit}</Text>
             <Image
@@ -527,46 +533,53 @@ export default function Home() {
           </TouchableOpacity>
         </View>
 
-        {/* Bottom Row: Full Width Sub-tabs */}
-        <View style={styles.tabsRow}>
-          <TouchableOpacity
-            style={[styles.tabButton, activeSubTab === 'resumes' && styles.tabButtonActive]}
-            activeOpacity={0.8}
-            onPress={() => setActiveSubTab('resumes')}
-          >
-            <Text style={[styles.tabButtonText, activeSubTab === 'resumes' && styles.tabButtonTextActive]}>
-              Resumes
-            </Text>
-          </TouchableOpacity>
+        {/* Bottom Row: Segmented Control */}
+        <View style={styles.segmentedWrapper}>
+          <View style={styles.segmentedContainer}>
+            <Animated.View
+              style={[
+                styles.animatedBackgroundPill,
+                {
+                  transform: [{ translateX: slideAnim }],
+                },
+              ]}
+            />
 
-          <TouchableOpacity
-            style={[styles.tabButton, activeSubTab === 'cover-letters' && styles.tabButtonActive]}
-            activeOpacity={0.8}
-            onPress={() => setActiveSubTab('cover-letters')}
-          >
-            <Text style={[styles.tabButtonText, activeSubTab === 'cover-letters' && styles.tabButtonTextActive]}>
-              Cover letter
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.segmentedTab}
+              activeOpacity={0.75}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setActiveSubTab('resumes');
+              }}
+            >
+              <Text style={[styles.segmentedText, activeSubTab === 'resumes' && styles.segmentedTextActive]}>
+                Resumes
+              </Text>
+            </TouchableOpacity>
 
-          <Animated.View
-            style={[
-              styles.animatedUnderline,
-              {
-                width: width / 2,
-                transform: [{ translateX: slideAnim }],
-              },
-            ]}
-          />
+            <TouchableOpacity
+              style={styles.segmentedTab}
+              activeOpacity={0.75}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setActiveSubTab('cover-letters');
+              }}
+            >
+              <Text style={[styles.segmentedText, activeSubTab === 'cover-letters' && styles.segmentedTextActive]}>
+                Cover letter
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </BlurView>
 
       {/* SUB-TAB CONTENTS */}
       <View style={styles.tabContentArea}>
         {activeSubTab === 'resumes' ? (
           resumes.length === 0 ? (
             <ScrollView
-              contentContainerStyle={styles.emptyContainer}
+              contentContainerStyle={[styles.emptyContainer, { paddingTop: insets.top + 130 }]}
               showsVerticalScrollIndicator={false}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >
@@ -580,14 +593,14 @@ export default function Home() {
               data={resumes}
               keyExtractor={(item, index) => item.id || String(index)}
               renderItem={renderResumeItem}
-              contentContainerStyle={styles.listContentContainer}
+              contentContainerStyle={[styles.listContentContainer, { paddingTop: insets.top + 130 }]}
               showsVerticalScrollIndicator={false}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             />
           )
         ) : coverLetters.length === 0 ? (
           <ScrollView
-            contentContainerStyle={styles.emptyLettersContainer}
+            contentContainerStyle={[styles.emptyLettersContainer, { paddingTop: insets.top + 130 }]}
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           >
@@ -602,7 +615,7 @@ export default function Home() {
             data={coverLetters}
             keyExtractor={(item, index) => item.id || String(index)}
             renderItem={renderCoverLetterItem}
-            contentContainerStyle={styles.listContentContainer}
+            contentContainerStyle={[styles.listContentContainer, { paddingTop: insets.top + 130 }]}
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           />
@@ -713,68 +726,94 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F9FA',
   },
-  headerContainer: {
-    backgroundColor: '#F8F9FA',
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     zIndex: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(226, 232, 240, 0.4)',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
-  topHeaderRow: {
+  headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    height: 48,
+    width: '100%',
+    marginBottom: 8,
   },
-  creditsBadge: {
+  headerTitleText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  creditsBadgeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  segmentedWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   creditsText: {
     color: '#000000',
     fontSize: 13,
     fontWeight: '700',
   },
-  tabsRow: {
+  segmentedContainer: {
     flexDirection: 'row',
-    width: '100%',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 4,
+    width: 220,
+    alignSelf: 'center',
     marginTop: 8,
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  tabButton: {
+  segmentedTab: {
     flex: 1,
+    paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 14,
-    paddingBottom: 14,
+    zIndex: 2,
   },
-  tabButtonActive: {},
-  animatedUnderline: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    height: 2,
-    backgroundColor: '#000000',
-  },
-  tabButtonText: {
-    fontSize: 16,
+  segmentedText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#737373',
+    color: '#64748B',
   },
-  tabButtonTextActive: {
-    fontSize: 16,
+  segmentedTextActive: {
+    color: '#0F172A',
     fontWeight: '700',
-    color: '#000000',
+  },
+  animatedBackgroundPill: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    bottom: 4,
+    width: 106,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 20,
+    zIndex: 1,
   },
   tabContentArea: {
     flex: 1,
