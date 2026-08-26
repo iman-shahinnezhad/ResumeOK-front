@@ -56,31 +56,97 @@ export default function ApplyJobScreen() {
 
     const firstName = (profileData.firstName || '').replace(/'/g, "\\'");
     const lastName = (profileData.lastName || '').replace(/'/g, "\\'");
-    const fullName = `${firstName} ${lastName}`.trim().replace(/'/g, "\\'");
     const email = (profileData.email || '').replace(/'/g, "\\'");
-    const phone = (profileData.phone || '').replace(/'/g, "\\'");
-    const linkedin = (profileData.linkedinUrl || '').replace(/'/g, "\\'");
-    const portfolio = (profileData.portfolioUrl || '').replace(/'/g, "\\'");
+    const phone = (profileData.phone || profileData.phoneNumber || profileData.mobile || '').replace(/'/g, "\\'");
+    const linkedin = (profileData.linkedinUrl || profileData.linkedin || '').replace(/'/g, "\\'");
+    const portfolio = (profileData.portfolioUrl || profileData.portfolio || profileData.website || '').replace(/'/g, "\\'");
     const city = (profileData.city || '').replace(/'/g, "\\'");
+    const country = (profileData.country || 'United States').replace(/'/g, "\\'");
 
     return `
       (function() {
         try {
           function setNativeValue(element, value) {
             if (!element || !value) return;
-            const lastValue = element.value;
-            element.value = value;
-            const event = new Event('input', { bubbles: true });
-            const changeEvent = new Event('change', { bubbles: true });
-            element.dispatchEvent(event);
-            element.dispatchEvent(changeEvent);
+            
+            if (element.tagName === 'SELECT') {
+              const options = Array.from(element.options);
+              const valLower = value.toLowerCase();
+              let matchedOption = options.find(opt => opt.value.toLowerCase() === valLower || opt.text.toLowerCase().includes(valLower));
+              if (matchedOption) {
+                element.value = matchedOption.value;
+                element.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+              return;
+            }
+
+            try {
+              const valueSetter = Object.getOwnPropertyDescriptor(element, 'value')?.set;
+              const prototype = Object.getPrototypeOf(element);
+              const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+              if (prototypeValueSetter && valueSetter !== prototypeValueSetter) {
+                prototypeValueSetter.call(element, value);
+              } else if (valueSetter) {
+                valueSetter.call(element, value);
+              } else {
+                element.value = value;
+              }
+            } catch (e) {
+              element.value = value;
+            }
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+            element.blur();
+          }
+
+          function findInputs(selectors, labelKeywords, placeholderKeywords) {
+            const found = new Set();
+            if (selectors) {
+              document.querySelectorAll(selectors).forEach(el => {
+                if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+                  found.add(el);
+                }
+              });
+            }
+            const labels = Array.from(document.querySelectorAll('label'));
+            for (const label of labels) {
+              const labelText = label.innerText.toLowerCase();
+              if (labelKeywords.some(kw => labelText.includes(kw))) {
+                const htmlFor = label.getAttribute('for');
+                if (htmlFor) {
+                  const el = document.getElementById(htmlFor);
+                  if (el) found.add(el);
+                }
+                const nestedInput = label.querySelector('input, textarea, select');
+                if (nestedInput) found.add(nestedInput);
+                let sibling = label.nextElementSibling;
+                if (sibling) {
+                  if (sibling.tagName === 'INPUT' || sibling.tagName === 'TEXTAREA' || sibling.tagName === 'SELECT') {
+                    found.add(sibling);
+                  } else {
+                    const child = sibling.querySelector('input, textarea, select');
+                    if (child) found.add(child);
+                  }
+                }
+              }
+            }
+            if (placeholderKeywords) {
+              document.querySelectorAll('input, textarea').forEach(el => {
+                const ph = (el.getAttribute('placeholder') || '').toLowerCase();
+                if (placeholderKeywords.some(kw => ph.includes(kw))) {
+                  found.add(el);
+                }
+              });
+            }
+            return Array.from(found);
           }
 
           let filled = 0;
 
           // First Name
           if ('${firstName}') {
-            document.querySelectorAll('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]').forEach(el => {
+            const els = findInputs('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]', ['first name', 'given name'], ['first name', 'given name']);
+            els.forEach(el => {
               if (!el.value) {
                 setNativeValue(el, '${firstName}');
                 filled++;
@@ -90,7 +156,8 @@ export default function ApplyJobScreen() {
 
           // Last Name
           if ('${lastName}') {
-            document.querySelectorAll('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]').forEach(el => {
+            const els = findInputs('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]', ['last name', 'surname', 'family name'], ['last name', 'surname', 'family name']);
+            els.forEach(el => {
               if (!el.value) {
                 setNativeValue(el, '${lastName}');
                 filled++;
@@ -98,19 +165,10 @@ export default function ApplyJobScreen() {
             });
           }
 
-          // Full Name Fallback
-          if ('${fullName}') {
-            document.querySelectorAll('input[name*="name" i]:not([name*="first"]):not([name*="last"]), input[id="name" i]').forEach(el => {
-              if (!el.value) {
-                setNativeValue(el, '${fullName}');
-                filled++;
-              }
-            });
-          }
-
           // Email
           if ('${email}') {
-            document.querySelectorAll('input[type="email" i], input[name*="email" i], input[id*="email" i]').forEach(el => {
+            const els = findInputs('input[type="email" i], input[name*="email" i], input[id*="email" i], input[autocomplete="email"]', ['email', 'e-mail'], ['email', 'e-mail']);
+            els.forEach(el => {
               if (!el.value) {
                 setNativeValue(el, '${email}');
                 filled++;
@@ -120,7 +178,8 @@ export default function ApplyJobScreen() {
 
           // Phone
           if ('${phone}') {
-            document.querySelectorAll('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]').forEach(el => {
+            const els = findInputs('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]', ['phone', 'telephone', 'mobile', 'cell', 'number'], ['phone', 'telephone', 'mobile', 'cell', 'number']);
+            els.forEach(el => {
               if (!el.value) {
                 setNativeValue(el, '${phone}');
                 filled++;
@@ -130,7 +189,8 @@ export default function ApplyJobScreen() {
 
           // LinkedIn
           if ('${linkedin}') {
-            document.querySelectorAll('input[name*="linkedin" i], input[id*="linkedin" i]').forEach(el => {
+            const els = findInputs('input[name*="linkedin" i], input[id*="linkedin" i], input[name*="link" i]', ['linkedin'], ['linkedin']);
+            els.forEach(el => {
               if (!el.value) {
                 setNativeValue(el, '${linkedin}');
                 filled++;
@@ -138,9 +198,10 @@ export default function ApplyJobScreen() {
             });
           }
 
-          // Portfolio / Website
+          // Portfolio
           if ('${portfolio}') {
-            document.querySelectorAll('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i]').forEach(el => {
+            const els = findInputs('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i], input[name*="url" i]', ['portfolio', 'website', 'url', 'personal link'], ['portfolio', 'website', 'url']);
+            els.forEach(el => {
               if (!el.value) {
                 setNativeValue(el, '${portfolio}');
                 filled++;
@@ -148,11 +209,32 @@ export default function ApplyJobScreen() {
             });
           }
 
-          // Location / City
+          // City
           if ('${city}') {
-            document.querySelectorAll('input[name*="location" i], input[name*="city" i], input[id*="location" i]').forEach(el => {
+            const els = findInputs('input[name*="location" i], input[name*="city" i], input[id*="location" i]', ['location', 'city', 'address', 'living in'], ['location', 'city', 'address']);
+            els.forEach(el => {
               if (!el.value) {
                 setNativeValue(el, '${city}');
+                filled++;
+              }
+            });
+          }
+
+          // Country
+          if ('${country}') {
+            const els = findInputs('select[name*="country" i], select[id*="country" i], input[name*="country" i], input[id*="country" i]', ['country'], ['country']);
+            els.forEach(el => {
+              if (el.tagName === 'SELECT') {
+                const options = Array.from(el.options);
+                const valLower = '${country}'.toLowerCase();
+                let matchedOption = options.find(opt => opt.value.toLowerCase() === valLower || opt.text.toLowerCase().includes(valLower));
+                if (matchedOption) {
+                  el.value = matchedOption.value;
+                  el.dispatchEvent(new Event('change', { bubbles: true }));
+                  filled++;
+                }
+              } else if (el.tagName === 'INPUT' && !el.value) {
+                setNativeValue(el, '${country}');
                 filled++;
               }
             });

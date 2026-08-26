@@ -421,6 +421,8 @@ export default function JobsScreen() {
             if (loadedProfile.firstName) finalFirstName = loadedProfile.firstName;
             if (loadedProfile.lastName) finalLastName = loadedProfile.lastName;
             if (loadedProfile.email) finalEmail = loadedProfile.email;
+            const profilePhone = loadedProfile.phone || loadedProfile.phoneNumber || loadedProfile.mobile || '';
+            if (profilePhone) setPhone(profilePhone);
 
             if (!isProfileDefaultsLoaded.current) {
               // Auto-populate filter values from onboarding choices
@@ -709,6 +711,10 @@ export default function JobsScreen() {
       lastName: lastName.trim(),
       email: email.trim(),
       phone: phone.trim(),
+      linkedinUrl: (userProfile?.linkedinUrl || userProfile?.linkedin || '').trim(),
+      portfolioUrl: (userProfile?.portfolioUrl || userProfile?.portfolio || userProfile?.website || '').trim(),
+      city: (userProfile?.city || '').trim(),
+      country: (userProfile?.country || 'United States').trim(),
       resumeBase64: selectedResumeBase64,
       resumeName: selectedResumeName,
       coverLetterText: selectedCoverLetterText,
@@ -789,35 +795,165 @@ export default function JobsScreen() {
             }
           }
 
-          // 1. GREENHOUSE AUTOFILL
-          const ghFirstName = document.querySelector('input#first_name');
-          const ghLastName = document.querySelector('input#last_name');
-          const ghEmail = document.querySelector('input#email');
-          const ghPhone = document.querySelector('input#phone');
+          // Smart input finder helper
+          function findInputs(selectors, labelKeywords, placeholderKeywords) {
+            const found = new Set();
+            
+            // 1. Selector match
+            if (selectors) {
+              document.querySelectorAll(selectors).forEach(el => {
+                if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+                  found.add(el);
+                }
+              });
+            }
+            
+            // 2. Label match
+            const labels = Array.from(document.querySelectorAll('label'));
+            for (const label of labels) {
+              const labelText = label.innerText.toLowerCase();
+              if (labelKeywords.some(kw => labelText.includes(kw))) {
+                const htmlFor = label.getAttribute('for');
+                if (htmlFor) {
+                  const el = document.getElementById(htmlFor);
+                  if (el) found.add(el);
+                }
+                const nestedInput = label.querySelector('input, textarea, select');
+                if (nestedInput) found.add(nestedInput);
+                
+                // check adjacent elements
+                let sibling = label.nextElementSibling;
+                if (sibling) {
+                  if (sibling.tagName === 'INPUT' || sibling.tagName === 'TEXTAREA' || sibling.tagName === 'SELECT') {
+                    found.add(sibling);
+                  } else {
+                    const child = sibling.querySelector('input, textarea, select');
+                    if (child) found.add(child);
+                  }
+                }
+              }
+            }
+            
+            // 3. Placeholder match
+            if (placeholderKeywords) {
+              document.querySelectorAll('input, textarea').forEach(el => {
+                const ph = (el.getAttribute('placeholder') || '').toLowerCase();
+                if (placeholderKeywords.some(kw => ph.includes(kw))) {
+                  found.add(el);
+                }
+              });
+            }
+            
+            return Array.from(found);
+          }
 
-          sendLog('Greenhouse inputs state: firstName=' + !!ghFirstName + ', lastName=' + !!ghLastName + ', email=' + !!ghEmail + ', phone=' + !!ghPhone);
+          const isLever = window.location.host.includes('lever.co') || document.querySelector('input[name="name"]') || document.querySelector('input[name="email"]');
+          const isGreenhouse = window.location.host.includes('greenhouse.io') || document.querySelector('form#application_form') || document.querySelector('input#first_name');
 
-          if (ghFirstName || ghLastName || window.location.host.includes('greenhouse.io')) {
-            if (ghFirstName && !ghFirstName.value && payload.firstName) {
-              triggerInputChange(ghFirstName, payload.firstName);
-              sendLog('Filled Greenhouse first_name: ' + payload.firstName);
+          if (isGreenhouse) {
+            sendLog('Executing Greenhouse fuzzy autofill...');
+            
+            // First Name
+            if (payload.firstName) {
+              const els = findInputs('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]', ['first name', 'given name'], ['first name', 'given name']);
+              els.forEach(el => {
+                if (!el.value) {
+                  triggerInputChange(el, payload.firstName);
+                  sendLog('Filled first name field');
+                }
+              });
             }
-            if (ghLastName && !ghLastName.value && payload.lastName) {
-              triggerInputChange(ghLastName, payload.lastName);
-              sendLog('Filled Greenhouse last_name: ' + payload.lastName);
+            
+            // Last Name
+            if (payload.lastName) {
+              const els = findInputs('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]', ['last name', 'surname', 'family name'], ['last name', 'surname', 'family name']);
+              els.forEach(el => {
+                if (!el.value) {
+                  triggerInputChange(el, payload.lastName);
+                  sendLog('Filled last name field');
+                }
+              });
             }
-            if (ghEmail && !ghEmail.value && payload.email) {
-              triggerInputChange(ghEmail, payload.email);
-              sendLog('Filled Greenhouse email: ' + payload.email);
+            
+            // Email
+            if (payload.email) {
+              const els = findInputs('input[type="email" i], input[name*="email" i], input[id*="email" i], input[autocomplete="email"]', ['email', 'e-mail'], ['email', 'e-mail']);
+              els.forEach(el => {
+                if (!el.value) {
+                  triggerInputChange(el, payload.email);
+                  sendLog('Filled email field');
+                }
+              });
             }
-            if (ghPhone && !ghPhone.value && payload.phone) {
-              triggerInputChange(ghPhone, payload.phone);
-              sendLog('Filled Greenhouse phone: ' + payload.phone);
+            
+            // Phone
+            if (payload.phone) {
+              const els = findInputs('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]', ['phone', 'telephone', 'mobile', 'cell', 'number'], ['phone', 'telephone', 'mobile', 'cell', 'number']);
+              els.forEach(el => {
+                if (!el.value) {
+                  triggerInputChange(el, payload.phone);
+                  sendLog('Filled phone field');
+                }
+              });
+            }
+            
+            // LinkedIn
+            if (payload.linkedinUrl) {
+              const els = findInputs('input[name*="linkedin" i], input[id*="linkedin" i], input[name*="link" i]', ['linkedin'], ['linkedin']);
+              els.forEach(el => {
+                if (!el.value) {
+                  triggerInputChange(el, payload.linkedinUrl);
+                  sendLog('Filled LinkedIn field');
+                }
+              });
+            }
+            
+            // Portfolio / Website / GitHub
+            if (payload.portfolioUrl) {
+              const els = findInputs('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i], input[name*="url" i]', ['portfolio', 'website', 'url', 'github', 'personal link'], ['portfolio', 'website', 'url', 'github']);
+              els.forEach(el => {
+                if (!el.value) {
+                  triggerInputChange(el, payload.portfolioUrl);
+                  sendLog('Filled portfolio/website field');
+                }
+              });
+            }
+            
+            // City / Location
+            if (payload.city) {
+              const els = findInputs('input[name*="location" i], input[name*="city" i], input[id*="location" i], input[name*="address" i]', ['location', 'city', 'address', 'living in'], ['location', 'city', 'address']);
+              els.forEach(el => {
+                if (!el.value) {
+                  triggerInputChange(el, payload.city);
+                  sendLog('Filled city/location field');
+                }
+              });
+            }
+            
+            // Country
+            if (payload.country) {
+              const els = findInputs('select[name*="country" i], select[id*="country" i], input[name*="country" i], input[id*="country" i]', ['country'], ['country']);
+              els.forEach(el => {
+                if (el.tagName === 'SELECT') {
+                  const options = Array.from(el.options);
+                  const valLower = payload.country.toLowerCase();
+                  let matchedOption = options.find(opt => opt.value.toLowerCase() === valLower || opt.text.toLowerCase().includes(valLower));
+                  if (matchedOption) {
+                    el.value = matchedOption.value;
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                    sendLog('Selected country: ' + matchedOption.text);
+                  }
+                } else if (el.tagName === 'INPUT' && !el.value) {
+                  triggerInputChange(el, payload.country);
+                  sendLog('Filled country field');
+                }
+              });
             }
 
             // Cover letter text area
             const ghCLText = document.querySelector('textarea#cover_letter_text') || 
-                             document.querySelector('textarea[name="cover_letter"]');
+                             document.querySelector('textarea[name="cover_letter"]') ||
+                             document.querySelector('textarea[id*="cover" i]');
             if (ghCLText && payload.coverLetterText && !ghCLText.value) {
               triggerInputChange(ghCLText, payload.coverLetterText);
               sendLog('Filled Greenhouse cover letter text.');
@@ -878,32 +1014,69 @@ export default function JobsScreen() {
                 sendLog('Failed to attach cover letter to Greenhouse: ' + e.message);
               }
             }
-          }
-
-          // 2. LEVER AUTOFILL
-          const leverName = document.querySelector('input[name="name"]');
-          const leverEmail = document.querySelector('input[name="email"]');
-          const leverPhone = document.querySelector('input[name="phone"]');
-
-          sendLog('Lever inputs state: name=' + !!leverName + ', email=' + !!leverEmail + ', phone=' + !!leverPhone);
-
-          if (leverName || leverEmail || window.location.host.includes('lever.co')) {
-            if (leverName && !leverName.value && (payload.firstName || payload.lastName)) {
-              triggerInputChange(leverName, (payload.firstName + ' ' + payload.lastName).trim());
-              sendLog('Filled Lever name.');
+          } else if (isLever) {
+            sendLog('Executing Lever fuzzy autofill...');
+            
+            // Full Name
+            if (payload.firstName || payload.lastName) {
+              const fullNameText = (payload.firstName + ' ' + payload.lastName).trim();
+              const els = findInputs('input[name="name"]', ['full name', 'your name', 'complete name'], ['full name', 'name']);
+              els.forEach(el => {
+                if (!el.value) {
+                  triggerInputChange(el, fullNameText);
+                  sendLog('Filled Lever name.');
+                }
+              });
             }
-            if (leverEmail && !leverEmail.value && payload.email) {
-              triggerInputChange(leverEmail, payload.email);
-              sendLog('Filled Lever email.');
+            
+            // Email
+            if (payload.email) {
+              const els = findInputs('input[name="email"]', ['email', 'e-mail'], ['email']);
+              els.forEach(el => {
+                if (!el.value) {
+                  triggerInputChange(el, payload.email);
+                  sendLog('Filled Lever email.');
+                }
+              });
             }
-            if (leverPhone && !leverPhone.value && payload.phone) {
-              triggerInputChange(leverPhone, payload.phone);
-              sendLog('Filled Lever phone.');
+            
+            // Phone
+            if (payload.phone) {
+              const els = findInputs('input[name="phone"]', ['phone', 'mobile', 'telephone'], ['phone', 'mobile']);
+              els.forEach(el => {
+                if (!el.value) {
+                  triggerInputChange(el, payload.phone);
+                  sendLog('Filled Lever phone.');
+                }
+              });
+            }
+            
+            // LinkedIn
+            if (payload.linkedinUrl) {
+              const els = findInputs('input[name*="linkedin" i], input[name="urls[LinkedIn]"]', ['linkedin'], ['linkedin']);
+              els.forEach(el => {
+                if (!el.value) {
+                  triggerInputChange(el, payload.linkedinUrl);
+                  sendLog('Filled Lever LinkedIn.');
+                }
+              });
+            }
+            
+            // Portfolio / Website / GitHub
+            if (payload.portfolioUrl) {
+              const els = findInputs('input[name*="portfolio" i], input[name*="website" i], input[name="urls[Portfolio]"]', ['portfolio', 'website'], ['portfolio', 'website']);
+              els.forEach(el => {
+                if (!el.value) {
+                  triggerInputChange(el, payload.portfolioUrl);
+                  sendLog('Filled Lever Portfolio/Website.');
+                }
+              });
             }
 
             // Cover letter text area / comments
             const leverCLText = document.querySelector('textarea[name="comments"]') || 
-                                document.querySelector('textarea#additional-information');
+                                document.querySelector('textarea#additional-information') ||
+                                document.querySelector('textarea[name*="additional" i]');
             if (leverCLText && payload.coverLetterText && !leverCLText.value) {
               triggerInputChange(leverCLText, payload.coverLetterText);
               sendLog('Filled Lever cover letter comments.');
@@ -963,13 +1136,29 @@ export default function JobsScreen() {
                 sendLog('Failed to attach cover letter to Lever: ' + e.message);
               }
             }
-          }
-
-          // 3. GENERIC FALLBACK FOR OTHER BOARDS
-          const genericEmail = document.querySelector('input[type="email"]');
-          if (genericEmail && !genericEmail.value && payload.email) {
-            triggerInputChange(genericEmail, payload.email);
-            sendLog('Filled generic email.');
+          } else {
+            sendLog('Executing generic fallback autofill...');
+            
+            if (payload.firstName) {
+              findInputs('input[name*="first" i], input[id*="first" i]', ['first name'], ['first name']).forEach(el => {
+                if (!el.value) triggerInputChange(el, payload.firstName);
+              });
+            }
+            if (payload.lastName) {
+              findInputs('input[name*="last" i], input[id*="last" i]', ['last name'], ['last name']).forEach(el => {
+                if (!el.value) triggerInputChange(el, payload.lastName);
+              });
+            }
+            if (payload.email) {
+              findInputs('input[type="email" i], input[name*="email" i]', ['email'], ['email']).forEach(el => {
+                if (!el.value) triggerInputChange(el, payload.email);
+              });
+            }
+            if (payload.phone) {
+              findInputs('input[type="tel" i], input[name*="phone" i]', ['phone', 'mobile'], ['phone', 'mobile']).forEach(el => {
+                if (!el.value) triggerInputChange(el, payload.phone);
+              });
+            }
           }
 
           if (attempts >= maxAttempts) {
