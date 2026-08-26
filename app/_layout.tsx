@@ -141,7 +141,7 @@ export default function RootLayout() {
                 name="pricing"
                 options={{
                   presentation: 'formSheet',
-                  sheetAllowedDetents: [0.85, 1.0],
+                  sheetAllowedDetents: [0.95, 1.0],
                   sheetGrabberVisible: true,
                   sheetCornerRadius: 28,
                 }}
