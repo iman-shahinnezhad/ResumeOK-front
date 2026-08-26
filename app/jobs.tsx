@@ -1347,7 +1347,7 @@ export default function JobsScreen() {
             setShowSearchModal(true);
           }}
         >
-          <View style={{ flex: 1 }}>
+          <View style={{ flexShrink: 1, marginRight: 8 }}>
             <Text style={styles.roleFilterTitle} numberOfLines={1}>
               {filterQuery ? filterQuery : 'Product Designer'}
             </Text>
@@ -1356,9 +1356,9 @@ export default function JobsScreen() {
             </Text>
           </View>
           {Platform.OS === 'ios' ? (
-            <SymbolView name="slider.horizontal.3" size={16} tintColor="#475569" style={{ marginLeft: 8 }} resizeMode="scaleAspectFit" />
+            <SymbolView name="slider.horizontal.3" size={16} tintColor="#475569" resizeMode="scaleAspectFit" />
           ) : (
-            <Ionicons name="options-outline" size={18} color="#475569" style={{ marginLeft: 8 }} />
+            <Ionicons name="options-outline" size={18} color="#475569" />
           )}
         </TouchableOpacity>
 
