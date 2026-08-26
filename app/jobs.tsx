@@ -3316,9 +3316,9 @@ const styles = StyleSheet.create({
   newHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    gap: 10,
   },
   headerAvatar: {
     width: 44,
@@ -3327,7 +3327,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#E2E8F0',
   },
   roleFilterPill: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
@@ -3342,6 +3341,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     height: 48,
+    maxWidth: '70%',
   },
   roleFilterTitle: {
     fontSize: 14,
