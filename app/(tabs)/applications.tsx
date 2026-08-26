@@ -23,7 +23,7 @@ import { useAuth, API_URL } from '../../context/AuthContext';
 export default function ApplicationsTab() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, guestCredit } = useAuth();
+  const { user, guestCredit, guestId } = useAuth();
   const safeTop = Math.max(insets.top + 12, 54);
 
   const [activeSegment, setActiveSegment] = useState<'applied' | 'skipped'>('applied');
@@ -45,7 +45,7 @@ export default function ApplicationsTab() {
   useFocusEffect(
     useCallback(() => {
       loadApplicationsData();
-    }, [])
+    }, [user, guestId])
   );
 
   const loadApplicationsData = async () => {
@@ -89,7 +89,7 @@ export default function ApplicationsTab() {
       }
 
       // 3. Sync online from Backend Server (Real-time web & mobile sync)
-      const userId = user?.id || 'guest';
+      const userId = user?.id || guestId || 'guest';
       const onlineRes = await fetch(`${API_URL}/api/user-jobs/${userId}`);
       if (onlineRes.ok) {
         const onlineData = await onlineRes.json();

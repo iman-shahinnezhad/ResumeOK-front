@@ -45,7 +45,7 @@ export default function JobDetailsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { user, guestCredit, deductCredits } = useAuth();
+  const { user, guestCredit, deductCredits, guestId } = useAuth();
   const totalCredits = user?.credit ?? guestCredit ?? 0;
   const [tailoredResumeUri, setTailoredResumeUri] = useState<string>('');
   const [tailoredCoverLetterUri, setTailoredCoverLetterUri] = useState<string>('');
@@ -445,7 +445,7 @@ export default function JobDetailsScreen() {
       await FileSystem.writeAsStringAsync(appliedPath, JSON.stringify(updatedList));
 
       // Sync with online backend
-      const userId = user?.id || 'guest';
+      const userId = user?.id || guestId || 'guest';
       fetch(`${API_URL}/api/user-jobs/${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -490,7 +490,7 @@ export default function JobDetailsScreen() {
       await FileSystem.writeAsStringAsync(skippedPath, JSON.stringify(updatedList));
 
       // Sync with online backend
-      const userId = user?.id || 'guest';
+      const userId = user?.id || guestId || 'guest';
       fetch(`${API_URL}/api/user-jobs/${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
