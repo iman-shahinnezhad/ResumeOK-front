@@ -1352,7 +1352,7 @@ export default function JobsScreen() {
               {filterQuery ? filterQuery : 'Product Designer'}
             </Text>
             <Text style={styles.roleFilterSub} numberOfLines={1}>
-              Dallas, USA
+              {filterLocation ? filterLocation : 'All Locations'}
             </Text>
           </View>
           {Platform.OS === 'ios' ? (
@@ -3331,7 +3331,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderRadius: 25,
+    borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderWidth: 1,
@@ -3341,6 +3341,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    height: 48,
   },
   roleFilterTitle: {
     fontSize: 14,
@@ -3359,7 +3360,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -3368,6 +3369,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 4,
     elevation: 2,
+    height: 48,
   },
   creditsPillText: {
     color: '#000000',
