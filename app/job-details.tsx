@@ -915,6 +915,10 @@ export default function JobDetailsScreen() {
                 <View style={styles.progressStepRow}>
                   {aiStep >= 1 ? (
                     <Ionicons name="checkmark" size={18} color="#16A34A" />
+                  ) : aiStep === 0 ? (
+                    <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
+                      <ActivityIndicator size="small" color="#7C3AED" />
+                    </View>
                   ) : (
                     <View style={styles.progressCircleHollow} />
                   )}
@@ -926,6 +930,10 @@ export default function JobDetailsScreen() {
                 <View style={styles.progressStepRow}>
                   {aiStep >= 2 ? (
                     <Ionicons name="checkmark" size={18} color="#16A34A" />
+                  ) : aiStep === 1 ? (
+                    <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
+                      <ActivityIndicator size="small" color="#7C3AED" />
+                    </View>
                   ) : (
                     <View style={styles.progressCircleHollow} />
                   )}
@@ -937,6 +945,10 @@ export default function JobDetailsScreen() {
                 <View style={styles.progressStepRow}>
                   {aiStep >= 3 ? (
                     <Ionicons name="checkmark" size={18} color="#16A34A" />
+                  ) : aiStep === 2 ? (
+                    <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
+                      <ActivityIndicator size="small" color="#7C3AED" />
+                    </View>
                   ) : (
                     <View style={styles.progressCircleHollow} />
                   )}
@@ -948,6 +960,10 @@ export default function JobDetailsScreen() {
                 <View style={styles.progressStepRow}>
                   {aiStep >= 4 ? (
                     <Ionicons name="checkmark" size={18} color="#16A34A" />
+                  ) : aiStep === 3 ? (
+                    <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
+                      <ActivityIndicator size="small" color="#7C3AED" />
+                    </View>
                   ) : (
                     <View style={styles.progressCircleHollow} />
                   )}
@@ -965,6 +981,10 @@ export default function JobDetailsScreen() {
                 <View style={styles.progressStepRow}>
                   {aiStep >= 1 ? (
                     <Ionicons name="checkmark" size={18} color="#16A34A" />
+                  ) : aiStep === 0 ? (
+                    <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
+                      <ActivityIndicator size="small" color="#7C3AED" />
+                    </View>
                   ) : (
                     <View style={styles.progressCircleHollow} />
                   )}
@@ -976,6 +996,10 @@ export default function JobDetailsScreen() {
                 <View style={styles.progressStepRow}>
                   {aiStep >= 2 ? (
                     <Ionicons name="checkmark" size={18} color="#16A34A" />
+                  ) : aiStep === 1 ? (
+                    <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
+                      <ActivityIndicator size="small" color="#7C3AED" />
+                    </View>
                   ) : (
                     <View style={styles.progressCircleHollow} />
                   )}
