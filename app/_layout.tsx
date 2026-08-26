@@ -37,7 +37,6 @@ export default function RootLayout() {
         setShowOnboarding(true);
       } finally {
         setCheckingStorage(false);
-        await SplashScreen.hideAsync().catch(() => {});
       }
     };
 

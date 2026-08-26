@@ -1,7 +1,8 @@
 import { Redirect } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as SplashScreen from 'expo-splash-screen';
 
 export default function Index() {
   const [loading, setLoading] = useState(true);
@@ -23,17 +24,15 @@ export default function Index() {
         setHasOnboarded(false);
       } finally {
         setLoading(false);
+        // Hide splash screen now that onboarding status is loaded and redirect is ready
+        await SplashScreen.hideAsync().catch(() => {});
       }
     }
     checkOnboarding();
   }, []);
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
+    return null;
   }
 
   if (hasOnboarded) {
