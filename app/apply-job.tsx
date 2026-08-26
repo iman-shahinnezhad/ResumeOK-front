@@ -111,420 +111,434 @@ export default function ApplyJobScreen() {
 
     return `
       (function() {
-        try {
-          const payload = ${JSON.stringify(payload)};
+        const payload = ${JSON.stringify(payload)};
+        let attempts = 0;
+        const maxAttempts = 10;
 
-          function sendLog(msg) {
-            if (window.ReactNativeWebView) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'log', message: msg }));
+        function sendLog(msg) {
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'log', message: msg }));
+          }
+        }
+
+        function base64ToBlob(base64, mimeType) {
+          const byteCharacters = atob(base64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          return new Blob([byteArray], { type: mimeType });
+        }
+
+        function setNativeValue(element, value) {
+          if (!element || !value) return;
+          
+          if (element.tagName === 'SELECT') {
+            const options = Array.from(element.options);
+            const valLower = value.toLowerCase();
+            let matchedOption = options.find(opt => opt.value.toLowerCase() === valLower || opt.text.toLowerCase().includes(valLower));
+            if (matchedOption) {
+              element.value = matchedOption.value;
+              element.dispatchEvent(new Event('change', { bubbles: true }));
             }
+            return;
           }
 
-          function base64ToBlob(base64, mimeType) {
-            const byteCharacters = atob(base64);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            return new Blob([byteArray], { type: mimeType });
-          }
-
-          function setNativeValue(element, value) {
-            if (!element || !value) return;
-            
-            if (element.tagName === 'SELECT') {
-              const options = Array.from(element.options);
-              const valLower = value.toLowerCase();
-              let matchedOption = options.find(opt => opt.value.toLowerCase() === valLower || opt.text.toLowerCase().includes(valLower));
-              if (matchedOption) {
-                element.value = matchedOption.value;
-                element.dispatchEvent(new Event('change', { bubbles: true }));
-              }
-              return;
-            }
-
-            try {
-              const valueSetter = Object.getOwnPropertyDescriptor(element, 'value')?.set;
-              const prototype = Object.getPrototypeOf(element);
-              const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
-              if (prototypeValueSetter && valueSetter !== prototypeValueSetter) {
-                prototypeValueSetter.call(element, value);
-              } else if (valueSetter) {
-                valueSetter.call(element, value);
-              } else {
-                element.value = value;
-              }
-            } catch (e) {
+          try {
+            const valueSetter = Object.getOwnPropertyDescriptor(element, 'value')?.set;
+            const prototype = Object.getPrototypeOf(element);
+            const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+            if (prototypeValueSetter && valueSetter !== prototypeValueSetter) {
+              prototypeValueSetter.call(element, value);
+            } else if (valueSetter) {
+              valueSetter.call(element, value);
+            } else {
               element.value = value;
             }
-            element.dispatchEvent(new Event('input', { bubbles: true }));
-            element.dispatchEvent(new Event('change', { bubbles: true }));
-            element.blur();
+          } catch (e) {
+            element.value = value;
           }
+          element.dispatchEvent(new Event('input', { bubbles: true }));
+          element.dispatchEvent(new Event('change', { bubbles: true }));
+          element.blur();
+        }
 
-          function findInputs(selectors, labelKeywords, placeholderKeywords) {
-            const found = new Set();
-            if (selectors) {
-              document.querySelectorAll(selectors).forEach(el => {
-                if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
-                  found.add(el);
-                }
-              });
-            }
-            const labels = Array.from(document.querySelectorAll('label'));
-            for (const label of labels) {
-              const labelText = label.innerText.toLowerCase();
-              if (labelKeywords.some(kw => labelText.includes(kw))) {
-                const htmlFor = label.getAttribute('for');
-                if (htmlFor) {
-                  const el = document.getElementById(htmlFor);
-                  if (el) found.add(el);
-                }
-                const nestedInput = label.querySelector('input, textarea, select');
-                if (nestedInput) found.add(nestedInput);
-                let sibling = label.nextElementSibling;
-                if (sibling) {
-                  if (sibling.tagName === 'INPUT' || sibling.tagName === 'TEXTAREA' || sibling.tagName === 'SELECT') {
-                    found.add(sibling);
-                  } else {
-                    const child = sibling.querySelector('input, textarea, select');
-                    if (child) found.add(child);
-                  }
+        function findInputs(selectors, labelKeywords, placeholderKeywords) {
+          const found = new Set();
+          if (selectors) {
+            document.querySelectorAll(selectors).forEach(el => {
+              if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+                found.add(el);
+              }
+            });
+          }
+          const labels = Array.from(document.querySelectorAll('label'));
+          for (const label of labels) {
+            const labelText = label.innerText.toLowerCase();
+            if (labelKeywords.some(kw => labelText.includes(kw))) {
+              const htmlFor = label.getAttribute('for');
+              if (htmlFor) {
+                const el = document.getElementById(htmlFor);
+                if (el) found.add(el);
+              }
+              const nestedInput = label.querySelector('input, textarea, select');
+              if (nestedInput) found.add(nestedInput);
+              let sibling = label.nextElementSibling;
+              if (sibling) {
+                if (sibling.tagName === 'INPUT' || sibling.tagName === 'TEXTAREA' || sibling.tagName === 'SELECT') {
+                  found.add(sibling);
+                } else {
+                  const child = sibling.querySelector('input, textarea, select');
+                  if (child) found.add(child);
                 }
               }
             }
-            if (placeholderKeywords) {
-              document.querySelectorAll('input, textarea').forEach(el => {
-                const ph = (el.getAttribute('placeholder') || '').toLowerCase();
-                if (placeholderKeywords.some(kw => ph.includes(kw))) {
-                  found.add(el);
-                }
-              });
-            }
-            return Array.from(found);
           }
+          if (placeholderKeywords) {
+            document.querySelectorAll('input, textarea').forEach(el => {
+              const ph = (el.getAttribute('placeholder') || '').toLowerCase();
+              if (placeholderKeywords.some(kw => ph.includes(kw))) {
+                found.add(el);
+              }
+            });
+          }
+          return Array.from(found);
+        }
 
-          let filled = 0;
+        function tryAutofill() {
+          attempts++;
+          try {
+            let filled = 0;
 
-          const isLever = window.location.host.includes('lever.co') || document.querySelector('input[name="name"]') || document.querySelector('input[name="email"]');
-          const isGreenhouse = window.location.host.includes('greenhouse.io') || document.querySelector('form#application_form') || document.querySelector('input#first_name');
+            const isLever = window.location.host.includes('lever.co') || document.querySelector('input[name="name"]') || document.querySelector('input[name="email"]');
+            const isGreenhouse = window.location.host.includes('greenhouse.io') || document.querySelector('form#application_form') || document.querySelector('input#first_name');
 
-          if (isGreenhouse) {
-            // First Name
-            if (payload.firstName) {
-              const els = findInputs('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]', ['first name', 'given name'], ['first name', 'given name']);
-              els.forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.firstName);
-                  filled++;
-                }
-              });
-            }
-
-            // Last Name
-            if (payload.lastName) {
-              const els = findInputs('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]', ['last name', 'surname', 'family name'], ['last name', 'surname', 'family name']);
-              els.forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.lastName);
-                  filled++;
-                }
-              });
-            }
-
-            // Email
-            if (payload.email) {
-              const els = findInputs('input[type="email" i], input[name*="email" i], input[id*="email" i], input[autocomplete="email"]', ['email', 'e-mail'], ['email', 'e-mail']);
-              els.forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.email);
-                  filled++;
-                }
-              });
-            }
-
-            // Phone
-            if (payload.phone) {
-              const els = findInputs('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]', ['phone', 'telephone', 'mobile', 'cell', 'number'], ['phone', 'telephone', 'mobile', 'cell', 'number']);
-              els.forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.phone);
-                  filled++;
-                }
-              });
-            }
-
-            // LinkedIn
-            if (payload.linkedinUrl) {
-              const els = findInputs('input[name*="linkedin" i], input[id*="linkedin" i], input[name*="link" i]', ['linkedin'], ['linkedin']);
-              els.forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.linkedinUrl);
-                  filled++;
-                }
-              });
-            }
-
-            // Portfolio
-            if (payload.portfolioUrl) {
-              const els = findInputs('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i], input[name*="url" i]', ['portfolio', 'website', 'url', 'personal link'], ['portfolio', 'website', 'url']);
-              els.forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.portfolioUrl);
-                  filled++;
-                }
-              });
-            }
-
-            // City
-            if (payload.city) {
-              const els = findInputs('input[name*="location" i], input[name*="city" i], input[id*="location" i]', ['location', 'city', 'address', 'living in'], ['location', 'city', 'address']);
-              els.forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.city);
-                  filled++;
-                }
-              });
-            }
-
-            // Country
-            if (payload.country) {
-              const els = findInputs('select[name*="country" i], select[id*="country" i], input[name*="country" i], input[id*="country" i]', ['country'], ['country']);
-              els.forEach(el => {
-                if (el.tagName === 'SELECT') {
-                  const options = Array.from(el.options);
-                  const valLower = payload.country.toLowerCase();
-                  let matchedOption = options.find(opt => opt.value.toLowerCase() === valLower || opt.text.toLowerCase().includes(valLower));
-                  if (matchedOption) {
-                    el.value = matchedOption.value;
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
+            if (isGreenhouse) {
+              // First Name
+              if (payload.firstName) {
+                const els = findInputs('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]', ['first name', 'given name'], ['first name', 'given name']);
+                els.forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.firstName);
                     filled++;
                   }
-                } else if (el.tagName === 'INPUT' && !el.value) {
-                  setNativeValue(el, payload.country);
-                  filled++;
-                }
-              });
-            }
+                });
+              }
 
-            // Cover letter text area
-            const ghCLText = document.querySelector('textarea#cover_letter_text') || 
-                             document.querySelector('textarea[name="cover_letter"]') ||
-                             document.querySelector('textarea[id*="cover" i]');
-            if (ghCLText && payload.coverLetterText && !ghCLText.value) {
-              setNativeValue(ghCLText, payload.coverLetterText);
-              filled++;
-            }
+              // Last Name
+              if (payload.lastName) {
+                const els = findInputs('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]', ['last name', 'surname', 'family name'], ['last name', 'surname', 'family name']);
+                els.forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.lastName);
+                    filled++;
+                  }
+                });
+              }
 
-            // Resume upload logic
-            const fileInput = document.querySelector('input[type="file"][id="resume_file"]') || 
-                              document.querySelector('input[type="file"][name="resume"]') ||
-                              document.querySelector('input[type="file"]');
-            if (fileInput && payload.resumeBase64 && (!fileInput.files || !fileInput.files.length)) {
-              try {
-                const blob = base64ToBlob(payload.resumeBase64, 'application/pdf');
-                const file = new File([blob], payload.resumeName || 'resume.pdf', { type: 'application/pdf' });
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                
-                const filesSetter = Object.getOwnPropertyDescriptor(fileInput, 'files')?.set;
-                const prototype = Object.getPrototypeOf(fileInput);
-                const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
-                if (prototypeFilesSetter) {
-                  prototypeFilesSetter.call(fileInput, dataTransfer.files);
-                } else {
-                  fileInput.files = dataTransfer.files;
-                }
-                
-                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+              // Email
+              if (payload.email) {
+                const els = findInputs('input[type="email" i], input[name*="email" i], input[id*="email" i], input[autocomplete="email"]', ['email', 'e-mail'], ['email', 'e-mail']);
+                els.forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.email);
+                    filled++;
+                  }
+                });
+              }
+
+              // Phone
+              if (payload.phone) {
+                const els = findInputs('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]', ['phone', 'telephone', 'mobile', 'cell', 'number'], ['phone', 'telephone', 'mobile', 'cell', 'number']);
+                els.forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.phone);
+                    filled++;
+                  }
+                });
+              }
+
+              // LinkedIn
+              if (payload.linkedinUrl) {
+                const els = findInputs('input[name*="linkedin" i], input[id*="linkedin" i], input[name*="link" i]', ['linkedin'], ['linkedin']);
+                els.forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.linkedinUrl);
+                    filled++;
+                  }
+                });
+              }
+
+              // Portfolio
+              if (payload.portfolioUrl) {
+                const els = findInputs('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i], input[name*="url" i]', ['portfolio', 'website', 'url', 'personal link'], ['portfolio', 'website', 'url']);
+                els.forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.portfolioUrl);
+                    filled++;
+                  }
+                });
+              }
+
+              // City
+              if (payload.city) {
+                const els = findInputs('input[name*="location" i], input[name*="city" i], input[id*="location" i]', ['location', 'city', 'address', 'living in'], ['location', 'city', 'address']);
+                els.forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.city);
+                    filled++;
+                  }
+                });
+              }
+
+              // Country
+              if (payload.country) {
+                const els = findInputs('select[name*="country" i], select[id*="country" i], input[name*="country" i], input[id*="country" i]', ['country'], ['country']);
+                els.forEach(el => {
+                  if (el.tagName === 'SELECT') {
+                    const options = Array.from(el.options);
+                    const valLower = payload.country.toLowerCase();
+                    let matchedOption = options.find(opt => opt.value.toLowerCase() === valLower || opt.text.toLowerCase().includes(valLower));
+                    if (matchedOption) {
+                      el.value = matchedOption.value;
+                      el.dispatchEvent(new Event('change', { bubbles: true }));
+                      filled++;
+                    }
+                  } else if (el.tagName === 'INPUT' && !el.value) {
+                    setNativeValue(el, payload.country);
+                    filled++;
+                  }
+                });
+              }
+
+              // Cover letter text area
+              const ghCLText = document.querySelector('textarea#cover_letter_text') || 
+                               document.querySelector('textarea[name="cover_letter"]') ||
+                               document.querySelector('textarea[id*="cover" i]');
+              if (ghCLText && payload.coverLetterText && !ghCLText.value) {
+                setNativeValue(ghCLText, payload.coverLetterText);
                 filled++;
-              } catch(e) {
-                sendLog('Failed to attach resume to Greenhouse: ' + e.message);
+              }
+
+              // Resume upload logic
+              const fileInput = document.querySelector('input[type="file"][id="resume_file"]') || 
+                                document.querySelector('input[type="file"][name="resume"]') ||
+                                document.querySelector('input[type="file"]');
+              if (fileInput && payload.resumeBase64 && (!fileInput.files || !fileInput.files.length)) {
+                try {
+                  const blob = base64ToBlob(payload.resumeBase64, 'application/pdf');
+                  const file = new File([blob], payload.resumeName || 'resume.pdf', { type: 'application/pdf' });
+                  const dataTransfer = new DataTransfer();
+                  dataTransfer.items.add(file);
+                  
+                  const filesSetter = Object.getOwnPropertyDescriptor(fileInput, 'files')?.set;
+                  const prototype = Object.getPrototypeOf(fileInput);
+                  const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
+                  if (prototypeFilesSetter) {
+                    prototypeFilesSetter.call(fileInput, dataTransfer.files);
+                  } else {
+                    fileInput.files = dataTransfer.files;
+                  }
+                  
+                  fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                  filled++;
+                } catch(e) {
+                  sendLog('Failed to attach resume to Greenhouse: ' + e.message);
+                }
+              }
+
+              // Cover letter file input
+              const ghCLFile = document.querySelector('input[type="file"][id="cover_letter_file"]') || 
+                               document.querySelector('input[type="file"][name="cover_letter"]');
+              if (ghCLFile && payload.coverLetterText && (!ghCLFile.files || !ghCLFile.files.length)) {
+                try {
+                  const blob = new Blob([payload.coverLetterText], { type: 'text/plain' });
+                  const file = new File([blob], 'cover_letter.txt', { type: 'text/plain' });
+                  const dataTransfer = new DataTransfer();
+                  dataTransfer.items.add(file);
+                  
+                  const filesSetter = Object.getOwnPropertyDescriptor(ghCLFile, 'files')?.set;
+                  const prototype = Object.getPrototypeOf(ghCLFile);
+                  const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
+                  if (prototypeFilesSetter) {
+                    prototypeFilesSetter.call(ghCLFile, dataTransfer.files);
+                  } else {
+                    ghCLFile.files = dataTransfer.files;
+                  }
+                  
+                  ghCLFile.dispatchEvent(new Event('change', { bubbles: true }));
+                  filled++;
+                } catch(e) {
+                  sendLog('Failed to attach cover letter to Greenhouse: ' + e.message);
+                }
+              }
+            } else if (isLever) {
+              // Full Name
+              if (payload.firstName || payload.lastName) {
+                const fullNameText = (payload.firstName + ' ' + payload.lastName).trim();
+                const els = findInputs('input[name="name"]', ['full name', 'your name', 'complete name'], ['full name', 'name']);
+                els.forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, fullNameText);
+                    filled++;
+                  }
+                });
+              }
+
+              // Email
+              if (payload.email) {
+                const els = findInputs('input[name="email"]', ['email', 'e-mail'], ['email']);
+                els.forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.email);
+                    filled++;
+                  }
+                });
+              }
+
+              // Phone
+              if (payload.phone) {
+                const els = findInputs('input[name="phone"]', ['phone', 'mobile', 'telephone'], ['phone', 'mobile']);
+                els.forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.phone);
+                    filled++;
+                  }
+                });
+              }
+
+              // LinkedIn
+              if (payload.linkedinUrl) {
+                const els = findInputs('input[name*="linkedin" i], input[name="urls[LinkedIn]"]', ['linkedin'], ['linkedin']);
+                els.forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.linkedinUrl);
+                    filled++;
+                  }
+                });
+              }
+
+              // Portfolio
+              if (payload.portfolioUrl) {
+                const els = findInputs('input[name*="portfolio" i], input[name*="website" i], input[name="urls[Portfolio]"]', ['portfolio', 'website'], ['portfolio', 'website']);
+                els.forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.portfolioUrl);
+                    filled++;
+                  }
+                });
+              }
+
+              // Cover letter text area / comments
+              const leverCLText = document.querySelector('textarea[name="comments"]') || 
+                                  document.querySelector('textarea#additional-information') ||
+                                  document.querySelector('textarea[name*="additional" i]');
+              if (leverCLText && payload.coverLetterText && !leverCLText.value) {
+                setNativeValue(leverCLText, payload.coverLetterText);
+                filled++;
+              }
+
+              // Resume upload logic
+              const fileInput = document.querySelector('input[type="file"][id="resume-upload-input"]') || 
+                                document.querySelector('input[type="file"]');
+              if (fileInput && payload.resumeBase64 && (!fileInput.files || !fileInput.files.length)) {
+                try {
+                  const blob = base64ToBlob(payload.resumeBase64, 'application/pdf');
+                  const file = new File([blob], payload.resumeName || 'resume.pdf', { type: 'application/pdf' });
+                  const dataTransfer = new DataTransfer();
+                  dataTransfer.items.add(file);
+                  
+                  const filesSetter = Object.getOwnPropertyDescriptor(fileInput, 'files')?.set;
+                  const prototype = Object.getPrototypeOf(fileInput);
+                  const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
+                  if (prototypeFilesSetter) {
+                    prototypeFilesSetter.call(fileInput, dataTransfer.files);
+                  } else {
+                    fileInput.files = dataTransfer.files;
+                  }
+                  
+                  fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                  filled++;
+                } catch(e) {
+                  sendLog('Failed to attach resume to Lever: ' + e.message);
+                }
+              }
+
+              // Cover letter file input
+              const leverCLFile = document.querySelector('input[type="file"][id="cover-letter-upload-input"]') || 
+                                  document.querySelector('input[type="file"][name="cover_letter"]');
+              if (leverCLFile && payload.coverLetterText && (!leverCLFile.files || !leverCLFile.files.length)) {
+                try {
+                  const blob = new Blob([payload.coverLetterText], { type: 'text/plain' });
+                  const file = new File([blob], 'cover_letter.txt', { type: 'text/plain' });
+                  const dataTransfer = new DataTransfer();
+                  dataTransfer.items.add(file);
+                  
+                  const filesSetter = Object.getOwnPropertyDescriptor(leverCLFile, 'files')?.set;
+                  const prototype = Object.getPrototypeOf(leverCLFile);
+                  const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
+                  if (prototypeFilesSetter) {
+                    prototypeFilesSetter.call(leverCLFile, dataTransfer.files);
+                  } else {
+                    leverCLFile.files = dataTransfer.files;
+                  }
+                  
+                  leverCLFile.dispatchEvent(new Event('change', { bubbles: true }));
+                  filled++;
+                } catch(e) {
+                  sendLog('Failed to attach cover letter to Lever: ' + e.message);
+                }
+              }
+            } else {
+              if (payload.firstName) {
+                findInputs('input[name*="first" i], input[id*="first" i]', ['first name'], ['first name']).forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.firstName);
+                    filled++;
+                  }
+                });
+              }
+              if (payload.lastName) {
+                findInputs('input[name*="last" i], input[id*="last" i]', ['last name'], ['last name']).forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.lastName);
+                    filled++;
+                  }
+                });
+              }
+              if (payload.email) {
+                findInputs('input[type="email" i], input[name*="email" i]', ['email'], ['email']).forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.email);
+                    filled++;
+                  }
+                });
+              }
+              if (payload.phone) {
+                findInputs('input[type="tel" i], input[name*="phone" i]', ['phone', 'mobile'], ['phone', 'mobile']).forEach(el => {
+                  if (!el.value) {
+                    setNativeValue(el, payload.phone);
+                    filled++;
+                  }
+                });
               }
             }
 
-            // Cover letter file input
-            const ghCLFile = document.querySelector('input[type="file"][id="cover_letter_file"]') || 
-                             document.querySelector('input[type="file"][name="cover_letter"]');
-            if (ghCLFile && payload.coverLetterText && (!ghCLFile.files || !ghCLFile.files.length)) {
-              try {
-                const blob = new Blob([payload.coverLetterText], { type: 'text/plain' });
-                const file = new File([blob], 'cover_letter.txt', { type: 'text/plain' });
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                
-                const filesSetter = Object.getOwnPropertyDescriptor(ghCLFile, 'files')?.set;
-                const prototype = Object.getPrototypeOf(ghCLFile);
-                const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
-                if (prototypeFilesSetter) {
-                  prototypeFilesSetter.call(ghCLFile, dataTransfer.files);
-                } else {
-                  ghCLFile.files = dataTransfer.files;
-                }
-                
-                ghCLFile.dispatchEvent(new Event('change', { bubbles: true }));
-                filled++;
-              } catch(e) {
-                sendLog('Failed to attach cover letter to Greenhouse: ' + e.message);
-              }
+            if (filled > 0) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'AUTOFILL_SUCCESS', count: filled }));
             }
-          } else if (isLever) {
-            // Full Name
-            if (payload.firstName || payload.lastName) {
-              const fullNameText = (payload.firstName + ' ' + payload.lastName).trim();
-              const els = findInputs('input[name="name"]', ['full name', 'your name', 'complete name'], ['full name', 'name']);
-              els.forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, fullNameText);
-                  filled++;
-                }
-              });
-            }
-
-            // Email
-            if (payload.email) {
-              const els = findInputs('input[name="email"]', ['email', 'e-mail'], ['email']);
-              els.forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.email);
-                  filled++;
-                }
-              });
-            }
-
-            // Phone
-            if (payload.phone) {
-              const els = findInputs('input[name="phone"]', ['phone', 'mobile', 'telephone'], ['phone', 'mobile']);
-              els.forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.phone);
-                  filled++;
-                }
-              });
-            }
-
-            // LinkedIn
-            if (payload.linkedinUrl) {
-              const els = findInputs('input[name*="linkedin" i], input[name="urls[LinkedIn]"]', ['linkedin'], ['linkedin']);
-              els.forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.linkedinUrl);
-                  filled++;
-                }
-              });
-            }
-
-            // Portfolio
-            if (payload.portfolioUrl) {
-              const els = findInputs('input[name*="portfolio" i], input[name*="website" i], input[name="urls[Portfolio]"]', ['portfolio', 'website'], ['portfolio', 'website']);
-              els.forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.portfolioUrl);
-                  filled++;
-                }
-              });
-            }
-
-            // Cover letter text area / comments
-            const leverCLText = document.querySelector('textarea[name="comments"]') || 
-                                document.querySelector('textarea#additional-information') ||
-                                document.querySelector('textarea[name*="additional" i]');
-            if (leverCLText && payload.coverLetterText && !leverCLText.value) {
-              setNativeValue(leverCLText, payload.coverLetterText);
-              filled++;
-            }
-
-            // Resume upload logic
-            const fileInput = document.querySelector('input[type="file"][id="resume-upload-input"]') || 
-                              document.querySelector('input[type="file"]');
-            if (fileInput && payload.resumeBase64 && (!fileInput.files || !fileInput.files.length)) {
-              try {
-                const blob = base64ToBlob(payload.resumeBase64, 'application/pdf');
-                const file = new File([blob], payload.resumeName || 'resume.pdf', { type: 'application/pdf' });
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                
-                const filesSetter = Object.getOwnPropertyDescriptor(fileInput, 'files')?.set;
-                const prototype = Object.getPrototypeOf(fileInput);
-                const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
-                if (prototypeFilesSetter) {
-                  prototypeFilesSetter.call(fileInput, dataTransfer.files);
-                } else {
-                  fileInput.files = dataTransfer.files;
-                }
-                
-                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-                filled++;
-              } catch(e) {
-                sendLog('Failed to attach resume to Lever: ' + e.message);
-              }
-            }
-
-            // Cover letter file input
-            const leverCLFile = document.querySelector('input[type="file"][id="cover-letter-upload-input"]') || 
-                                document.querySelector('input[type="file"][name="cover_letter"]');
-            if (leverCLFile && payload.coverLetterText && (!leverCLFile.files || !leverCLFile.files.length)) {
-              try {
-                const blob = new Blob([payload.coverLetterText], { type: 'text/plain' });
-                const file = new File([blob], 'cover_letter.txt', { type: 'text/plain' });
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                
-                const filesSetter = Object.getOwnPropertyDescriptor(leverCLFile, 'files')?.set;
-                const prototype = Object.getPrototypeOf(leverCLFile);
-                const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
-                if (prototypeFilesSetter) {
-                  prototypeFilesSetter.call(leverCLFile, dataTransfer.files);
-                } else {
-                  leverCLFile.files = dataTransfer.files;
-                }
-                
-                leverCLFile.dispatchEvent(new Event('change', { bubbles: true }));
-                filled++;
-              } catch(e) {
-                sendLog('Failed to attach cover letter to Lever: ' + e.message);
-              }
-            }
-          } else {
-            if (payload.firstName) {
-              findInputs('input[name*="first" i], input[id*="first" i]', ['first name'], ['first name']).forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.firstName);
-                  filled++;
-                }
-              });
-            }
-            if (payload.lastName) {
-              findInputs('input[name*="last" i], input[id*="last" i]', ['last name'], ['last name']).forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.lastName);
-                  filled++;
-                }
-              });
-            }
-            if (payload.email) {
-              findInputs('input[type="email" i], input[name*="email" i]', ['email'], ['email']).forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.email);
-                  filled++;
-                }
-              });
-            }
-            if (payload.phone) {
-              findInputs('input[type="tel" i], input[name*="phone" i]', ['phone', 'mobile'], ['phone', 'mobile']).forEach(el => {
-                if (!el.value) {
-                  setNativeValue(el, payload.phone);
-                  filled++;
-                }
-              });
-            }
+          } catch(e) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'AUTOFILL_ERROR', error: e.message }));
           }
 
-          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'AUTOFILL_SUCCESS', count: filled }));
-        } catch(e) {
-          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'AUTOFILL_ERROR', error: e.message }));
+          if (attempts >= maxAttempts) {
+            clearInterval(autofillInterval);
+          }
         }
+
+        const autofillInterval = setInterval(tryAutofill, 500);
+        tryAutofill();
       })();
       true;
     `;
