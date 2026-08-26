@@ -95,6 +95,12 @@ export default function ApplyJobScreen() {
   const getAutofillJS = () => {
     if (!profileData) return '';
 
+    const experiences = profileData.workExperiences || profileData.experiences || [];
+    const currentExp = experiences.length > 0 ? experiences[0] : null;
+
+    const educations = profileData.educations || profileData.education || [];
+    const currentEdu = educations.length > 0 ? educations[0] : null;
+
     const payload = {
       firstName: (profileData.firstName || '').replace(/'/g, "\\'"),
       lastName: (profileData.lastName || '').replace(/'/g, "\\'"),
@@ -107,6 +113,15 @@ export default function ApplyJobScreen() {
       resumeBase64: resumeBase64,
       resumeName: resumeName,
       coverLetterText: coverLetterText,
+      currentJobTitle: (currentExp?.jobTitle || profileData.jobTitle || profileData.role || '').replace(/'/g, "\\'"),
+      currentEmployer: (currentExp?.companyName || '').replace(/'/g, "\\'"),
+      workStartDate: (currentExp?.startDate || '').replace(/'/g, "\\'"),
+      workEndDate: (currentExp?.endDate || '').replace(/'/g, "\\'"),
+      educationSchool: (currentEdu?.schoolName || '').replace(/'/g, "\\'"),
+      degree: (currentEdu?.degree || '').replace(/'/g, "\\'"),
+      discipline: (currentEdu?.fieldOfStudy || currentEdu?.degree || '').replace(/'/g, "\\'"),
+      eduStartDate: (currentEdu?.startDate || '').replace(/'/g, "\\'"),
+      eduEndDate: (currentEdu?.endDate || '').replace(/'/g, "\\'"),
     };
 
     return `
@@ -524,8 +539,135 @@ export default function ApplyJobScreen() {
                 });
               }
             }
+          }
 
-            if (filled > 0) {
+          // 4. Fill additional fields (Company, Title, Education, School, Dates)
+          if (payload.currentJobTitle) {
+            const els = findInputs(
+              'input[name*="title" i], input[id*="title" i], input[name*="role" i], input[name*="headline" i]',
+              ['current title', 'current job title', 'current role', 'job title', 'headline', 'role'],
+              ['current title', 'current job title', 'current role', 'job title', 'headline', 'role']
+            );
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.currentJobTitle);
+                filled++;
+              }
+            });
+          }
+
+          if (payload.currentEmployer) {
+            const els = findInputs(
+              'input[name*="company" i], input[id*="company" i], input[name*="employer" i], input[id*="employer" i], input[name*="organization" i]',
+              ['current company', 'current employer', 'employer', 'company', 'organization'],
+              ['current company', 'current employer', 'employer', 'company', 'organization']
+            );
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.currentEmployer);
+                filled++;
+              }
+            });
+          }
+
+          if (payload.educationSchool) {
+            const els = findInputs(
+              'input[name*="school" i], input[id*="school" i], input[name*="university" i], input[id*="university" i], input[name*="college" i]',
+              ['school', 'university', 'college', 'institution', 'education school'],
+              ['school', 'university', 'college', 'institution']
+            );
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.educationSchool);
+                filled++;
+              }
+            });
+          }
+
+          if (payload.degree) {
+            const els = findInputs(
+              'select[name*="degree" i], input[name*="degree" i], select[id*="degree" i], input[id*="degree" i]',
+              ['degree', 'education degree'],
+              ['degree']
+            );
+            els.forEach(el => {
+              if (el.tagName === 'SELECT') {
+                const options = Array.from(el.options);
+                const valLower = payload.degree.toLowerCase();
+                let matchedOption = options.find(opt => opt.value.toLowerCase() === valLower || opt.text.toLowerCase().includes(valLower));
+                if (matchedOption) {
+                  el.value = matchedOption.value;
+                  el.dispatchEvent(new Event('change', { bubbles: true }));
+                  filled++;
+                }
+              } else if (el.tagName === 'INPUT' && !el.value) {
+                setNativeValue(el, payload.degree);
+                filled++;
+              }
+            });
+          }
+
+          if (payload.discipline) {
+            const els = findInputs(
+              'input[name*="discipline" i], select[name*="discipline" i], input[name*="major" i], select[name*="major" i], input[name*="study" i], select[name*="study" i]',
+              ['discipline', 'major', 'field of study', 'discipline of study', 'area of study'],
+              ['discipline', 'major', 'field of study']
+            );
+            els.forEach(el => {
+              if (el.tagName === 'SELECT') {
+                const options = Array.from(el.options);
+                const valLower = payload.discipline.toLowerCase();
+                let matchedOption = options.find(opt => opt.value.toLowerCase() === valLower || opt.text.toLowerCase().includes(valLower));
+                if (matchedOption) {
+                  el.value = matchedOption.value;
+                  el.dispatchEvent(new Event('change', { bubbles: true }));
+                  filled++;
+                }
+              } else if (el.tagName === 'INPUT' && !el.value) {
+                setNativeValue(el, payload.discipline);
+                filled++;
+              }
+            });
+          }
+
+          if (payload.workStartDate) {
+            const els = findInputs('input[name*="start" i][name*="job" i], input[name*="start" i][name*="work" i]', ['job start', 'work start', 'employment start'], ['start date', 'start year']);
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.workStartDate);
+                filled++;
+              }
+            });
+          }
+          if (payload.workEndDate) {
+            const els = findInputs('input[name*="end" i][name*="job" i], input[name*="end" i][name*="work" i]', ['job end', 'work end', 'employment end'], ['end date', 'end year']);
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.workEndDate);
+                filled++;
+              }
+            });
+          }
+          if (payload.eduStartDate) {
+            const els = findInputs('input[name*="start" i][name*="school" i], input[name*="start" i][name*="edu" i]', ['school start', 'education start', 'degree start'], ['start date', 'start year']);
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.eduStartDate);
+                filled++;
+              }
+            });
+          }
+          if (payload.eduEndDate) {
+            const els = findInputs('input[name*="end" i][name*="school" i], input[name*="end" i][name*="edu" i], input[name*="grad" i]', ['school end', 'education end', 'graduation', 'degree end'], ['end date', 'end year', 'graduation date']);
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.eduEndDate);
+                filled++;
+              }
+            });
+          }
+
+          if (filled > 0) {
               window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'AUTOFILL_SUCCESS', count: filled }));
             }
           } catch(e) {
