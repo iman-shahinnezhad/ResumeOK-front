@@ -8,21 +8,59 @@ export interface JobMatchResult {
 }
 
 const SKILL_KEYWORDS = [
-  // Tech / Engineering
+  // Tech / Engineering (Frontend, Backend, Mobile, Cloud, DevOps, Data Science, AI)
   'react', 'react native', 'javascript', 'typescript', 'node.js', 'python',
   'java', 'kotlin', 'swift', 'c++', 'c#', 'go', 'golang', 'ruby', 'php',
   'sql', 'postgresql', 'mongodb', 'graphql', 'rest api', 'aws', 'docker',
   'kubernetes', 'ci/cd', 'git', 'html', 'css', 'tailwind', 'redux',
-  'next.js', 'express', 'figma', 'system design', 'agile', 'jira',
-  // UI/UX / Design
+  'next.js', 'express', 'system design', 'agile', 'jira', 'scrum', 'devops',
+  'cloud', 'azure', 'gcp', 'mysql', 'redis', 'elasticsearch', 'rust', 'flutter',
+  'vue', 'angular', 'webpack', 'babel', 'django', 'flask', 'spring boot',
+  'laravel', 'testing', 'cypress', 'jest', 'selenium', 'ci/cd pipelines',
+  'terraform', 'ansible', 'serverless', 'microservices', 'linux', 'unix',
+  'data science', 'machine learning', 'deep learning', 'artificial intelligence',
+  'nlp', 'data analysis', 'pandas', 'numpy', 'scikit-learn', 'tensorflow',
+  'pytorch', 'data visualization', 'tableau', 'power bi', 'looker', 'cybersecurity',
+  'security', 'penetration testing', 'cryptography',
+  
+  // UI/UX / Design / Creative
   'ui/ux', 'ui design', 'ux design', 'product design', 'interaction design',
   'wireframing', 'prototyping', 'user research', 'information architecture',
   'design systems', 'mobile design', 'web design', 'user flows', 'mockups',
   'usability testing', 'visual design', 'adobe xd', 'sketch', 'photoshop',
-  'illustrator', 'b2b products', 'saas', 'graphics', 'typography',
-  // Management / Business
-  'product management', 'project management', 'agile methodologies', 'scrum',
-  'roadmap', 'analytics', 'seo', 'marketing', 'sales', 'customer support',
+  'illustrator', 'b2b products', 'saas', 'graphics', 'typography', 'figma',
+  'motion design', 'motion graphics', 'after effects', 'indesign', 'premiere pro',
+  'video editing', 'branding', 'brand identity', 'copywriting', 'content creation',
+  'creative direction', 'art direction', '3d modeling', 'blender', 'cinema 4d',
+  
+  // Product / Project Management / Scrum
+  'product management', 'project management', 'agile methodologies', 'scrum master',
+  'product owner', 'roadmap', 'sprint planning', 'backlog grooming', 'user stories',
+  'business analysis', 'requirements gathering', 'confluence', 'trello', 'asana',
+  'slack', 'cross-functional collaboration', 'stakeholder management', 'change management',
+  'budgeting', 'risk management',
+  
+  // Marketing / Growth / Writing
+  'seo', 'sem', 'digital marketing', 'growth marketing', 'growth hacking',
+  'content marketing', 'social media', 'email marketing', 'content writing',
+  'technical writing', 'google analytics', 'google ads', 'hubspot', 'mailchimp',
+  'lead generation', 'performance marketing', 'conversion rate optimization', 'cro',
+  'brand marketing', 'public relations', 'social media management', 'influencer marketing',
+  'affiliate marketing', 'market research', 'competitive analysis',
+  
+  // Sales / Business / Customer Success
+  'customer support', 'customer success', 'account management', 'inside sales',
+  'business development', 'sales development', 'sdr', 'bdr', 'crm', 'salesforce',
+  'zendesk', 'intercom', 'cold outreach', 'negotiation', 'lead qualification',
+  'customer relationship management', 'upselling', 'client onboarding', 'retention',
+  
+  // Finance / HR / Operations / Admin
+  'recruiting', 'talent acquisition', 'technical recruiting', 'human resources',
+  'hr generalist', 'payroll', 'bookkeeping', 'accounting', 'quickbooks', 'excel',
+  'data entry', 'virtual assistant', 'administrative support', 'scheduling',
+  'email management', 'onboarding', 'training & development', 'employee engagement',
+  
+  // Common general professional soft skills
   'leadership', 'team collaboration', 'communication', 'problem solving'
 ];
 
