@@ -285,14 +285,6 @@ export default function TasksScreen() {
                 style={{ width: 14, height: 14, marginLeft: 4, resizeMode: 'contain' }}
               />
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.settingsBtn}
-              activeOpacity={0.8}
-              onPress={() => router.push('/settings')}
-            >
-              <Ionicons name="settings-outline" size={20} color="#000000" />
-            </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>
