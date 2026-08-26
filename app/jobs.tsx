@@ -98,6 +98,7 @@ export default function JobsScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [pagerHeight, setPagerHeight] = useState(480);
+  const [sessionSkippedIds, setSessionSkippedIds] = useState<Set<string>>(new Set());
   // Tinder Swipe position tracking (Alternating Reanimated Shared Values to prevent unmount flashes)
   const translateX1 = useSharedValue(0);
   const translateY1 = useSharedValue(0);
@@ -157,11 +158,13 @@ export default function JobsScreen() {
     return set;
   };
 
-  const saveSkippedJob = async (job: GreenhouseJob) => {
+  const saveSkippedJob = async (job: GreenhouseJob, removeFromLocalState = true) => {
     try {
-      // Immediately filter out from local state for 0ms UI delay
-      setAllJobs(prev => prev.filter(j => String(j.id) !== String(job.id)));
-      setFilteredJobs(prev => prev.filter(j => String(j.id) !== String(job.id)));
+      if (removeFromLocalState) {
+        // Immediately filter out from local state for 0ms UI delay
+        setAllJobs(prev => prev.filter(j => String(j.id) !== String(job.id)));
+        setFilteredJobs(prev => prev.filter(j => String(j.id) !== String(job.id)));
+      }
 
       const skippedPath = `${FileSystem.documentDirectory}user_skipped_jobs.json`;
       let currentSkipped: any[] = [];
@@ -198,6 +201,20 @@ export default function JobsScreen() {
       }).catch(err => console.log('Backend sync skipped error:', err));
     } catch (e) {
       console.log('Error saving skipped job:', e);
+    }
+  };
+
+  const handleListSkip = async (job: GreenhouseJob) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setSessionSkippedIds(prev => {
+        const next = new Set(prev);
+        next.add(String(job.id));
+        return next;
+      });
+      await saveSkippedJob(job, false);
+    } catch (e) {
+      console.log('Error handling list skip:', e);
     }
   };
 
@@ -569,6 +586,7 @@ export default function JobsScreen() {
             setFilteredJobs(processed);
             setCurrentPage(1);
             setCurrentIndex(0);
+            setSessionSkippedIds(new Set());
           }
         }
       }
@@ -1415,8 +1433,8 @@ export default function JobsScreen() {
                   item={jobItem}
                   userProfile={userProfile}
                   onViewDetails={(j) => viewJobDetails(j)}
-                  onLike={(j) => handleSwipeComplete('right')}
-                  onSkip={(j) => handleSwipeComplete('left')}
+                  onSkip={(j) => handleListSkip(j)}
+                  isSkipped={sessionSkippedIds.has(String(jobItem.id))}
                 />
               ))}
 
@@ -3881,9 +3899,10 @@ interface JobListItemCardProps {
   onViewDetails: (item: GreenhouseJob) => void;
   onLike?: (item: GreenhouseJob) => void;
   onSkip?: (item: GreenhouseJob) => void;
+  isSkipped?: boolean;
 }
 
-const JobListItemCard = React.memo(({ item, userProfile, onViewDetails, onLike, onSkip }: JobListItemCardProps) => {
+const JobListItemCard = React.memo(({ item, userProfile, onViewDetails, onLike, onSkip, isSkipped }: JobListItemCardProps) => {
   const dept = item.departments?.[0]?.name || "Computer Software";
   const office = item.location?.name || "United States";
   const companyName = item.companyName || "Company";
@@ -3900,7 +3919,7 @@ const JobListItemCard = React.memo(({ item, userProfile, onViewDetails, onLike, 
   const matchColors = getMatchPillColors(scores.excellentMatch);
 
   return (
-    <View style={styles.listItemCard}>
+    <View style={[styles.listItemCard, isSkipped && { opacity: 0.55, backgroundColor: '#F8FAFC' }]}>
       {/* Top Header Row */}
       <View style={styles.listItemHeaderRow}>
         <View style={styles.listItemLogoSquare}>
@@ -3964,22 +3983,31 @@ const JobListItemCard = React.memo(({ item, userProfile, onViewDetails, onLike, 
 
       {/* Action Bar */}
       <View style={styles.listItemActionBar}>
-        <TouchableOpacity
-          style={styles.listItemViewDetailBtn}
-          activeOpacity={0.8}
-          onPress={() => onViewDetails(item)}
-        >
-          <Text style={styles.listItemViewDetailText}>View Detail</Text>
-        </TouchableOpacity>
+        {isSkipped ? (
+          <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#94A3B8', fontStyle: 'italic' }}>
+              🚫 Skipped
+            </Text>
+          </View>
+        ) : (
+          <>
+            <TouchableOpacity
+              style={styles.listItemViewDetailBtn}
+              activeOpacity={0.8}
+              onPress={() => onViewDetails(item)}
+            >
+              <Text style={styles.listItemViewDetailText}>View Detail</Text>
+            </TouchableOpacity>
 
-
-        <TouchableOpacity
-          style={styles.listItemCircleActionBtn}
-          activeOpacity={0.8}
-          onPress={() => onSkip && onSkip(item)}
-        >
-          <Ionicons name="ban-outline" size={20} color="#64748B" />
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.listItemCircleActionBtn}
+              activeOpacity={0.8}
+              onPress={() => onSkip && onSkip(item)}
+            >
+              <Ionicons name="ban-outline" size={20} color="#64748B" />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </View>
   );
