@@ -237,7 +237,7 @@ export default function JobsScreen() {
     }, 100);
 
     if (direction === 'left' && targetJob) {
-      saveSkippedJob(targetJob);
+      saveSkippedJob(targetJob, false);
     } else if (direction === 'right' && targetJob) {
       viewJobDetails(targetJob);
     }
@@ -464,7 +464,7 @@ export default function JobsScreen() {
                   setFilterSalary('$50K - $100K');
                 }
               }
-              
+
               isProfileDefaultsLoaded.current = true;
             }
           }
@@ -1711,7 +1711,7 @@ export default function JobsScreen() {
       {/* SUB-HEADER MATCHING DESIGN MOCKUP */}
       <View style={styles.subHeaderRow}>
         <Text style={styles.subHeaderTitle}>
-          {`${((filterWorkModel !== 'ALL' || filterExperience !== 'ALL' || filterLocation.trim() !== '' || filterQuery.trim() !== '') ? filteredJobs.length : (totalJobsCount > 0 ? totalJobsCount : filteredJobs.length)).toLocaleString()} Jobs Match to your resume`}
+          {`Jobs Match to your resume`}
         </Text>
 
         <TouchableOpacity
@@ -2446,187 +2446,187 @@ export default function JobsScreen() {
           >
             <View style={styles.pageSheetContent}>
               {/* Modal Header (Pinned at Top) */}
-            <View style={styles.searchModalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Ionicons name="options-outline" size={20} color="#7C3AED" style={{ marginRight: 6 }} />
-                <Text style={styles.searchModalTitle}>Filter Jobs & Roles</Text>
-              </View>
+              <View style={styles.searchModalHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="options-outline" size={20} color="#7C3AED" style={{ marginRight: 6 }} />
+                  <Text style={styles.searchModalTitle}>Filter Jobs & Roles</Text>
+                </View>
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setFilterQuery('');
-                    setFilterWorkModel('ALL');
-                    setFilterExperience('ALL');
-                    setFilterSalary('ALL');
-                    setFilterLocation('');
-                    setSelectedCompanyFilter('ALL');
-                  }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#64748B' }}>Reset All</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => setShowSearchModal(false)}>
-                  <Ionicons name="close" size={24} color="#0F172A" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* PINNED KEYWORD / JOB TITLE INPUT (NO AUTO FOCUS) */}
-            <View style={{ marginTop: 12, marginBottom: 12 }}>
-              <Text style={styles.searchLabel}>Target Role / Keyword</Text>
-              <View style={styles.searchModalInputWrapper}>
-                <Ionicons name="search-outline" size={18} color="#64748B" style={{ marginRight: 8 }} />
-                <TextInput
-                  ref={searchInputRef}
-                  style={styles.searchModalInputText}
-                  placeholder="e.g. Product Manager, Designer, React..."
-                  placeholderTextColor="#94A3B8"
-                  value={filterQuery}
-                  onChangeText={setFilterQuery}
-                  autoFocus={false}
-                />
-                {filterQuery.length > 0 && (
-                  <TouchableOpacity onPress={() => setFilterQuery('')}>
-                    <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setFilterQuery('');
+                      setFilterWorkModel('ALL');
+                      setFilterExperience('ALL');
+                      setFilterSalary('ALL');
+                      setFilterLocation('');
+                      setSelectedCompanyFilter('ALL');
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#64748B' }}>Reset All</Text>
                   </TouchableOpacity>
-                )}
+
+                  <TouchableOpacity onPress={() => setShowSearchModal(false)}>
+                    <Ionicons name="close" size={24} color="#0F172A" />
+                  </TouchableOpacity>
+                </View>
               </View>
 
-              {/* Onboarding Target Role Quick Chips */}
-              {userProfile && (Array.isArray(userProfile.skills) || Array.isArray(userProfile.roles)) && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterChipRow, { marginTop: 8 }]}>
-                  {(Array.isArray(userProfile.skills) ? userProfile.skills : (Array.isArray(userProfile.roles) ? userProfile.roles : []))
-                    .slice(0, 5)
-                    .map((r: string, idx: number) => (
-                      <TouchableOpacity
-                        key={`onboard-role-${idx}`}
-                        style={[styles.filterChip, filterQuery.toLowerCase() === r.toLowerCase() && styles.filterChipActive]}
-                        onPress={() => setFilterQuery(r)}
-                      >
-                        <Text style={[styles.filterChipText, filterQuery.toLowerCase() === r.toLowerCase() && styles.filterChipTextActive]}>
-                          🎯 {r}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                </ScrollView>
-              )}
-            </View>
-
-            {/* SCROLLABLE CHIP FILTERS */}
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ paddingBottom: 24 }}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              {/* SECTION 1: EXPECTED SALARY RANGE */}
-              <View style={{ marginTop: 4 }}>
-                <Text style={styles.searchLabel}>Expected Salary Range</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
-                  {['ALL', '$50K - $100K', '$100K - $180K', '$180K+'].map((sal) => (
-                    <TouchableOpacity
-                      key={`sal-${sal}`}
-                      style={[styles.filterChip, filterSalary === sal && styles.filterChipActive]}
-                      onPress={() => setFilterSalary(sal)}
-                    >
-                      <Text style={[styles.filterChipText, filterSalary === sal && styles.filterChipTextActive]}>
-                        💰 {sal}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* SECTION 2: WORK LOCATION TYPE */}
-              <View style={{ marginTop: 14 }}>
-                <Text style={styles.searchLabel}>Work Location Type</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
-                  {['ALL', 'Remote', 'Hybrid', 'In Person'].map((model) => (
-                    <TouchableOpacity
-                      key={`model-${model}`}
-                      style={[styles.filterChip, filterWorkModel === model && styles.filterChipActive]}
-                      onPress={() => setFilterWorkModel(model)}
-                    >
-                      <Text style={[styles.filterChipText, filterWorkModel === model && styles.filterChipTextActive]}>
-                        {model}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* SECTION 3: EXPERIENCE LEVEL */}
-              <View style={{ marginTop: 14 }}>
-                <Text style={styles.searchLabel}>Experience Seniority</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
-                  {[
-                    { id: 'ALL', label: 'All Levels' },
-                    { id: 'Senior', label: 'Senior (5+ yrs)' },
-                    { id: 'Mid', label: 'Mid-Level (3-4 yrs)' },
-                    { id: 'Junior', label: 'Junior / Intern' }
-                  ].map((exp) => (
-                    <TouchableOpacity
-                      key={`exp-${exp.id}`}
-                      style={[styles.filterChip, filterExperience === exp.id && styles.filterChipActive]}
-                      onPress={() => setFilterExperience(exp.id)}
-                    >
-                      <Text style={[styles.filterChipText, filterExperience === exp.id && styles.filterChipTextActive]}>
-                        {exp.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* SECTION 4: LOCATION FILTER */}
-              <View style={{ marginTop: 18 }}>
-                <Text style={styles.searchLabel}>Location</Text>
-                
-                {/* Search input for Location */}
-                <View style={styles.locationInputWrapper}>
-                  <Ionicons name="location-outline" size={18} color="#64748B" style={{ marginRight: 8 }} />
+              {/* PINNED KEYWORD / JOB TITLE INPUT (NO AUTO FOCUS) */}
+              <View style={{ marginTop: 12, marginBottom: 12 }}>
+                <Text style={styles.searchLabel}>Target Role / Keyword</Text>
+                <View style={styles.searchModalInputWrapper}>
+                  <Ionicons name="search-outline" size={18} color="#64748B" style={{ marginRight: 8 }} />
                   <TextInput
-                    style={styles.locationInputText}
-                    placeholder="Search city, state, or country..."
+                    ref={searchInputRef}
+                    style={styles.searchModalInputText}
+                    placeholder="e.g. Product Manager, Designer, React..."
                     placeholderTextColor="#94A3B8"
-                    value={filterLocation}
-                    onChangeText={setFilterLocation}
-                    autoCapitalize="none"
-                    autoCorrect={false}
+                    value={filterQuery}
+                    onChangeText={setFilterQuery}
+                    autoFocus={false}
                   />
-                  {filterLocation.length > 0 && (
-                    <TouchableOpacity onPress={() => setFilterLocation('')}>
+                  {filterQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setFilterQuery('')}>
                       <Ionicons name="close-circle" size={18} color="#94A3B8" />
                     </TouchableOpacity>
                   )}
                 </View>
 
-                {/* Quick select Location Chips */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterChipRow, { marginTop: 8 }]}>
-                  {[
-                    { label: 'All Locations', value: '' },
-                    { label: 'San Francisco, CA', value: 'San Francisco' },
-                    { label: 'New York, NY', value: 'New York' },
-                    { label: 'London, UK', value: 'London' },
-                    { label: 'Berlin, DE', value: 'Berlin' },
-                    { label: 'Toronto, CA', value: 'Toronto' }
-                  ].map((loc) => (
-                    <TouchableOpacity
-                      key={`loc-chip-${loc.label}`}
-                      style={[styles.filterChip, filterLocation.toLowerCase() === loc.value.toLowerCase() && styles.filterChipActive]}
-                      onPress={() => setFilterLocation(loc.value)}
-                    >
-                      <Text style={[styles.filterChipText, filterLocation.toLowerCase() === loc.value.toLowerCase() && styles.filterChipTextActive]}>
-                        📍 {loc.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                {/* Onboarding Target Role Quick Chips */}
+                {userProfile && (Array.isArray(userProfile.skills) || Array.isArray(userProfile.roles)) && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterChipRow, { marginTop: 8 }]}>
+                    {(Array.isArray(userProfile.skills) ? userProfile.skills : (Array.isArray(userProfile.roles) ? userProfile.roles : []))
+                      .slice(0, 5)
+                      .map((r: string, idx: number) => (
+                        <TouchableOpacity
+                          key={`onboard-role-${idx}`}
+                          style={[styles.filterChip, filterQuery.toLowerCase() === r.toLowerCase() && styles.filterChipActive]}
+                          onPress={() => setFilterQuery(r)}
+                        >
+                          <Text style={[styles.filterChipText, filterQuery.toLowerCase() === r.toLowerCase() && styles.filterChipTextActive]}>
+                            🎯 {r}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                  </ScrollView>
+                )}
               </View>
-            </ScrollView>
 
-            <TouchableOpacity
+              {/* SCROLLABLE CHIP FILTERS */}
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingBottom: 24 }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* SECTION 1: EXPECTED SALARY RANGE */}
+                <View style={{ marginTop: 4 }}>
+                  <Text style={styles.searchLabel}>Expected Salary Range</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
+                    {['ALL', '$50K - $100K', '$100K - $180K', '$180K+'].map((sal) => (
+                      <TouchableOpacity
+                        key={`sal-${sal}`}
+                        style={[styles.filterChip, filterSalary === sal && styles.filterChipActive]}
+                        onPress={() => setFilterSalary(sal)}
+                      >
+                        <Text style={[styles.filterChipText, filterSalary === sal && styles.filterChipTextActive]}>
+                          💰 {sal}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* SECTION 2: WORK LOCATION TYPE */}
+                <View style={{ marginTop: 14 }}>
+                  <Text style={styles.searchLabel}>Work Location Type</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
+                    {['ALL', 'Remote', 'Hybrid', 'In Person'].map((model) => (
+                      <TouchableOpacity
+                        key={`model-${model}`}
+                        style={[styles.filterChip, filterWorkModel === model && styles.filterChipActive]}
+                        onPress={() => setFilterWorkModel(model)}
+                      >
+                        <Text style={[styles.filterChipText, filterWorkModel === model && styles.filterChipTextActive]}>
+                          {model}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* SECTION 3: EXPERIENCE LEVEL */}
+                <View style={{ marginTop: 14 }}>
+                  <Text style={styles.searchLabel}>Experience Seniority</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
+                    {[
+                      { id: 'ALL', label: 'All Levels' },
+                      { id: 'Senior', label: 'Senior (5+ yrs)' },
+                      { id: 'Mid', label: 'Mid-Level (3-4 yrs)' },
+                      { id: 'Junior', label: 'Junior / Intern' }
+                    ].map((exp) => (
+                      <TouchableOpacity
+                        key={`exp-${exp.id}`}
+                        style={[styles.filterChip, filterExperience === exp.id && styles.filterChipActive]}
+                        onPress={() => setFilterExperience(exp.id)}
+                      >
+                        <Text style={[styles.filterChipText, filterExperience === exp.id && styles.filterChipTextActive]}>
+                          {exp.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* SECTION 4: LOCATION FILTER */}
+                <View style={{ marginTop: 18 }}>
+                  <Text style={styles.searchLabel}>Location</Text>
+
+                  {/* Search input for Location */}
+                  <View style={styles.locationInputWrapper}>
+                    <Ionicons name="location-outline" size={18} color="#64748B" style={{ marginRight: 8 }} />
+                    <TextInput
+                      style={styles.locationInputText}
+                      placeholder="Search city, state, or country..."
+                      placeholderTextColor="#94A3B8"
+                      value={filterLocation}
+                      onChangeText={setFilterLocation}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    {filterLocation.length > 0 && (
+                      <TouchableOpacity onPress={() => setFilterLocation('')}>
+                        <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* Quick select Location Chips */}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterChipRow, { marginTop: 8 }]}>
+                    {[
+                      { label: 'All Locations', value: '' },
+                      { label: 'San Francisco, CA', value: 'San Francisco' },
+                      { label: 'New York, NY', value: 'New York' },
+                      { label: 'London, UK', value: 'London' },
+                      { label: 'Berlin, DE', value: 'Berlin' },
+                      { label: 'Toronto, CA', value: 'Toronto' }
+                    ].map((loc) => (
+                      <TouchableOpacity
+                        key={`loc-chip-${loc.label}`}
+                        style={[styles.filterChip, filterLocation.toLowerCase() === loc.value.toLowerCase() && styles.filterChipActive]}
+                        onPress={() => setFilterLocation(loc.value)}
+                      >
+                        <Text style={[styles.filterChipText, filterLocation.toLowerCase() === loc.value.toLowerCase() && styles.filterChipTextActive]}>
+                          📍 {loc.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </ScrollView>
+
+              <TouchableOpacity
                 style={[styles.applyFilterBtn, { marginBottom: Platform.OS === 'ios' ? 0 : 12 }]}
                 activeOpacity={0.8}
                 onPress={() => setShowSearchModal(false)}
