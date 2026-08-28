@@ -867,17 +867,19 @@ export default function Onboarding() {
     }
   };
 
+
   const handleRateApp = async () => {
+    let nativeShown = false;
     try {
       if (await StoreReview.isAvailableAsync()) {
         await StoreReview.requestReview();
+        nativeShown = true;
       }
     } catch (err) {
       console.log('Store review error:', err);
     }
 
-    // Fallback to App Store review page direct URL scheme
-    setTimeout(() => {
+    if (!nativeShown) {
       const appStoreUrl = 'itms-apps://apps.apple.com/app/id6783382482?action=write-review';
       Linking.canOpenURL(appStoreUrl).then((supported) => {
         if (supported) {
@@ -888,7 +890,7 @@ export default function Onboarding() {
       }).catch(() => {
         Linking.openURL('https://apps.apple.com/app/apple-store/id6783382482?action=write-review').catch(() => {});
       });
-    }, 400);
+    }
 
     setTimeout(() => {
       setShowIRated(true);
@@ -908,8 +910,6 @@ export default function Onboarding() {
       setShowIEnabled(true);
     }, 1200);
   };
-
-  // Google Sign-In Setup
   const rawIosId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
   const rawWebId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '251783276638-rj2c7ntblcmfe7guo9pnvfjpib41d0qi.apps.googleusercontent.com';
   const validIosClientId = (rawIosId && !rawIosId.includes('your_google')) ? rawIosId : rawWebId;

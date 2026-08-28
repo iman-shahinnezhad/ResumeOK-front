@@ -18,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as StoreReview from 'expo-store-review';
 
 interface TaskItem {
   id: string;
@@ -200,10 +201,35 @@ export default function TasksScreen() {
       Alert.alert('Task Completed', 'You have already claimed credits for this task! 🎉');
       return;
     }
-
     if (task.actionType === 'url' && task.url) {
-      // 1. Open social/review link
-      await Linking.openURL(task.url);
+      if (task.id === 'app_review') {
+        let nativeShown = false;
+        try {
+          if (await StoreReview.isAvailableAsync()) {
+            await StoreReview.requestReview();
+            nativeShown = true;
+          }
+        } catch (err) {
+          console.log('Store review error:', err);
+        }
+
+        if (!nativeShown) {
+          const appStoreUrl = 'itms-apps://apps.apple.com/app/id6783382482?action=write-review';
+          try {
+            const supported = await Linking.canOpenURL(appStoreUrl);
+            if (supported) {
+              await Linking.openURL(appStoreUrl);
+            } else {
+              await Linking.openURL('https://apps.apple.com/app/apple-store/id6783382482?action=write-review');
+            }
+          } catch {
+            await Linking.openURL('https://apps.apple.com/app/apple-store/id6783382482?action=write-review');
+          }
+        }
+      } else {
+        // 1. Open social/review link
+        await Linking.openURL(task.url);
+      }
       // 2. Open confirmation modal (credits NOT added until user clicks Claim!)
       setActiveTaskModal(task);
     } else if (task.actionType === 'share') {
