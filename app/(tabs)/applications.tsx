@@ -94,13 +94,35 @@ export default function ApplicationsTab() {
       if (onlineRes.ok) {
         const onlineData = await onlineRes.json();
         if (onlineData.appliedJobs && Array.isArray(onlineData.appliedJobs)) {
-          setAppliedJobs(onlineData.appliedJobs);
-          await FileSystem.writeAsStringAsync(appliedPath, JSON.stringify(onlineData.appliedJobs));
+          setAppliedJobs(prev => {
+            const merged = [...onlineData.appliedJobs];
+            const serverIds = new Set(onlineData.appliedJobs.map((j: any) => String(j.id || j.jobId)));
+            prev.forEach((localJob: any) => {
+              const localId = String(localJob.id || localJob.jobId);
+              if (!serverIds.has(localId)) {
+                merged.push(localJob);
+              }
+            });
+            merged.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            FileSystem.writeAsStringAsync(appliedPath, JSON.stringify(merged)).catch(() => {});
+            return merged;
+          });
         }
         const serverSkipped = onlineData.skippedJobs || onlineData.rejectedJobs;
         if (serverSkipped && Array.isArray(serverSkipped)) {
-          setSkippedJobs(serverSkipped);
-          await FileSystem.writeAsStringAsync(skippedPath, JSON.stringify(serverSkipped));
+          setSkippedJobs(prev => {
+            const merged = [...serverSkipped];
+            const serverIds = new Set(serverSkipped.map((j: any) => String(j.id || j.jobId)));
+            prev.forEach((localJob: any) => {
+              const localId = String(localJob.id || localJob.jobId);
+              if (!serverIds.has(localId)) {
+                merged.push(localJob);
+              }
+            });
+            merged.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            FileSystem.writeAsStringAsync(skippedPath, JSON.stringify(merged)).catch(() => {});
+            return merged;
+          });
         }
       }
     } catch (e) {
