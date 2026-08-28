@@ -1869,40 +1869,6 @@ export default function JobsScreen() {
         </View>
       )}
 
-      {/* iOS 26 Floating Liquid Glass Match Actions (Card mode) */}
-      {viewMode === 'card' && !isLoadingJobs && filteredJobs.length > 0 && currentIndex < filteredJobs.length && (
-        <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.actionBtnSkip]}
-            activeOpacity={0.7}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              swipeCard('left');
-            }}
-          >
-            {Platform.OS === 'ios' ? (
-              <SymbolView name="xmark" size={24} tintColor="#EF4444" resizeMode="scaleAspectFit" />
-            ) : (
-              <Ionicons name="close" size={28} color="#EF4444" />
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.actionBtnApply]}
-            activeOpacity={0.7}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              swipeCard('right');
-            }}
-          >
-            {Platform.OS === 'ios' ? (
-              <SymbolView name="sparkles" size={24} tintColor="#10B981" resizeMode="scaleAspectFit" />
-            ) : (
-              <Ionicons name="sparkles" size={26} color="#10B981" />
-            )}
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* Details & Apply Modal */}
       <Modal
