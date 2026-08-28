@@ -159,6 +159,7 @@ export default function JobsScreen() {
   };
 
   const saveSkippedJob = async (job: GreenhouseJob, removeFromLocalState = true) => {
+    console.log('[JOBS] saveSkippedJob start:', job ? job.title : 'undefined', 'removeFromLocalState:', removeFromLocalState);
     try {
       if (removeFromLocalState) {
         // Immediately filter out from local state for 0ms UI delay
@@ -187,6 +188,7 @@ export default function JobsScreen() {
 
       const updatedList = [newEntry, ...currentSkipped.filter((j: any) => j.id !== newEntry.id)];
       await FileSystem.writeAsStringAsync(skippedPath, JSON.stringify(updatedList));
+      console.log('[JOBS] saveSkippedJob local write done, updatedList length:', updatedList.length);
 
       // Sync online backend
       const userId = user?.id || guestId || 'guest';
@@ -198,9 +200,12 @@ export default function JobsScreen() {
           jobId: String(job.id),
           jobData: newEntry
         })
-      }).catch(err => console.log('Backend sync skipped error:', err));
+      })
+      .then(res => res.json())
+      .then(data => console.log('[JOBS] saveSkippedJob backend sync success:', JSON.stringify(data)))
+      .catch(err => console.log('[JOBS] Backend sync skipped error:', err));
     } catch (e) {
-      console.log('Error saving skipped job:', e);
+      console.log('[JOBS] Error saving skipped job:', e);
     }
   };
 
@@ -236,8 +241,13 @@ export default function JobsScreen() {
       }
     }, 100);
 
-    if (direction === 'left' && targetJob) {
-      saveSkippedJob(targetJob, false);
+    console.log('[JOBS] handleSwipeComplete direction:', direction, 'currentIndexRef.current:', currentIndexRef.current, 'targetJob:', targetJob ? targetJob.title : 'undefined');
+    if (direction === 'left') {
+      if (targetJob) {
+        saveSkippedJob(targetJob, false);
+      } else {
+        console.log('[JOBS] swipe left completed but targetJob is undefined');
+      }
     } else if (direction === 'right' && targetJob) {
       viewJobDetails(targetJob);
     }
