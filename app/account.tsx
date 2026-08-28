@@ -77,10 +77,16 @@ export default function Account() {
 
       let profFilled = 0;
       if (loadedProfile) {
-        if (loadedProfile.experience?.trim()) profFilled += 2;
-        if (loadedProfile.expectedSalary?.min || loadedProfile.expectedSalary) profFilled += 2;
-        if ((Array.isArray(loadedProfile.skills) && loadedProfile.skills.length > 0) || (Array.isArray(loadedProfile.selectedRoles) && loadedProfile.selectedRoles.length > 0)) profFilled += 4;
-        if (Array.isArray(loadedProfile.interests) && loadedProfile.interests.length > 0) profFilled += 4;
+        const summaryFilled = Math.min(2, loadedProfile.summaries?.length || (loadedProfile.jobTitle ? 1 : 0));
+        const expFilled = Math.min(2, loadedProfile.experiences?.length || 0);
+        const projectFilled = Math.min(3, loadedProfile.projects?.length || 0);
+        const eduFilled = Math.min(1, loadedProfile.educations?.length || 0);
+        const techCount = loadedProfile.skills?.length || 0;
+        const softCount = loadedProfile.softSkills?.length || 0;
+        const skillFilled = Math.min(3, techCount + softCount);
+        const langFilled = Math.min(1, loadedProfile.languages?.length || 0);
+
+        profFilled = summaryFilled + expFilled + projectFilled + eduFilled + skillFilled + langFilled;
       }
 
       let resumeFilled = count > 0 ? 1 : 0;
