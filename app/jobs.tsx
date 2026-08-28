@@ -1832,7 +1832,7 @@ export default function JobsScreen() {
 
               {/* Foreground / Active Card (Moves with gesture) */}
               <Animated.View
-                key={`fg-${filteredJobs[currentIndex].id}`}
+                key="fg-card"
                 {...panResponder.panHandlers}
                 style={[
                   styles.jobCardContainer,
@@ -4346,6 +4346,10 @@ const JobCardContent = React.memo(({ item, isActive, userProfile, likeStyle, nop
   const companyName = item.companyName || "Company";
 
   const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [item.id]);
 
   const companySlug = item.boardToken || companyName.toLowerCase().replace(/[^a-z0-9]/g, '');
   const logoUrl = companySlug ? `https://logo.clearbit.com/${companySlug}.com` : '';
