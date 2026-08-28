@@ -89,7 +89,14 @@ function matchesSkill(userSkill: string, jobSkill: string): boolean {
   return false;
 }
 
+const matchCache = new Map<string, JobMatchResult>();
+
 export function calculateJobMatch(jobContent: string, jobTitle: string, userProfile: any): JobMatchResult {
+  const cacheKey = `${jobContent.length}_${jobTitle}_${userProfile?.skills?.length || 0}_${userProfile?.experience || ''}`;
+  if (matchCache.has(cacheKey)) {
+    return matchCache.get(cacheKey)!;
+  }
+
   const contentLower = (jobContent + ' ' + jobTitle).toLowerCase();
   const titleLower = (jobTitle || '').toLowerCase();
 
@@ -212,7 +219,7 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
     (overallScore * 0.8) + (roleMatchScore * 0.2)
   )));
 
-  return {
+  const result: JobMatchResult = {
     overallScore,
     expLevelScore,
     skillsScore,
@@ -220,4 +227,11 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
     matchedSkills: matchedSkills.length > 0 ? matchedSkills : (userSkills.length > 0 ? userSkills : ['UI/UX Design', 'Design Systems', 'Figma']),
     missingSkills,
   };
+
+  if (matchCache.size > 1000) {
+    matchCache.clear();
+  }
+  matchCache.set(cacheKey, result);
+
+  return result;
 }
