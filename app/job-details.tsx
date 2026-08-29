@@ -77,7 +77,11 @@ export default function JobDetailsScreen() {
     useCallback(() => {
       if (hasOpenedApplyRef.current) {
         hasOpenedApplyRef.current = false;
-        setShowDidYouApplyModal(true);
+        // Delay opening the modal to ensure the slide-down animation of the apply page sheet completes fully first
+        const timer = setTimeout(() => {
+          setShowDidYouApplyModal(true);
+        }, 600);
+        return () => clearTimeout(timer);
       }
     }, [])
   );
