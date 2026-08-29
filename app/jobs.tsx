@@ -820,11 +820,9 @@ export default function JobsScreen() {
             }
           }
 
-          // Smart input finder helper
           function findInputs(selectors, labelKeywords, placeholderKeywords) {
             const found = new Set();
             
-            // 1. Selector match
             if (selectors) {
               document.querySelectorAll(selectors).forEach(el => {
                 if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
@@ -832,35 +830,41 @@ export default function JobsScreen() {
                 }
               });
             }
-            
-            // 2. Label match
-            const labels = Array.from(document.querySelectorAll('label'));
-            for (const label of labels) {
-              const labelText = label.innerText.toLowerCase();
-              if (labelKeywords.some(kw => labelText.includes(kw))) {
-                const htmlFor = label.getAttribute('for');
-                if (htmlFor) {
-                  const el = document.getElementById(htmlFor);
-                  if (el) found.add(el);
-                }
-                const nestedInput = label.querySelector('input, textarea, select');
-                if (nestedInput) found.add(nestedInput);
-                
-                // check adjacent elements
-                let sibling = label.nextElementSibling;
-                if (sibling) {
-                  if (sibling.tagName === 'INPUT' || sibling.tagName === 'TEXTAREA' || sibling.tagName === 'SELECT') {
-                    found.add(sibling);
-                  } else {
-                    const child = sibling.querySelector('input, textarea, select');
-                    if (child) found.add(child);
+
+            if (labelKeywords && labelKeywords.length > 0) {
+              document.querySelectorAll('label').forEach(label => {
+                const labelText = label.innerText.toLowerCase();
+                if (labelKeywords.some(kw => labelText.includes(kw))) {
+                  const htmlFor = label.getAttribute('for');
+                  if (htmlFor) {
+                    const el = document.getElementById(htmlFor);
+                    if (el) found.add(el);
+                  }
+                  const nestedInput = label.querySelector('input, textarea, select');
+                  if (nestedInput) found.add(nestedInput);
+                  let sibling = label.nextElementSibling;
+                  if (sibling) {
+                    if (sibling.tagName === 'INPUT' || sibling.tagName === 'TEXTAREA' || sibling.tagName === 'SELECT') {
+                      found.add(sibling);
+                    } else {
+                      const child = sibling.querySelector('input, textarea, select');
+                      if (child) found.add(child);
+                    }
+                  }
+                  let parent = label.parentElement;
+                  for (let depth = 0; depth < 3 && parent; depth++) {
+                    const nestedInputs = parent.querySelectorAll('input, textarea, select');
+                    if (nestedInputs.length > 0) {
+                      nestedInputs.forEach(inp => found.add(inp));
+                      break;
+                    }
+                    parent = parent.parentElement;
                   }
                 }
-              }
+              });
             }
-            
-            // 3. Placeholder match
-            if (placeholderKeywords) {
+
+            if (placeholderKeywords && placeholderKeywords.length > 0) {
               document.querySelectorAll('input, textarea').forEach(el => {
                 const ph = (el.getAttribute('placeholder') || '').toLowerCase();
                 if (placeholderKeywords.some(kw => ph.includes(kw))) {
@@ -868,7 +872,27 @@ export default function JobsScreen() {
                 }
               });
             }
-            
+
+            if (labelKeywords && labelKeywords.length > 0) {
+              document.querySelectorAll('input, textarea, select').forEach(el => {
+                const name = (el.getAttribute('name') || '').toLowerCase();
+                const id = (el.getAttribute('id') || '').toLowerCase();
+                const ph = (el.getAttribute('placeholder') || '').toLowerCase();
+                const aria = (el.getAttribute('aria-label') || '').toLowerCase();
+                const auto = (el.getAttribute('autocomplete') || '').toLowerCase();
+                
+                if (labelKeywords.some(kw => 
+                  name.includes(kw) || 
+                  id.includes(kw) || 
+                  ph.includes(kw) || 
+                  aria.includes(kw) || 
+                  auto.includes(kw)
+                )) {
+                  found.add(el);
+                }
+              });
+            }
+
             return Array.from(found);
           }
 
