@@ -226,8 +226,8 @@ export default function ApplyJobScreen() {
           try {
             let filled = 0;
 
-            const isLever = window.location.host.includes('lever.co') || document.querySelector('input[name="name"]') || document.querySelector('input[name="email"]');
-            const isGreenhouse = window.location.host.includes('greenhouse.io') || document.querySelector('form#application_form') || document.querySelector('input#first_name');
+            const isLever = window.location.host.includes('lever.co') || !!document.querySelector('form[action*="lever.co"]');
+            const isGreenhouse = window.location.host.includes('greenhouse.io') || !!document.querySelector('form#application_form') || !!document.querySelector('form[action*="greenhouse.io"]');
 
             if (isGreenhouse) {
               // First Name
