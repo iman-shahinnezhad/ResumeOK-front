@@ -736,12 +736,12 @@ export default function JobDetailsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* TAILOR NATIVE iOS BOTTOM SHEET MODAL */}
       <Modal
         visible={showTailorModal}
         transparent={true}
         animationType="slide"
         onRequestClose={() => setShowTailorModal(false)}
+        onDismiss={() => setShowTailorModal(false)}
       >
         <View style={styles.modalOverlayBackdrop}>
           <TouchableOpacity
@@ -870,11 +870,12 @@ export default function JobDetailsScreen() {
         </View>
       </Modal>
 
-      {/* AI GENERATION PROGRESS MODAL */}
       <Modal
         visible={isMatchingWithAI}
         animationType="fade"
         transparent={false}
+        onRequestClose={() => setIsMatchingWithAI(false)}
+        onDismiss={() => setIsMatchingWithAI(false)}
       >
         <View style={[styles.container, { paddingTop: insets.top + 10, paddingHorizontal: 20 }]}>
           {/* Header Bar */}
@@ -1013,11 +1014,12 @@ export default function JobDetailsScreen() {
         </View>
       </Modal>
 
-      {/* TAILORED RESULT SCREEN MODAL */}
       <Modal
         visible={showMatchResultModal}
         animationType="slide"
         transparent={false}
+        onRequestClose={() => setShowMatchResultModal(false)}
+        onDismiss={() => setShowMatchResultModal(false)}
       >
         <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
           {/* Header Bar */}
@@ -1268,12 +1270,12 @@ export default function JobDetailsScreen() {
         </View>
       </Modal>
 
-      {/* DID YOU APPLY NATIVE iOS BOTTOM SHEET MODAL */}
       <Modal
         visible={showDidYouApplyModal}
         transparent={true}
         animationType="slide"
         onRequestClose={() => setShowDidYouApplyModal(false)}
+        onDismiss={() => setShowDidYouApplyModal(false)}
       >
         <View style={styles.modalOverlayBackdrop}>
           <TouchableOpacity

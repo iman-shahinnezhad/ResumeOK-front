@@ -2164,11 +2164,14 @@ export default function JobsScreen() {
         </View>
       </Modal>
 
-      {/* Autofill Assistant WebView Modal */}
       <Modal
         visible={webViewVisible}
         animationType="slide"
         onRequestClose={() => {
+          setWebViewVisible(false);
+          setSelectedJob(null);
+        }}
+        onDismiss={() => {
           setWebViewVisible(false);
           setSelectedJob(null);
         }}
