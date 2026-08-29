@@ -102,26 +102,26 @@ export default function ApplyJobScreen() {
     const currentEdu = educations.length > 0 ? educations[0] : null;
 
     const payload = {
-      firstName: (profileData.firstName || '').replace(/'/g, "\\'"),
-      lastName: (profileData.lastName || '').replace(/'/g, "\\'"),
-      email: (profileData.email || '').replace(/'/g, "\\'"),
-      phone: (profileData.phone || profileData.phoneNumber || profileData.mobile || '').replace(/'/g, "\\'"),
-      linkedinUrl: (profileData.linkedinUrl || profileData.linkedin || '').replace(/'/g, "\\'"),
-      portfolioUrl: (profileData.portfolioUrl || profileData.portfolio || profileData.website || '').replace(/'/g, "\\'"),
-      city: (profileData.city || '').replace(/'/g, "\\'"),
-      country: (profileData.country || 'United States').replace(/'/g, "\\'"),
-      resumeBase64: resumeBase64,
+      firstName: (profileData.firstName || '').trim(),
+      lastName: (profileData.lastName || '').trim(),
+      email: (profileData.email || '').trim(),
+      phone: (profileData.phone || profileData.phoneNumber || profileData.mobile || '').trim(),
+      linkedinUrl: (profileData.linkedinUrl || profileData.linkedin || '').trim(),
+      portfolioUrl: (profileData.portfolioUrl || profileData.portfolio || profileData.website || '').trim(),
+      city: (profileData.city || '').trim(),
+      country: (profileData.country || 'United States').trim(),
+      resumeBase64: '',
       resumeName: resumeName,
       coverLetterText: coverLetterText,
-      currentJobTitle: (currentExp?.jobTitle || profileData.jobTitle || profileData.role || '').replace(/'/g, "\\'"),
-      currentEmployer: (currentExp?.companyName || '').replace(/'/g, "\\'"),
-      workStartDate: (currentExp?.startDate || '').replace(/'/g, "\\'"),
-      workEndDate: (currentExp?.endDate || '').replace(/'/g, "\\'"),
-      educationSchool: (currentEdu?.schoolName || '').replace(/'/g, "\\'"),
-      degree: (currentEdu?.degree || '').replace(/'/g, "\\'"),
-      discipline: (currentEdu?.fieldOfStudy || currentEdu?.degree || '').replace(/'/g, "\\'"),
-      eduStartDate: (currentEdu?.startDate || '').replace(/'/g, "\\'"),
-      eduEndDate: (currentEdu?.endDate || '').replace(/'/g, "\\'"),
+      currentJobTitle: (currentExp?.jobTitle || profileData.jobTitle || profileData.role || '').trim(),
+      currentEmployer: (currentExp?.companyName || '').trim(),
+      workStartDate: (currentExp?.startDate || '').trim(),
+      workEndDate: (currentExp?.endDate || '').trim(),
+      educationSchool: (currentEdu?.schoolName || '').trim(),
+      degree: (currentEdu?.degree || '').trim(),
+      discipline: (currentEdu?.fieldOfStudy || currentEdu?.degree || '').trim(),
+      eduStartDate: (currentEdu?.startDate || '').trim(),
+      eduEndDate: (currentEdu?.endDate || '').trim(),
     };
 
     return `
@@ -228,6 +228,8 @@ export default function ApplyJobScreen() {
 
             const isLever = window.location.host.includes('lever.co') || !!document.querySelector('form[action*="lever.co"]');
             const isGreenhouse = window.location.host.includes('greenhouse.io') || !!document.querySelector('form#application_form') || !!document.querySelector('form[action*="greenhouse.io"]');
+
+            sendLog('tryAutofill attempts=' + attempts + ' isGreenhouse=' + isGreenhouse + ' isLever=' + isLever + ' host=' + window.location.host);
 
             if (isGreenhouse) {
               // First Name
@@ -764,6 +766,10 @@ export default function ApplyJobScreen() {
               if (data.type === 'AUTOFILL_SUCCESS' && data.count > 0) {
                 setAutofillCount(data.count);
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              } else if (data.type === 'log') {
+                console.log('\x1b[33m[WebView Log]\x1b[0m', data.message);
+              } else if (data.type === 'AUTOFILL_ERROR') {
+                console.log('\x1b[31m[WebView Error]\x1b[0m', data.error);
               }
             } catch (e) {}
           }}
@@ -841,6 +847,34 @@ export default function ApplyJobScreen() {
                   <Ionicons name="copy-outline" size={13} color="#4B5563" />
                 )}
                 <Text style={styles.chipText}>Name</Text>
+              </TouchableOpacity>
+            ) : null}
+            {resumeBase64 ? (
+              <TouchableOpacity
+                style={styles.chipBtn}
+                onPress={async () => {
+                  try {
+                    const Sharing = require('expo-sharing');
+                    const targetPath = `${FileSystem.documentDirectory}${resumeName || 'resume.pdf'}`;
+                    const exists = await FileSystem.getInfoAsync(targetPath);
+                    if (!exists.exists) {
+                      await FileSystem.writeAsStringAsync(targetPath, resumeBase64, { encoding: 'base64' });
+                    }
+                    await Sharing.shareAsync(targetPath, {
+                      mimeType: 'application/pdf',
+                      dialogTitle: 'Save Resume to Files'
+                    });
+                  } catch (e) {
+                    console.log('Error sharing resume:', e);
+                  }
+                }}
+              >
+                {Platform.OS === 'ios' ? (
+                  <SymbolView name="square.and.arrow.up" size={13} tintColor="#4B5563" resizeMode="scaleAspectFit" />
+                ) : (
+                  <Ionicons name="share-social-outline" size={13} color="#4B5563" />
+                )}
+                <Text style={styles.chipText}>Resume</Text>
               </TouchableOpacity>
             ) : null}
           </View>

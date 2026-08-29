@@ -731,7 +731,7 @@ export default function JobsScreen() {
       portfolioUrl: (userProfile?.portfolioUrl || userProfile?.portfolio || userProfile?.website || '').trim(),
       city: (userProfile?.city || '').trim(),
       country: (userProfile?.country || 'United States').trim(),
-      resumeBase64: selectedResumeBase64,
+      resumeBase64: '',
       resumeName: selectedResumeName,
       coverLetterText: selectedCoverLetterText,
       currentJobTitle: (currentExp?.jobTitle || userProfile?.jobTitle || userProfile?.role || '').trim(),
