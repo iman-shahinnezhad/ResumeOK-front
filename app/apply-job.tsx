@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   Alert,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -31,6 +32,8 @@ export default function ApplyJobScreen() {
   const [resumeBase64, setResumeBase64] = useState<string>('');
   const [resumeName, setResumeName] = useState<string>('');
   const [coverLetterText, setCoverLetterText] = useState<string>('');
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
 
   const jobUrl = params.url || 'https://google.com';
   const jobTitle = params.title || 'Job Application';
@@ -727,8 +730,10 @@ export default function ApplyJobScreen() {
   const handleTriggerAutofill = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (webViewRef.current && profileData) {
+      setDebugLogs(prev => [...prev, '[Manual] Triggering autofill injection manually...']);
       webViewRef.current.injectJavaScript(getAutofillJS());
     } else {
+      setDebugLogs(prev => [...prev, `[Manual] Error: webViewRef=${!!webViewRef.current} profileData=${!!profileData}`]);
       Alert.alert('Profile Empty', 'Please complete your onboarding profile first to use 1-Click Autofill.');
     }
   };
@@ -765,20 +770,37 @@ export default function ApplyJobScreen() {
           {companyName ? <Text style={styles.headerSubtitle} numberOfLines={1}>{companyName}</Text> : null}
         </View>
 
-        <TouchableOpacity
-          style={styles.reloadBtn}
-          activeOpacity={0.7}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            webViewRef.current?.reload();
-          }}
-        >
-          {Platform.OS === 'ios' ? (
-            <SymbolView name="arrow.clockwise" size={18} tintColor="#6B7280" resizeMode="scaleAspectFit" />
-          ) : (
-            <Ionicons name="refresh" size={20} color="#6B7280" />
-          )}
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            style={styles.reloadBtn}
+            activeOpacity={0.7}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              webViewRef.current?.reload();
+            }}
+          >
+            {Platform.OS === 'ios' ? (
+              <SymbolView name="arrow.clockwise" size={18} tintColor="#6B7280" resizeMode="scaleAspectFit" />
+            ) : (
+              <Ionicons name="refresh" size={20} color="#6B7280" />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.reloadBtn, showDebug && { backgroundColor: '#FEE2E2' }]}
+            activeOpacity={0.7}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowDebug(!showDebug);
+            }}
+          >
+            {Platform.OS === 'ios' ? (
+              <SymbolView name="ladybug" size={18} tintColor={showDebug ? '#EF4444' : '#6B7280'} resizeMode="scaleAspectFit" />
+            ) : (
+              <Ionicons name="bug-outline" size={20} color={showDebug ? '#EF4444' : '#6B7280'} />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* In-App Application WebView */}
@@ -786,13 +808,20 @@ export default function ApplyJobScreen() {
         <WebView
           ref={webViewRef}
           source={{ uri: jobUrl }}
-          onLoadStart={() => setLoading(true)}
+          onLoadStart={() => {
+            setLoading(true);
+            setDebugLogs(prev => [...prev, `[WebView] Load started: ${jobUrl}`]);
+          }}
           onLoadEnd={() => {
             setLoading(false);
+            setDebugLogs(prev => [...prev, '[WebView] Load completed. Scheduling auto-inject in 1200ms...']);
             // Auto-inject fields once page finishes loading
             setTimeout(() => {
               if (webViewRef.current && profileData) {
+                setDebugLogs(prev => [...prev, '[WebView] Injecting script automatically...']);
                 webViewRef.current.injectJavaScript(getAutofillJS());
+              } else {
+                setDebugLogs(prev => [...prev, `[WebView] Skip auto-inject: webViewRef=${!!webViewRef.current} profileData=${!!profileData}`]);
               }
             }, 1200);
           }}
@@ -802,12 +831,17 @@ export default function ApplyJobScreen() {
               if (data.type === 'AUTOFILL_SUCCESS' && data.count > 0) {
                 setAutofillCount(data.count);
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                setDebugLogs(prev => [...prev, `[Success] Autofilled ${data.count} fields!`]);
               } else if (data.type === 'log') {
                 console.log('\x1b[33m[WebView Log]\x1b[0m', data.message);
+                setDebugLogs(prev => [...prev, `[Log] ${data.message}`]);
               } else if (data.type === 'AUTOFILL_ERROR') {
                 console.log('\x1b[31m[WebView Error]\x1b[0m', data.error);
+                setDebugLogs(prev => [...prev, `[Error] ${data.error}`]);
               }
-            } catch (e) {}
+            } catch (e) {
+              setDebugLogs(prev => [...prev, `[Parse Error] Failed to parse message: ${e instanceof Error ? e.message : String(e)}`]);
+            }
           }}
           javaScriptEnabled={true}
           domStorageEnabled={true}
@@ -819,6 +853,38 @@ export default function ApplyJobScreen() {
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#7C3AED" />
             <Text style={styles.loadingText}>Opening Application Page...</Text>
+          </View>
+        )}
+
+        {showDebug && (
+          <View style={styles.debugPanel}>
+            <View style={styles.debugHeader}>
+              <Text style={styles.debugTitle}>Debug Logs ({debugLogs.length})</Text>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity onPress={() => setDebugLogs([])}>
+                  <Text style={styles.debugActionText}>Clear</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowDebug(false)}>
+                  <Text style={styles.debugActionText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <ScrollView style={styles.debugScroll} contentContainerStyle={{ padding: 10 }}>
+              {debugLogs.length === 0 ? (
+                <Text style={styles.debugEmptyText}>No logs captured yet.</Text>
+              ) : (
+                debugLogs.map((log, idx) => (
+                  <Text key={idx} style={[
+                    styles.debugLogLine,
+                    log.includes('[Error]') && { color: '#EF4444' },
+                    log.includes('[Success]') && { color: '#10B981' },
+                    log.includes('[Manual]') && { color: '#3B82F6' }
+                  ]}>
+                    {log}
+                  </Text>
+                ))
+              )}
+            </ScrollView>
           </View>
         )}
       </View>
@@ -1026,5 +1092,50 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#374151',
+  },
+  debugPanel: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 320,
+    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+    borderBottomWidth: 1,
+    borderBottomColor: '#374151',
+    zIndex: 9999,
+  },
+  debugHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#1F2937',
+    borderBottomWidth: 1,
+    borderBottomColor: '#374151',
+  },
+  debugTitle: {
+    color: '#F9FAFB',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  debugActionText: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  debugScroll: {
+    flex: 1,
+  },
+  debugEmptyText: {
+    color: '#9CA3AF',
+    fontSize: 11,
+    fontStyle: 'italic',
+  },
+  debugLogLine: {
+    color: '#D1D5DB',
+    fontSize: 10,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    marginBottom: 4,
   },
 });
