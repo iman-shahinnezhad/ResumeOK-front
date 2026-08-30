@@ -312,7 +312,7 @@ export default function ApplyJobScreen() {
             const isLever = window.location.host.includes('lever.co') || !!document.querySelector('form[action*="lever.co"]');
             const isGreenhouse = window.location.host.includes('greenhouse.io') || !!document.querySelector('form#application_form') || !!document.querySelector('form[action*="greenhouse.io"]');
 
-            sendLog('tryAutofill attempts=' + attempts + ' isGreenhouse=' + isGreenhouse + ' isLever=' + isLever + ' host=' + window.location.host);
+            sendLog('[v2.1 Fast-Autofill] Script loaded on host: ' + window.location.host);
 
             if (isGreenhouse) {
               // First Name
@@ -774,7 +774,7 @@ export default function ApplyJobScreen() {
   const handleTriggerAutofill = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (webViewRef.current && profileData) {
-      setDebugLogs(prev => [...prev, '[Manual] Triggering autofill injection manually...']);
+      setDebugLogs(prev => [...prev, '[v2.1 Fast-Autofill] Triggering autofill injection...']);
       webViewRef.current.injectJavaScript(cleanJsCodeForInjection(getAutofillJS()));
     } else {
       setDebugLogs(prev => [...prev, `[Manual] Error: webViewRef=${!!webViewRef.current} profileData=${!!profileData}`]);

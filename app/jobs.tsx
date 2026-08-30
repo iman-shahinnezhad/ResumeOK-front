@@ -807,7 +807,7 @@ export default function JobsScreen() {
           }
         }
 
-        sendLog('Script loaded on host: ' + window.location.host);
+        sendLog('[v2.1 Fast-Autofill] Script loaded on host: ' + window.location.host);
 
         function base64ToBlob(base64, mimeType) {
           const byteCharacters = atob(base64);
