@@ -766,6 +766,14 @@ export default function ApplyJobScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (webViewRef.current && profileData) {
       setDebugLogs(prev => [...prev, '[Manual] Triggering autofill injection manually...']);
+      webViewRef.current.injectJavaScript(`
+        (function() {
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'log', message: 'DIAGNOSTIC TEST DIAL SUCCESSFUL' }));
+          }
+        })();
+        true;
+      `);
       webViewRef.current.injectJavaScript(getAutofillJS());
     } else {
       setDebugLogs(prev => [...prev, `[Manual] Error: webViewRef=${!!webViewRef.current} profileData=${!!profileData}`]);
