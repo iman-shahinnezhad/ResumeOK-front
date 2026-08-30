@@ -129,7 +129,7 @@ export default function ApplyJobScreen() {
 
     return `
       (function() {
-        const payload = JSON.parse(${JSON.stringify(JSON.stringify(payload))});
+        const payload = JSON.parse(decodeURIComponent("${encodeURIComponent(JSON.stringify(payload))}"));
         let attempts = 0;
         const maxAttempts = 10;
 
