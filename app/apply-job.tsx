@@ -118,7 +118,7 @@ export default function ApplyJobScreen() {
       portfolioUrl: (profileData.portfolioUrl || profileData.portfolio || profileData.website || '').trim(),
       city: (profileData.city || '').trim(),
       country: (profileData.country || 'United States').trim(),
-      resumeBase64: resumeBase64 || '',
+      resumeBase64: '',
       resumeName: resumeName,
       coverLetterText: coverLetterText,
       currentJobTitle: (currentExp?.jobTitle || profileData.jobTitle || profileData.role || '').trim(),
