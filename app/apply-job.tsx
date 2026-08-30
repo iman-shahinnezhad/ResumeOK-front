@@ -811,6 +811,7 @@ export default function ApplyJobScreen() {
           }}
           javaScriptEnabled={true}
           domStorageEnabled={true}
+          injectedJavaScriptForMainFrameOnly={false}
           style={{ flex: 1 }}
         />
 

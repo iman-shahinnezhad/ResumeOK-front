@@ -2233,6 +2233,7 @@ export default function JobsScreen() {
             style={{ flex: 1 }}
             domStorageEnabled={true}
             javaScriptEnabled={true}
+            injectedJavaScriptForMainFrameOnly={false}
             allowFileAccess={true}
             allowFileAccessFromFileURLs={true}
             allowUniversalAccessFromFileURLs={true}
