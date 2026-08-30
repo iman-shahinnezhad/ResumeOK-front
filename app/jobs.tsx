@@ -756,7 +756,7 @@ export default function JobsScreen() {
 
     const jsCode = `
       (function() {
-        const payload = ${JSON.stringify(payload)};
+        const payload = JSON.parse(${JSON.stringify(JSON.stringify(payload))});
         let attempts = 0;
         const maxAttempts = 10;
         
