@@ -735,7 +735,7 @@ export default function JobsScreen() {
       portfolioUrl: (userProfile?.portfolioUrl || userProfile?.portfolio || userProfile?.website || '').trim(),
       city: (userProfile?.city || '').trim(),
       country: (userProfile?.country || 'United States').trim(),
-      resumeBase64: '',
+      resumeBase64: selectedResumeBase64 || '',
       resumeName: selectedResumeName,
       coverLetterText: selectedCoverLetterText,
       currentJobTitle: (currentExp?.jobTitle || userProfile?.jobTitle || userProfile?.role || '').trim(),
@@ -874,8 +874,8 @@ export default function JobsScreen() {
 
             if (labelKeywords && labelKeywords.length > 0) {
               document.querySelectorAll('label').forEach(label => {
-                const labelText = label.innerText.toLowerCase();
-                if (labelKeywords.some(kw => labelText.includes(kw))) {
+                const labelText = (label.innerText || label.textContent || '').toLowerCase();
+                if (labelText && labelKeywords.some(kw => labelText.includes(kw))) {
                   const htmlFor = label.getAttribute('for');
                   if (htmlFor) {
                     const el = document.getElementById(htmlFor);

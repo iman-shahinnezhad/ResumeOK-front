@@ -118,7 +118,7 @@ export default function ApplyJobScreen() {
       portfolioUrl: (profileData.portfolioUrl || profileData.portfolio || profileData.website || '').trim(),
       city: (profileData.city || '').trim(),
       country: (profileData.country || 'United States').trim(),
-      resumeBase64: '',
+      resumeBase64: resumeBase64 || '',
       resumeName: resumeName,
       coverLetterText: coverLetterText,
       currentJobTitle: (currentExp?.jobTitle || profileData.jobTitle || profileData.role || '').trim(),
@@ -195,9 +195,13 @@ export default function ApplyJobScreen() {
           if (!element || !value) return;
           
           if (element.tagName === 'SELECT') {
-            const options = Array.from(element.options);
-            const valLower = value.toLowerCase();
-            let matchedOption = options.find(opt => opt.value.toLowerCase() === valLower || opt.text.toLowerCase().includes(valLower));
+            const options = Array.from(element.options || []);
+            const valLower = (value || '').toLowerCase();
+            let matchedOption = options.find(opt => {
+              const optVal = (opt.value || '').toLowerCase();
+              const optTxt = (opt.text || opt.innerText || '').toLowerCase();
+              return optVal === valLower || (valLower && optTxt.includes(valLower));
+            });
             if (matchedOption) {
               element.value = matchedOption.value;
               element.dispatchEvent(new Event('change', { bubbles: true }));
@@ -237,8 +241,8 @@ export default function ApplyJobScreen() {
 
           if (labelKeywords && labelKeywords.length > 0) {
             document.querySelectorAll('label').forEach(label => {
-              const labelText = label.innerText.toLowerCase();
-              if (labelKeywords.some(kw => labelText.includes(kw))) {
+              const labelText = (label.innerText || label.textContent || '').toLowerCase();
+              if (labelText && labelKeywords.some(kw => labelText.includes(kw))) {
                 const htmlFor = label.getAttribute('for');
                 if (htmlFor) {
                   const el = document.getElementById(htmlFor);
@@ -771,14 +775,6 @@ export default function ApplyJobScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (webViewRef.current && profileData) {
       setDebugLogs(prev => [...prev, '[Manual] Triggering autofill injection manually...']);
-      webViewRef.current.injectJavaScript(`
-        (function() {
-          if (window.ReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'log', message: 'DIAGNOSTIC TEST DIAL SUCCESSFUL' }));
-          }
-        })();
-        true;
-      `);
       webViewRef.current.injectJavaScript(cleanJsCodeForInjection(getAutofillJS()));
     } else {
       setDebugLogs(prev => [...prev, `[Manual] Error: webViewRef=${!!webViewRef.current} profileData=${!!profileData}`]);
