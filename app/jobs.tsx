@@ -42,6 +42,11 @@ import { WebView } from 'react-native-webview';
 import { getSession } from '../utils/session';
 import { calculateJobMatch } from '../utils/jobMatch';
 
+const cleanJsCodeForInjection = (js: string) => {
+  const noComments = js.replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+  return noComments.replace(/[\r\n]+/g, ' ');
+};
+
 const POPULAR_GREENHOUSE_COMPANIES = ['stripe', 'dropbox', 'deliveroo', 'vimeo', 'amplitude'];
 const POPULAR_LEVER_COMPANIES = ['kinsta', 'aircall', 'palantir'];
 
@@ -1389,7 +1394,7 @@ export default function JobsScreen() {
 
   const injectAutofillScript = () => {
     if (webViewRef.current) {
-      webViewRef.current.injectJavaScript(getAutofillJS());
+      webViewRef.current.injectJavaScript(cleanJsCodeForInjection(getAutofillJS()));
     }
   };
 
@@ -2275,7 +2280,7 @@ export default function JobsScreen() {
             domStorageEnabled={true}
             javaScriptEnabled={true}
             injectedJavaScriptForMainFrameOnly={false}
-            injectedJavaScript={getAutofillJS()}
+            injectedJavaScript={cleanJsCodeForInjection(getAutofillJS())}
             allowFileAccess={true}
             allowFileAccessFromFileURLs={true}
             allowUniversalAccessFromFileURLs={true}

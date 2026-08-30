@@ -20,6 +20,11 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const cleanJsCodeForInjection = (js: string) => {
+  const noComments = js.replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+  return noComments.replace(/[\r\n]+/g, ' ');
+};
+
 export default function ApplyJobScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -774,7 +779,7 @@ export default function ApplyJobScreen() {
         })();
         true;
       `);
-      webViewRef.current.injectJavaScript(getAutofillJS());
+      webViewRef.current.injectJavaScript(cleanJsCodeForInjection(getAutofillJS()));
     } else {
       setDebugLogs(prev => [...prev, `[Manual] Error: webViewRef=${!!webViewRef.current} profileData=${!!profileData}`]);
       Alert.alert('Profile Empty', 'Please complete your onboarding profile first to use 1-Click Autofill.');
@@ -862,7 +867,7 @@ export default function ApplyJobScreen() {
             setTimeout(() => {
               if (webViewRef.current && profileData) {
                 setDebugLogs(prev => [...prev, '[WebView] Injecting script automatically...']);
-                webViewRef.current.injectJavaScript(getAutofillJS());
+                webViewRef.current.injectJavaScript(cleanJsCodeForInjection(getAutofillJS()));
               } else {
                 setDebugLogs(prev => [...prev, `[WebView] Skip auto-inject: webViewRef=${!!webViewRef.current} profileData=${!!profileData}`]);
               }
@@ -889,7 +894,7 @@ export default function ApplyJobScreen() {
           javaScriptEnabled={true}
           domStorageEnabled={true}
           injectedJavaScriptForMainFrameOnly={false}
-          injectedJavaScript={getAutofillJS()}
+          injectedJavaScript={cleanJsCodeForInjection(getAutofillJS())}
           style={{ flex: 1 }}
         />
 
