@@ -846,17 +846,24 @@ export default function JobsScreen() {
           // 0. IFRAME REDIRECT (to bypass Cross-Origin restrictions on custom domains)
           const isAlreadyOnATS = window.location.host.includes('greenhouse.io') || window.location.host.includes('lever.co');
           if (!isAlreadyOnATS) {
-            const greenhouseIframe = document.querySelector('iframe[src*="greenhouse.io"]');
-            if (greenhouseIframe && greenhouseIframe.src && !window.location.href.includes('embed/job_app')) {
-              sendLog('Found Greenhouse iframe. Redirecting top window to: ' + greenhouseIframe.src);
-              window.location.href = greenhouseIframe.src;
+            const ghIframe = document.querySelector('iframe[src*="greenhouse.io"]') || document.querySelector('iframe#grnhse_iframe');
+            if (ghIframe && ghIframe.src && !window.location.href.includes('embed/job_app')) {
+              sendLog('Found Greenhouse iframe on ' + window.location.host + '. Redirecting to direct ATS URL: ' + ghIframe.src);
+              window.location.href = ghIframe.src;
               return;
             }
 
-            const leverIframe = document.querySelector('iframe[src*="lever.co"]');
+            const leverIframe = document.querySelector('iframe[src*="lever.co"]') || document.querySelector('iframe#lever-iframe');
             if (leverIframe && leverIframe.src && !window.location.href.includes('embed/job_app')) {
-              sendLog('Found Lever iframe. Redirecting top window to: ' + leverIframe.src);
+              sendLog('Found Lever iframe on ' + window.location.host + '. Redirecting to direct ATS URL: ' + leverIframe.src);
               window.location.href = leverIframe.src;
+              return;
+            }
+
+            const genericATS = document.querySelector('iframe[src*="greenhouse"]') || document.querySelector('iframe[src*="lever"]');
+            if (genericATS && genericATS.src) {
+              sendLog('Found ATS iframe on ' + window.location.host + '. Redirecting to direct ATS URL: ' + genericATS.src);
+              window.location.href = genericATS.src;
               return;
             }
           }

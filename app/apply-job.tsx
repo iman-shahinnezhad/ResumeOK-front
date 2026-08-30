@@ -307,12 +307,36 @@ export default function ApplyJobScreen() {
         function tryAutofill() {
           attempts++;
           try {
+            const isAlreadyOnATS = window.location.host.includes('greenhouse.io') || window.location.host.includes('lever.co');
+            if (!isAlreadyOnATS) {
+              const ghIframe = document.querySelector('iframe[src*="greenhouse.io"]') || document.querySelector('iframe#grnhse_iframe');
+              if (ghIframe && ghIframe.src && !window.location.href.includes('embed/job_app')) {
+                sendLog('Found Greenhouse iframe on ' + window.location.host + '. Redirecting to direct ATS URL: ' + ghIframe.src);
+                window.location.href = ghIframe.src;
+                return;
+              }
+
+              const leverIframe = document.querySelector('iframe[src*="lever.co"]') || document.querySelector('iframe#lever-iframe');
+              if (leverIframe && leverIframe.src && !window.location.href.includes('embed/job_app')) {
+                sendLog('Found Lever iframe on ' + window.location.host + '. Redirecting to direct ATS URL: ' + leverIframe.src);
+                window.location.href = leverIframe.src;
+                return;
+              }
+
+              const genericATS = document.querySelector('iframe[src*="greenhouse"]') || document.querySelector('iframe[src*="lever"]');
+              if (genericATS && genericATS.src) {
+                sendLog('Found ATS iframe on ' + window.location.host + '. Redirecting to direct ATS URL: ' + genericATS.src);
+                window.location.href = genericATS.src;
+                return;
+              }
+            }
+
             let filled = 0;
 
             const isLever = window.location.host.includes('lever.co') || !!document.querySelector('form[action*="lever.co"]');
             const isGreenhouse = window.location.host.includes('greenhouse.io') || !!document.querySelector('form#application_form') || !!document.querySelector('form[action*="greenhouse.io"]');
 
-            sendLog('[v2.1 Fast-Autofill] Script loaded on host: ' + window.location.host);
+            sendLog('[v2.1 Fast-Autofill] Script loaded on host: ' + window.location.host + ' | isGH=' + isGreenhouse + ' | isLever=' + isLever);
 
             if (isGreenhouse) {
               // First Name
