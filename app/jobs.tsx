@@ -713,8 +713,7 @@ export default function JobsScreen() {
     }
   };
 
-  const injectAutofillScript = () => {
-    if (!webViewRef.current) return;
+  const getAutofillJS = () => {
 
     const experiences = userProfile?.workExperiences || userProfile?.experiences || [];
     const currentExp = experiences.length > 0 ? experiences[0] : null;
@@ -761,8 +760,45 @@ export default function JobsScreen() {
         const maxAttempts = 10;
         
         function sendLog(msg) {
+          const messageStr = JSON.stringify({ type: 'log', message: msg });
           if (window.ReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'log', message: msg }));
+            window.ReactNativeWebView.postMessage(messageStr);
+          } else if (window.parent && window.parent !== window) {
+            window.parent.postMessage(messageStr, '*');
+          }
+        }
+
+        function sendSuccess(count) {
+          const messageStr = JSON.stringify({ type: 'AUTOFILL_SUCCESS', count: count });
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(messageStr);
+          } else if (window.parent && window.parent !== window) {
+            window.parent.postMessage(messageStr, '*');
+          }
+        }
+
+        function sendError(errMsg) {
+          const messageStr = JSON.stringify({ type: 'AUTOFILL_ERROR', error: errMsg });
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(messageStr);
+          } else if (window.parent && window.parent !== window) {
+            window.parent.postMessage(messageStr, '*');
+          }
+        }
+
+        if (window === window.top) {
+          if (!window.hasAutofillProxy) {
+            window.hasAutofillProxy = true;
+            window.addEventListener('message', function(event) {
+              try {
+                if (window.ReactNativeWebView && typeof event.data === 'string') {
+                  const parsed = JSON.parse(event.data);
+                  if (parsed.type === 'log' || parsed.type === 'AUTOFILL_SUCCESS' || parsed.type === 'AUTOFILL_ERROR') {
+                    window.ReactNativeWebView.postMessage(event.data);
+                  }
+                }
+              } catch (e) {}
+            });
           }
         }
 
@@ -1348,8 +1384,13 @@ export default function JobsScreen() {
       })();
       true;
     `;
+    return jsCode;
+  };
 
-    webViewRef.current.injectJavaScript(jsCode);
+  const injectAutofillScript = () => {
+    if (webViewRef.current) {
+      webViewRef.current.injectJavaScript(getAutofillJS());
+    }
   };
 
   const handleViewTailoredResume = async () => {
@@ -2234,6 +2275,7 @@ export default function JobsScreen() {
             domStorageEnabled={true}
             javaScriptEnabled={true}
             injectedJavaScriptForMainFrameOnly={false}
+            injectedJavaScript={getAutofillJS()}
             allowFileAccess={true}
             allowFileAccessFromFileURLs={true}
             allowUniversalAccessFromFileURLs={true}

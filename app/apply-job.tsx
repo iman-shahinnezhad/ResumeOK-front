@@ -134,8 +134,45 @@ export default function ApplyJobScreen() {
         const maxAttempts = 10;
 
         function sendLog(msg) {
+          const messageStr = JSON.stringify({ type: 'log', message: msg });
           if (window.ReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'log', message: msg }));
+            window.ReactNativeWebView.postMessage(messageStr);
+          } else if (window.parent && window.parent !== window) {
+            window.parent.postMessage(messageStr, '*');
+          }
+        }
+
+        function sendSuccess(count) {
+          const messageStr = JSON.stringify({ type: 'AUTOFILL_SUCCESS', count: count });
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(messageStr);
+          } else if (window.parent && window.parent !== window) {
+            window.parent.postMessage(messageStr, '*');
+          }
+        }
+
+        function sendError(errMsg) {
+          const messageStr = JSON.stringify({ type: 'AUTOFILL_ERROR', error: errMsg });
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(messageStr);
+          } else if (window.parent && window.parent !== window) {
+            window.parent.postMessage(messageStr, '*');
+          }
+        }
+
+        if (window === window.top) {
+          if (!window.hasAutofillProxy) {
+            window.hasAutofillProxy = true;
+            window.addEventListener('message', function(event) {
+              try {
+                if (window.ReactNativeWebView && typeof event.data === 'string') {
+                  const parsed = JSON.parse(event.data);
+                  if (parsed.type === 'log' || parsed.type === 'AUTOFILL_SUCCESS' || parsed.type === 'AUTOFILL_ERROR') {
+                    window.ReactNativeWebView.postMessage(event.data);
+                  }
+                }
+              } catch (e) {}
+            });
           }
         }
 
@@ -706,13 +743,11 @@ export default function ApplyJobScreen() {
             });
           }
 
-          if (filled > 0 && window.ReactNativeWebView) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'AUTOFILL_SUCCESS', count: filled }));
+          if (filled > 0) {
+              sendSuccess(filled);
             }
           } catch(e) {
-            if (window.ReactNativeWebView) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'AUTOFILL_ERROR', error: e.message }));
-            }
+            sendError(e instanceof Error ? e.message : String(e));
           }
 
           if (attempts >= maxAttempts) {
@@ -846,6 +881,7 @@ export default function ApplyJobScreen() {
           javaScriptEnabled={true}
           domStorageEnabled={true}
           injectedJavaScriptForMainFrameOnly={false}
+          injectedJavaScript={getAutofillJS()}
           style={{ flex: 1 }}
         />
 
