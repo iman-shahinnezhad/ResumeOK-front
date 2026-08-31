@@ -803,8 +803,9 @@ export default function ApplyJobScreen() {
   const handleTriggerAutofill = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (webViewRef.current && profileData) {
-      setDebugLogs(prev => [...prev, '[v2.1 Fast-Autofill] Triggering autofill injection...']);
-      webViewRef.current.injectJavaScript(cleanJsCodeForInjection(getAutofillJS()));
+      const js = cleanJsCodeForInjection(getAutofillJS());
+      setDebugLogs(prev => [...prev, `[v2.1 Fast-Autofill] Triggering injection (${js.length} chars)...`]);
+      webViewRef.current.injectJavaScript(js);
     } else {
       setDebugLogs(prev => [...prev, `[Manual] Error: webViewRef=${!!webViewRef.current} profileData=${!!profileData}`]);
       Alert.alert('Profile Empty', 'Please complete your onboarding profile first to use 1-Click Autofill.');
@@ -891,8 +892,9 @@ export default function ApplyJobScreen() {
             // Auto-inject fields once page finishes loading
             setTimeout(() => {
               if (webViewRef.current && profileData) {
-                setDebugLogs(prev => [...prev, '[WebView] Injecting script automatically...']);
-                webViewRef.current.injectJavaScript(cleanJsCodeForInjection(getAutofillJS()));
+                const jsToInject = cleanJsCodeForInjection(getAutofillJS());
+                setDebugLogs(prev => [...prev, `[WebView] Injecting script automatically (${jsToInject.length} chars)...`]);
+                webViewRef.current.injectJavaScript(jsToInject);
               } else {
                 setDebugLogs(prev => [...prev, `[WebView] Skip auto-inject: webViewRef=${!!webViewRef.current} profileData=${!!profileData}`]);
               }
@@ -918,6 +920,8 @@ export default function ApplyJobScreen() {
           }}
           javaScriptEnabled={true}
           domStorageEnabled={true}
+          setSupportMultipleWindows={false}
+          onShouldStartLoadWithRequest={() => true}
           injectedJavaScriptForMainFrameOnly={false}
           injectedJavaScript={cleanJsCodeForInjection(getAutofillJS())}
           style={{ flex: 1 }}

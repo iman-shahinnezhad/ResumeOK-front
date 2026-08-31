@@ -2291,6 +2291,8 @@ export default function JobsScreen() {
             style={{ flex: 1 }}
             domStorageEnabled={true}
             javaScriptEnabled={true}
+            setSupportMultipleWindows={false}
+            onShouldStartLoadWithRequest={() => true}
             injectedJavaScriptForMainFrameOnly={false}
             injectedJavaScript={cleanJsCodeForInjection(getAutofillJS())}
             allowFileAccess={true}
