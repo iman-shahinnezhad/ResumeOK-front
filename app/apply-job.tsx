@@ -663,11 +663,84 @@ export default function ApplyJobScreen() {
     }
   };
 
-  const handleCopyText = async (text: string, label: string) => {
+  const handleInjectSingleField = (fieldName: 'name' | 'email' | 'phone', val: string, label: string) => {
     Haptics.selectionAsync();
-    if (text) {
-      await Clipboard.setStringAsync(text);
-      Alert.alert('Copied!', `${label} copied to clipboard.`);
+    if (val) {
+      Clipboard.setStringAsync(val);
+    }
+    if (webViewRef.current && profileData) {
+      setDebugLogs(prev => [...prev, `[1-Tap Fill] Injecting ${label}: "${val}"`]);
+      const fn = (profileData.firstName || '').trim();
+      const ln = (profileData.lastName || '').trim();
+      const full = `${fn} ${ln}`.trim();
+      const em = (profileData.email || '').trim();
+      const ph = (profileData.phone || profileData.phoneNumber || '').trim();
+
+      let singleJs = '';
+      if (fieldName === 'name') {
+        singleJs = `
+          (function() {
+            function setVal(el, v) {
+              if (!el || !v) return;
+              try {
+                const proto = Object.getPrototypeOf(el);
+                const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set || Object.getOwnPropertyDescriptor(el, 'value')?.set;
+                if (setter) setter.call(el, v); else el.value = v;
+              } catch(e) { el.value = v; }
+              el.dispatchEvent(new Event('input', { bubbles: true }));
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            const active = document.activeElement;
+            if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) { setVal(active, "${full}"); }
+            document.querySelectorAll('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]').forEach(e => setVal(e, "${fn}"));
+            document.querySelectorAll('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]').forEach(e => setVal(e, "${ln}"));
+            document.querySelectorAll('input[name="name" i], input[id="name" i]').forEach(e => setVal(e, "${full}"));
+          })();
+          true;
+        `;
+      } else if (fieldName === 'email') {
+        singleJs = `
+          (function() {
+            function setVal(el, v) {
+              if (!el || !v) return;
+              try {
+                const proto = Object.getPrototypeOf(el);
+                const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set || Object.getOwnPropertyDescriptor(el, 'value')?.set;
+                if (setter) setter.call(el, v); else el.value = v;
+              } catch(e) { el.value = v; }
+              el.dispatchEvent(new Event('input', { bubbles: true }));
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            const active = document.activeElement;
+            if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) { setVal(active, "${em}"); }
+            document.querySelectorAll('input[type="email" i], input[name*="email" i], input[id*="email" i]').forEach(e => setVal(e, "${em}"));
+          })();
+          true;
+        `;
+      } else if (fieldName === 'phone') {
+        singleJs = `
+          (function() {
+            function setVal(el, v) {
+              if (!el || !v) return;
+              try {
+                const proto = Object.getPrototypeOf(el);
+                const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set || Object.getOwnPropertyDescriptor(el, 'value')?.set;
+                if (setter) setter.call(el, v); else el.value = v;
+              } catch(e) { el.value = v; }
+              el.dispatchEvent(new Event('input', { bubbles: true }));
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            const active = document.activeElement;
+            if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) { setVal(active, "${ph}"); }
+            document.querySelectorAll('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]').forEach(e => setVal(e, "${ph}"));
+          })();
+          true;
+        `;
+      }
+
+      if (singleJs) {
+        webViewRef.current.injectJavaScript(cleanJsCodeForInjection(singleJs));
+      }
     }
   };
 
@@ -843,7 +916,7 @@ export default function ApplyJobScreen() {
             {profileData.email ? (
               <TouchableOpacity
                 style={styles.chipBtn}
-                onPress={() => handleCopyText(profileData.email, 'Email')}
+                onPress={() => handleInjectSingleField('email', profileData.email, 'Email')}
               >
                 {Platform.OS === 'ios' ? (
                   <SymbolView name="doc.on.doc" size={13} tintColor="#4B5563" resizeMode="scaleAspectFit" />
@@ -857,7 +930,7 @@ export default function ApplyJobScreen() {
             {profileData.phone ? (
               <TouchableOpacity
                 style={styles.chipBtn}
-                onPress={() => handleCopyText(profileData.phone, 'Phone')}
+                onPress={() => handleInjectSingleField('phone', profileData.phone, 'Phone')}
               >
                 {Platform.OS === 'ios' ? (
                   <SymbolView name="doc.on.doc" size={13} tintColor="#4B5563" resizeMode="scaleAspectFit" />
@@ -871,7 +944,7 @@ export default function ApplyJobScreen() {
             {profileData.firstName ? (
               <TouchableOpacity
                 style={styles.chipBtn}
-                onPress={() => handleCopyText(`${profileData.firstName} ${profileData.lastName || ''}`, 'Full Name')}
+                onPress={() => handleInjectSingleField('name', `${profileData.firstName} ${profileData.lastName || ''}`, 'Name')}
               >
                 {Platform.OS === 'ios' ? (
                   <SymbolView name="doc.on.doc" size={13} tintColor="#4B5563" resizeMode="scaleAspectFit" />
