@@ -148,21 +148,31 @@ export default function ApplyJobScreen() {
 
         const payload = JSON.parse(decodeURIComponent("${payloadStr}"));
         let attempts = 0;
-        const maxAttempts = 15;
 
-        function sendLog(msg) {
-          const m = JSON.stringify({ type: 'log', message: msg });
-          if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(m);
+        function postMsg(msgObj) {
+          try {
+            const str = JSON.stringify(msgObj);
+            if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(str);
+            if (window.parent && window.parent !== window) window.parent.postMessage(str, '*');
+          } catch (e) {}
         }
 
-        function sendSuccess(count) {
-          const m = JSON.stringify({ type: 'AUTOFILL_SUCCESS', count: count });
-          if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(m);
-        }
+        function sendLog(msg) { postMsg({ type: 'log', message: msg }); }
+        function sendSuccess(count) { postMsg({ type: 'AUTOFILL_SUCCESS', count: count }); }
+        function sendError(err) { postMsg({ type: 'AUTOFILL_ERROR', error: String(err) }); }
 
-        function sendError(err) {
-          const m = JSON.stringify({ type: 'AUTOFILL_ERROR', error: String(err) });
-          if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(m);
+        if (window === window.top && !window.__hasAutofillProxy) {
+          window.__hasAutofillProxy = true;
+          window.addEventListener('message', function(e) {
+            try {
+              if (window.ReactNativeWebView && typeof e.data === 'string') {
+                const parsed = JSON.parse(e.data);
+                if (parsed.type === 'log' || parsed.type === 'AUTOFILL_SUCCESS' || parsed.type === 'AUTOFILL_ERROR') {
+                  window.ReactNativeWebView.postMessage(e.data);
+                }
+              }
+            } catch (err) {}
+          });
         }
 
         function setNativeValue(el, val) {
@@ -190,38 +200,45 @@ export default function ApplyJobScreen() {
           el.blur();
         }
 
-        function findInputs(selectors, keywords) {
+        function findInputs(doc, selectors, keywords) {
           const set = new Set();
+          if (!doc) return [];
           if (selectors) {
-            document.querySelectorAll(selectors).forEach(e => {
-              if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.tagName)) set.add(e);
-            });
+            try {
+              doc.querySelectorAll(selectors).forEach(e => {
+                if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.tagName)) set.add(e);
+              });
+            } catch(e) {}
           }
           if (keywords && keywords.length > 0) {
-            document.querySelectorAll('label').forEach(lbl => {
-              const txt = (lbl.innerText || lbl.textContent || '').toLowerCase();
-              if (keywords.some(k => txt.includes(k))) {
-                const htmlFor = lbl.getAttribute('for');
-                if (htmlFor) {
-                  const el = document.getElementById(htmlFor);
-                  if (el) set.add(el);
-                }
-                const child = lbl.querySelector('input, textarea, select');
-                if (child) set.add(child);
-                let sib = lbl.nextElementSibling;
-                if (sib) {
-                  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(sib.tagName)) set.add(sib);
-                  else {
-                    const c = sib.querySelector('input, textarea, select');
-                    if (c) set.add(c);
+            try {
+              doc.querySelectorAll('label').forEach(lbl => {
+                const txt = (lbl.innerText || lbl.textContent || '').toLowerCase();
+                if (keywords.some(k => txt.includes(k))) {
+                  const htmlFor = lbl.getAttribute('for');
+                  if (htmlFor) {
+                    const el = doc.getElementById(htmlFor);
+                    if (el) set.add(el);
+                  }
+                  const child = lbl.querySelector('input, textarea, select');
+                  if (child) set.add(child);
+                  let sib = lbl.nextElementSibling;
+                  if (sib) {
+                    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(sib.tagName)) set.add(sib);
+                    else {
+                      const c = sib.querySelector('input, textarea, select');
+                      if (c) set.add(c);
+                    }
                   }
                 }
-              }
-            });
-            document.querySelectorAll('input, textarea, select').forEach(e => {
-              const attr = ((e.getAttribute('name')||'') + ' ' + (e.getAttribute('id')||'') + ' ' + (e.getAttribute('placeholder')||'') + ' ' + (e.getAttribute('autocomplete')||'') + ' ' + (e.getAttribute('aria-label')||'')).toLowerCase();
-              if (keywords.some(k => attr.includes(k))) set.add(e);
-            });
+              });
+            } catch(e) {}
+            try {
+              doc.querySelectorAll('input, textarea, select').forEach(e => {
+                const attr = ((e.getAttribute('name')||'') + ' ' + (e.getAttribute('id')||'') + ' ' + (e.getAttribute('placeholder')||'') + ' ' + (e.getAttribute('autocomplete')||'') + ' ' + (e.getAttribute('aria-label')||'')).toLowerCase();
+                if (keywords.some(k => attr.includes(k))) set.add(e);
+              });
+            } catch(e) {}
           }
           return Array.from(set);
         }
@@ -231,29 +248,23 @@ export default function ApplyJobScreen() {
           try {
             const host = window.location.host;
             const isATS = host.includes('greenhouse.io') || host.includes('lever.co');
+            
             if (!isATS) {
-              const gh = document.querySelector('iframe[src*="greenhouse.io"], iframe#grnhse_iframe');
-              if (gh && gh.src && !window.location.href.includes('embed/job_app')) {
-                sendLog('Found Greenhouse iframe on ' + host + '. Redirecting to: ' + gh.src);
-                window.location.href = gh.src;
-                return;
-              }
-              const lev = document.querySelector('iframe[src*="lever.co"], iframe#lever-iframe');
-              if (lev && lev.src && !window.location.href.includes('embed/job_app')) {
-                sendLog('Found Lever iframe on ' + host + '. Redirecting to: ' + lev.src);
-                window.location.href = lev.src;
-                return;
+              const iframes = Array.from(document.querySelectorAll('iframe'));
+              for (let i = 0; i < iframes.length; i++) {
+                const iframe = iframes[i];
+                const src = iframe.src || '';
+                if (src && (src.includes('greenhouse.io') || src.includes('lever.co') || src.includes('gh_jid'))) {
+                  if (!window.location.href.includes('embed/job_app')) {
+                    sendLog('Found ATS iframe on ' + host + '. Redirecting top window to: ' + src);
+                    try { window.top.location.href = src; } catch(e) { window.location.href = src; }
+                    return;
+                  }
+                }
               }
             }
 
             let filled = 0;
-                });
-              }
-
-              // City
-              if (payload.city) {
-                const els = findInputs('input[name*="location" i], input[name*="city" i], input[id*="location" i]', ['location', 'city', 'address', 'living in'], ['location', 'city', 'address']);
-                els.forEach(el => {
                   if (!el.value) {
                     setNativeValue(el, payload.city);
                     filled++;
