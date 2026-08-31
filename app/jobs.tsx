@@ -726,24 +726,29 @@ export default function JobsScreen() {
     const educations = userProfile?.educations || userProfile?.education || [];
     const currentEdu = educations.length > 0 ? educations[0] : null;
 
+    const fullNameCombined = (userProfile?.fullName || userProfile?.name || userProfile?.userName || '').trim();
+    const nameParts = fullNameCombined ? fullNameCombined.split(' ') : [];
+    const extractedFirstName = firstName.trim() || userProfile?.firstName || userProfile?.givenName || (nameParts.length > 0 ? nameParts[0] : '');
+    const extractedLastName = lastName.trim() || userProfile?.lastName || userProfile?.familyName || userProfile?.surname || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '');
+
     const payload = {
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      email: email.trim(),
-      phone: phone.trim(),
-      linkedinUrl: (userProfile?.linkedinUrl || userProfile?.linkedin || '').trim(),
-      portfolioUrl: (userProfile?.portfolioUrl || userProfile?.portfolio || userProfile?.website || '').trim(),
-      city: (userProfile?.city || '').trim(),
+      firstName: (extractedFirstName || '').trim(),
+      lastName: (extractedLastName || '').trim(),
+      email: (email.trim() || userProfile?.email || userProfile?.emailAddress || '').trim(),
+      phone: (phone.trim() || userProfile?.phone || userProfile?.phoneNumber || userProfile?.mobile || '').trim(),
+      linkedinUrl: (userProfile?.linkedinUrl || userProfile?.linkedin || userProfile?.linkedIn || '').trim(),
+      portfolioUrl: (userProfile?.portfolioUrl || userProfile?.portfolio || userProfile?.website || userProfile?.url || '').trim(),
+      city: (userProfile?.city || userProfile?.location || userProfile?.address || '').trim(),
       country: (userProfile?.country || 'United States').trim(),
       resumeBase64: '',
       resumeName: selectedResumeName,
       coverLetterText: selectedCoverLetterText,
       currentJobTitle: (currentExp?.jobTitle || userProfile?.jobTitle || userProfile?.role || '').trim(),
-      currentEmployer: (currentExp?.companyName || '').trim(),
+      currentEmployer: (currentExp?.companyName || userProfile?.companyName || '').trim(),
       workStartDate: (currentExp?.startDate || '').trim(),
       workEndDate: (currentExp?.endDate || '').trim(),
-      educationSchool: (currentEdu?.schoolName || '').trim(),
-      degree: (currentEdu?.degree || '').trim(),
+      educationSchool: (currentEdu?.schoolName || userProfile?.schoolName || '').trim(),
+      degree: (currentEdu?.degree || userProfile?.degree || '').trim(),
       discipline: (currentEdu?.fieldOfStudy || currentEdu?.degree || '').trim(),
       eduStartDate: (currentEdu?.startDate || '').trim(),
       eduEndDate: (currentEdu?.endDate || '').trim(),

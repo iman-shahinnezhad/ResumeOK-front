@@ -109,24 +109,29 @@ export default function ApplyJobScreen() {
     const educations = profileData.educations || profileData.education || [];
     const currentEdu = educations.length > 0 ? educations[0] : null;
 
+    const fullNameCombined = (profileData.fullName || profileData.name || profileData.userName || '').trim();
+    const nameParts = fullNameCombined ? fullNameCombined.split(' ') : [];
+    const extractedFirstName = profileData.firstName || profileData.givenName || (nameParts.length > 0 ? nameParts[0] : '');
+    const extractedLastName = profileData.lastName || profileData.familyName || profileData.surname || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '');
+
     const payload = {
-      firstName: (profileData.firstName || '').trim(),
-      lastName: (profileData.lastName || '').trim(),
-      email: (profileData.email || '').trim(),
-      phone: (profileData.phone || profileData.phoneNumber || profileData.mobile || '').trim(),
-      linkedinUrl: (profileData.linkedinUrl || profileData.linkedin || '').trim(),
-      portfolioUrl: (profileData.portfolioUrl || profileData.portfolio || profileData.website || '').trim(),
-      city: (profileData.city || '').trim(),
+      firstName: (extractedFirstName || '').trim(),
+      lastName: (extractedLastName || '').trim(),
+      email: (profileData.email || profileData.emailAddress || profileData.contactEmail || '').trim(),
+      phone: (profileData.phone || profileData.phoneNumber || profileData.mobile || profileData.cell || profileData.telephone || '').trim(),
+      linkedinUrl: (profileData.linkedinUrl || profileData.linkedin || profileData.linkedIn || '').trim(),
+      portfolioUrl: (profileData.portfolioUrl || profileData.portfolio || profileData.website || profileData.url || '').trim(),
+      city: (profileData.city || profileData.location || profileData.address || '').trim(),
       country: (profileData.country || 'United States').trim(),
       resumeBase64: '',
       resumeName: resumeName,
       coverLetterText: coverLetterText,
       currentJobTitle: (currentExp?.jobTitle || profileData.jobTitle || profileData.role || '').trim(),
-      currentEmployer: (currentExp?.companyName || '').trim(),
+      currentEmployer: (currentExp?.companyName || profileData.companyName || '').trim(),
       workStartDate: (currentExp?.startDate || '').trim(),
       workEndDate: (currentExp?.endDate || '').trim(),
-      educationSchool: (currentEdu?.schoolName || '').trim(),
-      degree: (currentEdu?.degree || '').trim(),
+      educationSchool: (currentEdu?.schoolName || profileData.schoolName || '').trim(),
+      degree: (currentEdu?.degree || profileData.degree || '').trim(),
       discipline: (currentEdu?.fieldOfStudy || currentEdu?.degree || '').trim(),
       eduStartDate: (currentEdu?.startDate || '').trim(),
       eduEndDate: (currentEdu?.endDate || '').trim(),
@@ -336,7 +341,7 @@ export default function ApplyJobScreen() {
             const isLever = window.location.host.includes('lever.co') || !!document.querySelector('form[action*="lever.co"]');
             const isGreenhouse = window.location.host.includes('greenhouse.io') || !!document.querySelector('form#application_form') || !!document.querySelector('form[action*="greenhouse.io"]');
 
-            sendLog('[v2.1 Fast-Autofill] Script loaded on host: ' + window.location.host + ' | isGH=' + isGreenhouse + ' | isLever=' + isLever);
+            sendLog('[v2.1 Fast-Autofill] Host: ' + window.location.host + ' | fn="' + (payload.firstName || '') + '" ln="' + (payload.lastName || '') + '" email="' + (payload.email || '') + '" | isGH=' + isGreenhouse + ' | isLever=' + isLever);
 
             if (isGreenhouse) {
               // First Name
