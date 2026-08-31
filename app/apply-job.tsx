@@ -137,276 +137,116 @@ export default function ApplyJobScreen() {
       eduEndDate: (currentEdu?.endDate || '').trim(),
     };
 
+    const payloadStr = encodeURIComponent(JSON.stringify(payload));
     return `
       (function() {
-        const payload = JSON.parse(decodeURIComponent("${encodeURIComponent(JSON.stringify(payload))}"));
+        if (window.__autofillRan && window.__runAutofill) {
+          window.__runAutofill();
+          return;
+        }
+        window.__autofillRan = true;
+
+        const payload = JSON.parse(decodeURIComponent("${payloadStr}"));
         let attempts = 0;
-        const maxAttempts = 10;
+        const maxAttempts = 15;
 
         function sendLog(msg) {
-          const messageStr = JSON.stringify({ type: 'log', message: msg });
-          if (window.ReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(messageStr);
-          } else if (window.parent && window.parent !== window) {
-            window.parent.postMessage(messageStr, '*');
-          }
+          const m = JSON.stringify({ type: 'log', message: msg });
+          if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(m);
         }
 
         function sendSuccess(count) {
-          const messageStr = JSON.stringify({ type: 'AUTOFILL_SUCCESS', count: count });
-          if (window.ReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(messageStr);
-          } else if (window.parent && window.parent !== window) {
-            window.parent.postMessage(messageStr, '*');
-          }
+          const m = JSON.stringify({ type: 'AUTOFILL_SUCCESS', count: count });
+          if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(m);
         }
 
-        function sendError(errMsg) {
-          const messageStr = JSON.stringify({ type: 'AUTOFILL_ERROR', error: errMsg });
-          if (window.ReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(messageStr);
-          } else if (window.parent && window.parent !== window) {
-            window.parent.postMessage(messageStr, '*');
-          }
+        function sendError(err) {
+          const m = JSON.stringify({ type: 'AUTOFILL_ERROR', error: String(err) });
+          if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(m);
         }
 
-        if (window === window.top) {
-          if (!window.hasAutofillProxy) {
-            window.hasAutofillProxy = true;
-            window.addEventListener('message', function(event) {
-              try {
-                if (window.ReactNativeWebView && typeof event.data === 'string') {
-                  const parsed = JSON.parse(event.data);
-                  if (parsed.type === 'log' || parsed.type === 'AUTOFILL_SUCCESS' || parsed.type === 'AUTOFILL_ERROR') {
-                    window.ReactNativeWebView.postMessage(event.data);
-                  }
-                }
-              } catch (e) {}
-            });
-          }
-        }
-
-        function base64ToBlob(base64, mimeType) {
-          const byteCharacters = atob(base64);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          return new Blob([byteArray], { type: mimeType });
-        }
-
-        function setNativeValue(element, value) {
-          if (!element || !value) return;
-          
-          if (element.tagName === 'SELECT') {
-            const options = Array.from(element.options || []);
-            const valLower = (value || '').toLowerCase();
-            let matchedOption = options.find(opt => {
-              const optVal = (opt.value || '').toLowerCase();
-              const optTxt = (opt.text || opt.innerText || '').toLowerCase();
-              return optVal === valLower || (valLower && optTxt.includes(valLower));
-            });
-            if (matchedOption) {
-              element.value = matchedOption.value;
-              element.dispatchEvent(new Event('change', { bubbles: true }));
+        function setNativeValue(el, val) {
+          if (!el || !val) return;
+          if (el.tagName === 'SELECT') {
+            const opts = Array.from(el.options || []);
+            const vLower = String(val).toLowerCase();
+            const match = opts.find(o => (o.value || '').toLowerCase() === vLower || (o.text || '').toLowerCase().includes(vLower));
+            if (match) {
+              el.value = match.value;
+              el.dispatchEvent(new Event('change', { bubbles: true }));
             }
             return;
           }
-
           try {
-            const valueSetter = Object.getOwnPropertyDescriptor(element, 'value')?.set;
-            const prototype = Object.getPrototypeOf(element);
-            const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
-            if (prototypeValueSetter && valueSetter !== prototypeValueSetter) {
-              prototypeValueSetter.call(element, value);
-            } else if (valueSetter) {
-              valueSetter.call(element, value);
-            } else {
-              element.value = value;
-            }
+            const proto = Object.getPrototypeOf(el);
+            const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set || Object.getOwnPropertyDescriptor(el, 'value')?.set;
+            if (setter) setter.call(el, val);
+            else el.value = val;
           } catch (e) {
-            element.value = value;
+            el.value = val;
           }
-          element.dispatchEvent(new Event('input', { bubbles: true }));
-          element.dispatchEvent(new Event('change', { bubbles: true }));
-          element.blur();
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          el.blur();
         }
 
-        function findInputs(selectors, labelKeywords, placeholderKeywords) {
-          const found = new Set();
-          
+        function findInputs(selectors, keywords) {
+          const set = new Set();
           if (selectors) {
-            document.querySelectorAll(selectors).forEach(el => {
-              if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
-                found.add(el);
-              }
+            document.querySelectorAll(selectors).forEach(e => {
+              if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.tagName)) set.add(e);
             });
           }
-
-          if (labelKeywords && labelKeywords.length > 0) {
-            document.querySelectorAll('label').forEach(label => {
-              const labelText = (label.innerText || label.textContent || '').toLowerCase();
-              if (labelText && labelKeywords.some(kw => labelText.includes(kw))) {
-                const htmlFor = label.getAttribute('for');
+          if (keywords && keywords.length > 0) {
+            document.querySelectorAll('label').forEach(lbl => {
+              const txt = (lbl.innerText || lbl.textContent || '').toLowerCase();
+              if (keywords.some(k => txt.includes(k))) {
+                const htmlFor = lbl.getAttribute('for');
                 if (htmlFor) {
                   const el = document.getElementById(htmlFor);
-                  if (el) found.add(el);
+                  if (el) set.add(el);
                 }
-                const nestedInput = label.querySelector('input, textarea, select');
-                if (nestedInput) found.add(nestedInput);
-                let sibling = label.nextElementSibling;
-                if (sibling) {
-                  if (sibling.tagName === 'INPUT' || sibling.tagName === 'TEXTAREA' || sibling.tagName === 'SELECT') {
-                    found.add(sibling);
-                  } else {
-                    const child = sibling.querySelector('input, textarea, select');
-                    if (child) found.add(child);
+                const child = lbl.querySelector('input, textarea, select');
+                if (child) set.add(child);
+                let sib = lbl.nextElementSibling;
+                if (sib) {
+                  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(sib.tagName)) set.add(sib);
+                  else {
+                    const c = sib.querySelector('input, textarea, select');
+                    if (c) set.add(c);
                   }
                 }
-                let parent = label.parentElement;
-                for (let depth = 0; depth < 3 && parent; depth++) {
-                  const nestedInputs = parent.querySelectorAll('input, textarea, select');
-                  if (nestedInputs.length > 0) {
-                    nestedInputs.forEach(inp => found.add(inp));
-                    break;
-                  }
-                  parent = parent.parentElement;
-                }
               }
             });
-          }
-
-          if (placeholderKeywords && placeholderKeywords.length > 0) {
-            document.querySelectorAll('input, textarea').forEach(el => {
-              const ph = (el.getAttribute('placeholder') || '').toLowerCase();
-              if (placeholderKeywords.some(kw => ph.includes(kw))) {
-                found.add(el);
-              }
+            document.querySelectorAll('input, textarea, select').forEach(e => {
+              const attr = ((e.getAttribute('name')||'') + ' ' + (e.getAttribute('id')||'') + ' ' + (e.getAttribute('placeholder')||'') + ' ' + (e.getAttribute('autocomplete')||'') + ' ' + (e.getAttribute('aria-label')||'')).toLowerCase();
+              if (keywords.some(k => attr.includes(k))) set.add(e);
             });
           }
-
-          if (labelKeywords && labelKeywords.length > 0) {
-            document.querySelectorAll('input, textarea, select').forEach(el => {
-              const name = (el.getAttribute('name') || '').toLowerCase();
-              const id = (el.getAttribute('id') || '').toLowerCase();
-              const ph = (el.getAttribute('placeholder') || '').toLowerCase();
-              const aria = (el.getAttribute('aria-label') || '').toLowerCase();
-              const auto = (el.getAttribute('autocomplete') || '').toLowerCase();
-              
-              if (labelKeywords.some(kw => 
-                name.includes(kw) || 
-                id.includes(kw) || 
-                ph.includes(kw) || 
-                aria.includes(kw) || 
-                auto.includes(kw)
-              )) {
-                found.add(el);
-              }
-            });
-          }
-
-          return Array.from(found);
+          return Array.from(set);
         }
 
-        function tryAutofill() {
+        function runAutofill() {
           attempts++;
           try {
-            const isAlreadyOnATS = window.location.host.includes('greenhouse.io') || window.location.host.includes('lever.co');
-            if (!isAlreadyOnATS) {
-              const ghIframe = document.querySelector('iframe[src*="greenhouse.io"]') || document.querySelector('iframe#grnhse_iframe');
-              if (ghIframe && ghIframe.src && !window.location.href.includes('embed/job_app')) {
-                sendLog('Found Greenhouse iframe on ' + window.location.host + '. Redirecting to direct ATS URL: ' + ghIframe.src);
-                window.location.href = ghIframe.src;
+            const host = window.location.host;
+            const isATS = host.includes('greenhouse.io') || host.includes('lever.co');
+            if (!isATS) {
+              const gh = document.querySelector('iframe[src*="greenhouse.io"], iframe#grnhse_iframe');
+              if (gh && gh.src && !window.location.href.includes('embed/job_app')) {
+                sendLog('Found Greenhouse iframe on ' + host + '. Redirecting to: ' + gh.src);
+                window.location.href = gh.src;
                 return;
               }
-
-              const leverIframe = document.querySelector('iframe[src*="lever.co"]') || document.querySelector('iframe#lever-iframe');
-              if (leverIframe && leverIframe.src && !window.location.href.includes('embed/job_app')) {
-                sendLog('Found Lever iframe on ' + window.location.host + '. Redirecting to direct ATS URL: ' + leverIframe.src);
-                window.location.href = leverIframe.src;
-                return;
-              }
-
-              const genericATS = document.querySelector('iframe[src*="greenhouse"]') || document.querySelector('iframe[src*="lever"]');
-              if (genericATS && genericATS.src) {
-                sendLog('Found ATS iframe on ' + window.location.host + '. Redirecting to direct ATS URL: ' + genericATS.src);
-                window.location.href = genericATS.src;
+              const lev = document.querySelector('iframe[src*="lever.co"], iframe#lever-iframe');
+              if (lev && lev.src && !window.location.href.includes('embed/job_app')) {
+                sendLog('Found Lever iframe on ' + host + '. Redirecting to: ' + lev.src);
+                window.location.href = lev.src;
                 return;
               }
             }
 
             let filled = 0;
-
-            const isLever = window.location.host.includes('lever.co') || !!document.querySelector('form[action*="lever.co"]');
-            const isGreenhouse = window.location.host.includes('greenhouse.io') || !!document.querySelector('form#application_form') || !!document.querySelector('form[action*="greenhouse.io"]');
-
-            sendLog('[v2.1 Fast-Autofill] Host: ' + window.location.host + ' | fn="' + (payload.firstName || '') + '" ln="' + (payload.lastName || '') + '" email="' + (payload.email || '') + '" | isGH=' + isGreenhouse + ' | isLever=' + isLever);
-
-            if (isGreenhouse) {
-              // First Name
-              if (payload.firstName) {
-                const els = findInputs('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]', ['first name', 'given name'], ['first name', 'given name']);
-                els.forEach(el => {
-                  if (!el.value) {
-                    setNativeValue(el, payload.firstName);
-                    filled++;
-                  }
-                });
-              }
-
-              // Last Name
-              if (payload.lastName) {
-                const els = findInputs('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]', ['last name', 'surname', 'family name'], ['last name', 'surname', 'family name']);
-                els.forEach(el => {
-                  if (!el.value) {
-                    setNativeValue(el, payload.lastName);
-                    filled++;
-                  }
-                });
-              }
-
-              // Email
-              if (payload.email) {
-                const els = findInputs('input[type="email" i], input[name*="email" i], input[id*="email" i], input[autocomplete="email"]', ['email', 'e-mail'], ['email', 'e-mail']);
-                els.forEach(el => {
-                  if (!el.value) {
-                    setNativeValue(el, payload.email);
-                    filled++;
-                  }
-                });
-              }
-
-              // Phone
-              if (payload.phone) {
-                const els = findInputs('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]', ['phone', 'telephone', 'mobile', 'cell', 'number'], ['phone', 'telephone', 'mobile', 'cell', 'number']);
-                els.forEach(el => {
-                  if (!el.value) {
-                    setNativeValue(el, payload.phone);
-                    filled++;
-                  }
-                });
-              }
-
-              // LinkedIn
-              if (payload.linkedinUrl) {
-                const els = findInputs('input[name*="linkedin" i], input[id*="linkedin" i], input[name*="link" i]', ['linkedin'], ['linkedin']);
-                els.forEach(el => {
-                  if (!el.value) {
-                    setNativeValue(el, payload.linkedinUrl);
-                    filled++;
-                  }
-                });
-              }
-
-              // Portfolio
-              if (payload.portfolioUrl) {
-                const els = findInputs('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i], input[name*="url" i]', ['portfolio', 'website', 'url', 'personal link'], ['portfolio', 'website', 'url']);
-                els.forEach(el => {
-                  if (!el.value) {
-                    setNativeValue(el, payload.portfolioUrl);
-                    filled++;
-                  }
                 });
               }
 
@@ -803,9 +643,9 @@ export default function ApplyJobScreen() {
   const handleTriggerAutofill = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (webViewRef.current && profileData) {
-      const js = cleanJsCodeForInjection(getAutofillJS());
-      setDebugLogs(prev => [...prev, `[v2.1 Fast-Autofill] Triggering injection (${js.length} chars)...`]);
-      webViewRef.current.injectJavaScript(js);
+      setDebugLogs(prev => [...prev, '[v2.2 Fast-Engine] Triggering proxy autofill...']);
+      const triggerCmd = 'if(window.__runAutofill){ window.__runAutofill(); } else { ' + cleanJsCodeForInjection(getAutofillJS()) + ' } true;';
+      webViewRef.current.injectJavaScript(triggerCmd);
     } else {
       setDebugLogs(prev => [...prev, `[Manual] Error: webViewRef=${!!webViewRef.current} profileData=${!!profileData}`]);
       Alert.alert('Profile Empty', 'Please complete your onboarding profile first to use 1-Click Autofill.');

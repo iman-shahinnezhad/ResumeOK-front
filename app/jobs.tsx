@@ -1406,7 +1406,8 @@ export default function JobsScreen() {
 
   const injectAutofillScript = () => {
     if (webViewRef.current) {
-      webViewRef.current.injectJavaScript(cleanJsCodeForInjection(getAutofillJS()));
+      const triggerCmd = 'if(window.__runAutofill){ window.__runAutofill(); } else { ' + cleanJsCodeForInjection(getAutofillJS()) + ' } true;';
+      webViewRef.current.injectJavaScript(triggerCmd);
     }
   };
 
