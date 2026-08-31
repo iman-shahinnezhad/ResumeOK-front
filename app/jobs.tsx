@@ -742,7 +742,7 @@ export default function JobsScreen() {
       country: (userProfile?.country || 'United States').trim(),
       resumeBase64: '',
       resumeName: selectedResumeName,
-      coverLetterText: selectedCoverLetterText,
+      coverLetterText: (selectedCoverLetterText || '').slice(0, 1000),
       currentJobTitle: (currentExp?.jobTitle || userProfile?.jobTitle || userProfile?.role || '').trim(),
       currentEmployer: (currentExp?.companyName || userProfile?.companyName || '').trim(),
       workStartDate: (currentExp?.startDate || '').trim(),
