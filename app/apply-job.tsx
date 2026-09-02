@@ -167,6 +167,16 @@ export default function ApplyJobScreen() {
     loadProfile();
   }, [companyName, jobTitle]);
 
+  // Auto-inject when profile or base64 files finish loading asynchronously
+  useEffect(() => {
+    if (profileData && webViewRef.current) {
+      const js = getAutofillJS();
+      if (js) {
+        webViewRef.current.injectJavaScript(cleanJsCodeForInjection(js));
+      }
+    }
+  }, [profileData, resumeBase64, coverLetterBase64, coverLetterText]);
+
   // Form Autofill JavaScript Injection Code
   const getAutofillJS = () => {
     if (!profileData) return '';
@@ -210,14 +220,12 @@ export default function ApplyJobScreen() {
     const payloadStr = encodeURIComponent(JSON.stringify(payload));
     return `
       (function() {
+        window.__payload = JSON.parse(decodeURIComponent("${payloadStr}"));
         if (window.__autofillRan && window.__runAutofill) {
           window.__runAutofill();
           return;
         }
         window.__autofillRan = true;
-
-        const payload = JSON.parse(decodeURIComponent("${payloadStr}"));
-        let attempts = 0;
 
         function base64ToBlob(b64Data, contentType) {
           contentType = contentType || 'application/pdf';
@@ -235,6 +243,37 @@ export default function ApplyJobScreen() {
             return new Blob(byteArrays, { type: contentType });
           } catch(e) {
             return null;
+          }
+        }
+
+        function attachFileToInput(fileInput, b64Data, fileName, mimeType) {
+          if (!fileInput || !b64Data) return false;
+          try {
+            const blob = base64ToBlob(b64Data, mimeType);
+            if (!blob) return false;
+            const file = new File([blob], fileName || 'document.pdf', { type: mimeType });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            
+            const prototype = Object.getPrototypeOf(fileInput);
+            const filesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set || Object.getOwnPropertyDescriptor(fileInput, 'files')?.set;
+            if (filesSetter) {
+              filesSetter.call(fileInput, dataTransfer.files);
+            } else {
+              fileInput.files = dataTransfer.files;
+            }
+            
+            fileInput.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+            fileInput.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+
+            const parent = fileInput.closest('.dropzone, [class*="drop" i], [class*="upload" i], label') || fileInput.parentElement;
+            if (parent) {
+              parent.dispatchEvent(new Event('change', { bubbles: true }));
+              parent.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            return true;
+          } catch(e) {
+            return false;
           }
         }
 
@@ -334,6 +373,7 @@ export default function ApplyJobScreen() {
 
         function runAutofill() {
           attempts++;
+          const payload = window.__payload || {};
           try {
             const host = window.location.host;
             const isATS = host.includes('greenhouse.io') || host.includes('lever.co');
@@ -1253,7 +1293,15 @@ export default function ApplyJobScreen() {
           }}
           onLoadEnd={() => {
             setLoading(false);
-            setDebugLogs(prev => [...prev, '[WebView] Page loaded. Tap "1-Click Autofill Form" button to fill fields.']);
+            setDebugLogs(prev => [...prev, '[WebView] Page loaded. Injecting autofill script...']);
+            if (webViewRef.current) {
+              setTimeout(() => {
+                const js = getAutofillJS();
+                if (js) {
+                  webViewRef.current?.injectJavaScript(cleanJsCodeForInjection(js));
+                }
+              }, 500);
+            }
           }}
           onMessage={(event) => {
             try {
