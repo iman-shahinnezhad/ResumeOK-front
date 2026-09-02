@@ -21,6 +21,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import { API_URL, useAuth } from '../context/AuthContext';
 
 interface WorkExperience {
   id: string;
@@ -74,6 +75,7 @@ interface ResumeFormData {
 export default function BuildResumeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { user, guestId } = useAuth();
 
   // Wizard step (1 to 5)
   const [step, setStep] = useState<number>(1);
@@ -1499,6 +1501,26 @@ export default function BuildResumeScreen() {
 
         const newList = [newResume, ...currentList];
         await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(newList));
+
+        // Sync built resume upload to MongoDB backend database
+        (async () => {
+          try {
+            const fileBase64 = await FileSystem.readAsStringAsync(localPath, { encoding: 'base64' });
+            const targetUserId = user?.id || guestId;
+            await fetch(`${API_URL}/api/upload-pdf`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fileName: resumeName,
+                fileBase64,
+                type: 'resume',
+                userId: targetUserId
+              })
+            });
+          } catch (err) {
+            console.log('Error syncing built resume to MongoDB:', err);
+          }
+        })();
 
         // Copy printed file to cache directory with clean name for sharing sheet beauty
         const sharePath = `${FileSystem.cacheDirectory}${resumeName}`;

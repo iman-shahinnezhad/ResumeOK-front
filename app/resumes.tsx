@@ -15,6 +15,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as DocumentPicker from 'expo-document-picker';
 
+import { API_URL, useAuth } from '../context/AuthContext';
+
 interface ResumeItem {
   id: string;
   name: string;
@@ -27,6 +29,7 @@ interface ResumeItem {
 export default function ResumesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { user, guestId } = useAuth();
   const [resumes, setResumes] = useState<ResumeItem[]>([]);
 
   useFocusEffect(
@@ -145,6 +148,28 @@ export default function ResumesScreen() {
         };
         const updated = [newResume, ...resumes];
         await saveResumesList(updated);
+
+        // Sync resume upload to backend Mongo database
+        if (asset.uri) {
+          (async () => {
+            try {
+              const fileBase64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
+              const targetUserId = user?.id || guestId;
+              await fetch(`${API_URL}/api/upload-pdf`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  fileName: asset.name || 'resume.pdf',
+                  fileBase64,
+                  type: 'resume',
+                  userId: targetUserId
+                })
+              });
+            } catch (err) {
+              console.log('Error syncing uploaded resume to MongoDB:', err);
+            }
+          })();
+        }
       }
     } catch (e) {
       console.log('Document picker error:', e);
@@ -265,6 +290,12 @@ export default function ResumesScreen() {
               <Text style={styles.bannerSubtitleText}>
                 The default resume will be automatically sent when applying for jobs.
               </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
+                <Ionicons name="time-outline" size={13} color="#64748B" />
+                <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '500' }}>
+                  Cloud-stored tailored PDFs are automatically retained for 30 days.
+                </Text>
+              </View>
             </View>
           </View>
 

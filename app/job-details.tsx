@@ -237,6 +237,26 @@ export default function JobDetailsScreen() {
       setResumesList(updatedList);
       setSelectedResume(newResumeEntry);
 
+      // Sync tailored resume upload to MongoDB backend database
+      (async () => {
+        try {
+          const fileBase64 = await FileSystem.readAsStringAsync(cleanResumeUri, { encoding: 'base64' });
+          const targetUserId = user?.id || guestId;
+          await fetch(`${API_URL}/api/upload-pdf`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: formattedResumeName,
+              fileBase64,
+              type: 'resume',
+              userId: targetUserId
+            })
+          });
+        } catch (uploadErr) {
+          console.log('Failed to sync tailored resume to backend Mongo:', uploadErr);
+        }
+      })();
+
       // 5. Generate Cover Letter PDF
       const formattedCLName = `${cleanUserPrefix}_${cleanCompanyForFile}_CL_${cleanTitleForFile}.pdf`;
       const cleanCLUri = `${FileSystem.documentDirectory}${formattedCLName}`;
@@ -279,6 +299,26 @@ export default function JobDetailsScreen() {
       const clPrintResult = await Print.printToFileAsync({ html: formattedCLHtml });
       await FileSystem.copyAsync({ from: clPrintResult.uri, to: cleanCLUri });
       setTailoredCoverLetterUri(cleanCLUri);
+
+      // Sync cover letter PDF upload to MongoDB backend database
+      (async () => {
+        try {
+          const fileBase64 = await FileSystem.readAsStringAsync(cleanCLUri, { encoding: 'base64' });
+          const targetUserId = user?.id || guestId;
+          await fetch(`${API_URL}/api/upload-pdf`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: formattedCLName,
+              fileBase64,
+              type: 'cover-letter',
+              userId: targetUserId
+            })
+          });
+        } catch (uploadErr) {
+          console.log('Failed to sync cover letter to backend Mongo:', uploadErr);
+        }
+      })();
 
       // Save generated cover letter to local cover_letters.json
       const coverLettersPath = `${FileSystem.documentDirectory}cover_letters.json`;
