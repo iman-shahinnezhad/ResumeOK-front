@@ -354,10 +354,50 @@ export default function ApplyJobScreen() {
             }
 
             let filled = 0;
-                  if (!el.value) {
-                    setNativeValue(el, payload.city);
-                    filled++;
-                  }
+            const isGreenhouse = host.includes('greenhouse.io') || document.querySelector('form#application_form, #grnhse_app');
+            const isLever = host.includes('lever.co') || document.querySelector('form#application-form');
+
+            if (isGreenhouse) {
+              // First Name
+              if (payload.firstName) {
+                findInputs('input[name*="first" i], input[id*="first" i]', ['first name'], ['first name']).forEach(el => {
+                  if (!el.value) { setNativeValue(el, payload.firstName); filled++; }
+                });
+              }
+              // Last Name
+              if (payload.lastName) {
+                findInputs('input[name*="last" i], input[id*="last" i]', ['last name'], ['last name']).forEach(el => {
+                  if (!el.value) { setNativeValue(el, payload.lastName); filled++; }
+                });
+              }
+              // Email
+              if (payload.email) {
+                findInputs('input[type="email" i], input[name*="email" i]', ['email'], ['email']).forEach(el => {
+                  if (!el.value) { setNativeValue(el, payload.email); filled++; }
+                });
+              }
+              // Phone
+              if (payload.phone) {
+                findInputs('input[type="tel" i], input[name*="phone" i]', ['phone', 'mobile'], ['phone', 'mobile']).forEach(el => {
+                  if (!el.value) { setNativeValue(el, payload.phone); filled++; }
+                });
+              }
+              // LinkedIn
+              if (payload.linkedinUrl) {
+                findInputs('input[name*="linkedin" i], input[id*="linkedin" i]', ['linkedin'], ['linkedin']).forEach(el => {
+                  if (!el.value) { setNativeValue(el, payload.linkedinUrl); filled++; }
+                });
+              }
+              // Portfolio
+              if (payload.portfolioUrl) {
+                findInputs('input[name*="portfolio" i], input[name*="website" i]', ['portfolio', 'website'], ['portfolio', 'website']).forEach(el => {
+                  if (!el.value) { setNativeValue(el, payload.portfolioUrl); filled++; }
+                });
+              }
+              // City
+              if (payload.city) {
+                findInputs('input[name*="city" i], input[id*="city" i], input[name*="location" i]', ['city', 'location'], ['city', 'location']).forEach(el => {
+                  if (!el.value) { setNativeValue(el, payload.city); filled++; }
                 });
               }
 
@@ -747,11 +787,77 @@ export default function ApplyJobScreen() {
                 filled++;
               }
             });
+          // Universal Resume & Cover Letter Attachment for all forms
+          if (payload.resumeBase64) {
+            try {
+              const resInputs = document.querySelectorAll('input[type="file"]');
+              resInputs.forEach(inp => {
+                const attr = ((inp.getAttribute('name')||'') + ' ' + (inp.getAttribute('id')||'') + ' ' + (inp.getAttribute('aria-label')||'')).toLowerCase();
+                if (attr.includes('resume') || attr.includes('cv') || (!attr.includes('cover') && (!inp.files || !inp.files.length))) {
+                  const blob = base64ToBlob(payload.resumeBase64, 'application/pdf');
+                  if (blob) {
+                    const file = new File([blob], payload.resumeName || 'resume.pdf', { type: 'application/pdf' });
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    try {
+                      const prototypeFilesSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(inp), 'files')?.set;
+                      if (prototypeFilesSetter) prototypeFilesSetter.call(inp, dt.files);
+                      else inp.files = dt.files;
+                    } catch(e) { inp.files = dt.files; }
+                    inp.dispatchEvent(new Event('change', { bubbles: true }));
+                    inp.dispatchEvent(new Event('input', { bubbles: true }));
+                    filled++;
+                  }
+                }
+              });
+            } catch(e) {}
+          }
+
+          if (payload.coverLetterBase64 || payload.coverLetterText) {
+            try {
+              if (payload.coverLetterText) {
+                document.querySelectorAll('textarea#cover_letter_text, textarea[name*="cover" i], textarea[id*="cover" i], textarea[name="comments"], textarea[name*="additional" i]').forEach(ta => {
+                  if (!ta.value) {
+                    setNativeValue(ta, payload.coverLetterText);
+                    filled++;
+                  }
+                });
+              }
+
+              document.querySelectorAll('input[type="file"][name*="cover" i], input[type="file"][id*="cover" i]').forEach(inp => {
+                if (!inp.files || !inp.files.length) {
+                  let blob = null;
+                  let fileName = payload.coverLetterPdfName || 'Cover_Letter.pdf';
+                  let mimeType = 'application/pdf';
+                  if (payload.coverLetterBase64) {
+                    blob = base64ToBlob(payload.coverLetterBase64, 'application/pdf');
+                  }
+                  if (!blob && payload.coverLetterText) {
+                    blob = new Blob([payload.coverLetterText], { type: 'text/plain' });
+                    fileName = 'Cover_Letter.txt';
+                    mimeType = 'text/plain';
+                  }
+                  if (blob) {
+                    const file = new File([blob], fileName, { type: mimeType });
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    try {
+                      const prototypeFilesSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(inp), 'files')?.set;
+                      if (prototypeFilesSetter) prototypeFilesSetter.call(inp, dt.files);
+                      else inp.files = dt.files;
+                    } catch(e) { inp.files = dt.files; }
+                    inp.dispatchEvent(new Event('change', { bubbles: true }));
+                    inp.dispatchEvent(new Event('input', { bubbles: true }));
+                    filled++;
+                  }
+                }
+              });
+            } catch(e) {}
           }
 
           if (filled > 0) {
-              sendSuccess(filled);
-            }
+            sendSuccess(filled);
+          }
           } catch(e) {
             sendError(e instanceof Error ? e.message : String(e));
           }
