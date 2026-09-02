@@ -25,7 +25,13 @@ const cleanJsCodeForInjection = (js: string) => js;
 export default function ApplyJobScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ url: string; title?: string; company?: string }>();
+  const params = useLocalSearchParams<{
+    url: string;
+    title?: string;
+    company?: string;
+    resumeUri?: string;
+    clUri?: string;
+  }>();
   const webViewRef = useRef<WebView>(null);
 
   const [loading, setLoading] = useState(true);
@@ -34,6 +40,8 @@ export default function ApplyJobScreen() {
   const [resumeBase64, setResumeBase64] = useState<string>('');
   const [resumeName, setResumeName] = useState<string>('');
   const [coverLetterText, setCoverLetterText] = useState<string>('');
+  const [coverLetterBase64, setCoverLetterBase64] = useState<string>('');
+  const [coverLetterPdfName, setCoverLetterPdfName] = useState<string>('Cover_Letter.pdf');
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const [showDebug, setShowDebug] = useState(false);
 
@@ -52,38 +60,65 @@ export default function ApplyJobScreen() {
           setProfileData(JSON.parse(content));
         }
 
-        // Load resumes and auto-select tailored resume for this job if available
-        const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
-        const resumesInfo = await FileSystem.getInfoAsync(resumesPath);
-        if (resumesInfo.exists) {
-          const resumesContent = await FileSystem.readAsStringAsync(resumesPath);
-          const parsedResumes = JSON.parse(resumesContent);
-          if (Array.isArray(parsedResumes) && parsedResumes.length > 0) {
-            const targetCompany = (companyName || '').toLowerCase().trim();
-            const targetTitle = (jobTitle || '').toLowerCase().trim();
+        // 1. Load Resume (Direct param or smart match in resumes.json)
+        if (params.resumeUri) {
+          try {
+            const b64 = await FileSystem.readAsStringAsync(params.resumeUri, { encoding: 'base64' });
+            setResumeBase64(b64);
+            const pName = params.resumeUri.split('/').pop() || 'resume.pdf';
+            setResumeName(pName);
+          } catch(e) {}
+        } else {
+          const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
+          const resumesInfo = await FileSystem.getInfoAsync(resumesPath);
+          if (resumesInfo.exists) {
+            const resumesContent = await FileSystem.readAsStringAsync(resumesPath);
+            const parsedResumes = JSON.parse(resumesContent);
+            if (Array.isArray(parsedResumes) && parsedResumes.length > 0) {
+              const targetCompany = (companyName || '').toLowerCase().trim();
+              const targetTitle = (jobTitle || '').toLowerCase().trim();
+              const companyWords = targetCompany.split(/[^a-zA-Z0-9]/).filter(w => w.length > 2);
+              const titleWords = targetTitle.split(/[^a-zA-Z0-9]/).filter(w => w.length > 2);
 
-            // 1. Search for job-specific tailored resume matching companyName or jobTitle
-            let matchedResume = parsedResumes.find(r => 
-              (r.companyName && targetCompany && r.companyName.toLowerCase().trim() === targetCompany) ||
-              (r.jobTitle && targetTitle && r.jobTitle.toLowerCase().trim() === targetTitle) ||
-              (r.name && targetCompany && r.name.toLowerCase().includes(targetCompany)) ||
-              (r.name && targetTitle && r.name.toLowerCase().includes(targetTitle))
-            );
+              let matchedResume = parsedResumes.find(r => {
+                const rComp = (r.companyName || '').toLowerCase();
+                const rTitle = (r.jobTitle || '').toLowerCase();
+                const rName = (r.name || '').toLowerCase();
 
-            // 2. Fallback to default or first resume if no job-tailored resume found
-            if (!matchedResume) {
-              matchedResume = parsedResumes.find(r => r.isDefault) || parsedResumes[0];
-            }
+                if (targetCompany && rComp && rComp === targetCompany) return true;
+                if (targetTitle && rTitle && rTitle === targetTitle) return true;
+                if (targetCompany && rName.includes(targetCompany)) return true;
+                if (targetTitle && rName.includes(targetTitle)) return true;
 
-            if (matchedResume && matchedResume.uri) {
-              const fileBase64 = await FileSystem.readAsStringAsync(matchedResume.uri, { encoding: 'base64' });
-              setResumeBase64(fileBase64);
-              setResumeName(matchedResume.name || 'resume.pdf');
+                if (companyWords.some(w => rName.includes(w) || rComp.includes(w))) return true;
+                if (titleWords.some(w => rName.includes(w) || rTitle.includes(w))) return true;
+
+                return false;
+              });
+
+              if (!matchedResume) {
+                matchedResume = parsedResumes.find(r => r.isDefault) || parsedResumes[0];
+              }
+
+              if (matchedResume && matchedResume.uri) {
+                const fileBase64 = await FileSystem.readAsStringAsync(matchedResume.uri, { encoding: 'base64' });
+                setResumeBase64(fileBase64);
+                setResumeName(matchedResume.name || 'resume.pdf');
+              }
             }
           }
         }
 
-        // Load cover letters
+        // 2. Load Cover Letter (Direct param or smart match in cover_letters.json)
+        if (params.clUri) {
+          try {
+            const clB64 = await FileSystem.readAsStringAsync(params.clUri, { encoding: 'base64' });
+            setCoverLetterBase64(clB64);
+            const cName = params.clUri.split('/').pop() || 'Cover_Letter.pdf';
+            setCoverLetterPdfName(cName);
+          } catch(e) {}
+        }
+
         const coverLettersPath = `${FileSystem.documentDirectory}cover_letters.json`;
         const coverLettersInfo = await FileSystem.getInfoAsync(coverLettersPath);
         if (coverLettersInfo.exists) {
@@ -92,15 +127,36 @@ export default function ApplyJobScreen() {
           if (Array.isArray(parsedCLs) && parsedCLs.length > 0) {
             const targetCompany = (companyName || '').toLowerCase().trim();
             const targetTitle = (jobTitle || '').toLowerCase().trim();
-            let matchedCL = parsedCLs.find(cl => 
-              (cl.company && cl.company.toLowerCase().trim() === targetCompany) ||
-              (cl.jobTitle && cl.jobTitle.toLowerCase().trim() === targetTitle)
-            );
+            const companyWords = targetCompany.split(/[^a-zA-Z0-9]/).filter(w => w.length > 2);
+            const titleWords = targetTitle.split(/[^a-zA-Z0-9]/).filter(w => w.length > 2);
+
+            let matchedCL = parsedCLs.find(cl => {
+              const cComp = (cl.company || '').toLowerCase();
+              const cTitle = (cl.jobTitle || '').toLowerCase();
+
+              if (targetCompany && cComp && cComp === targetCompany) return true;
+              if (targetTitle && cTitle && cTitle === targetTitle) return true;
+              if (companyWords.some(w => cComp.includes(w))) return true;
+              if (titleWords.some(w => cTitle.includes(w))) return true;
+
+              return false;
+            });
+
             if (!matchedCL) {
               matchedCL = parsedCLs[0];
             }
-            if (matchedCL && matchedCL.coverLetterText) {
-              setCoverLetterText(matchedCL.coverLetterText);
+
+            if (matchedCL) {
+              if (matchedCL.coverLetterText) {
+                setCoverLetterText(matchedCL.coverLetterText);
+              }
+              if (matchedCL.pdfUri && !params.clUri) {
+                try {
+                  const b64 = await FileSystem.readAsStringAsync(matchedCL.pdfUri, { encoding: 'base64' });
+                  setCoverLetterBase64(b64);
+                  if (matchedCL.pdfName) setCoverLetterPdfName(matchedCL.pdfName);
+                } catch(e) {}
+              }
             }
           }
         }
@@ -138,6 +194,8 @@ export default function ApplyJobScreen() {
       resumeBase64: (resumeBase64 || '').trim(),
       resumeName: (resumeName || 'resume.pdf').trim(),
       coverLetterText: (coverLetterText || '').trim(),
+      coverLetterBase64: (coverLetterBase64 || '').trim(),
+      coverLetterPdfName: (coverLetterPdfName || 'Cover_Letter.pdf').trim(),
       currentJobTitle: (currentExp?.jobTitle || profileData.jobTitle || profileData.role || '').trim(),
       currentEmployer: (currentExp?.companyName || profileData.companyName || '').trim(),
       workStartDate: (currentExp?.startDate || '').trim(),
@@ -362,24 +420,38 @@ export default function ApplyJobScreen() {
               // Cover letter file input
               const ghCLFile = document.querySelector('input[type="file"][id="cover_letter_file"]') || 
                                document.querySelector('input[type="file"][name="cover_letter"]');
-              if (ghCLFile && payload.coverLetterText && (!ghCLFile.files || !ghCLFile.files.length)) {
+              if (ghCLFile && (payload.coverLetterBase64 || payload.coverLetterText) && (!ghCLFile.files || !ghCLFile.files.length)) {
                 try {
-                  const blob = new Blob([payload.coverLetterText], { type: 'text/plain' });
-                  const file = new File([blob], 'cover_letter.txt', { type: 'text/plain' });
-                  const dataTransfer = new DataTransfer();
-                  dataTransfer.items.add(file);
-                  
-                  const filesSetter = Object.getOwnPropertyDescriptor(ghCLFile, 'files')?.set;
-                  const prototype = Object.getPrototypeOf(ghCLFile);
-                  const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
-                  if (prototypeFilesSetter) {
-                    prototypeFilesSetter.call(ghCLFile, dataTransfer.files);
-                  } else {
-                    ghCLFile.files = dataTransfer.files;
+                  let blob = null;
+                  let fileName = payload.coverLetterPdfName || 'Cover_Letter.pdf';
+                  let mimeType = 'application/pdf';
+
+                  if (payload.coverLetterBase64) {
+                    blob = base64ToBlob(payload.coverLetterBase64, 'application/pdf');
                   }
-                  
-                  ghCLFile.dispatchEvent(new Event('change', { bubbles: true }));
-                  filled++;
+                  if (!blob && payload.coverLetterText) {
+                    blob = new Blob([payload.coverLetterText], { type: 'text/plain' });
+                    fileName = 'Cover_Letter.txt';
+                    mimeType = 'text/plain';
+                  }
+
+                  if (blob) {
+                    const file = new File([blob], fileName, { type: mimeType });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    
+                    const filesSetter = Object.getOwnPropertyDescriptor(ghCLFile, 'files')?.set;
+                    const prototype = Object.getPrototypeOf(ghCLFile);
+                    const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
+                    if (prototypeFilesSetter) {
+                      prototypeFilesSetter.call(ghCLFile, dataTransfer.files);
+                    } else {
+                      ghCLFile.files = dataTransfer.files;
+                    }
+                    
+                    ghCLFile.dispatchEvent(new Event('change', { bubbles: true }));
+                    filled++;
+                  }
                 } catch(e) {
                   sendLog('Failed to attach cover letter to Greenhouse: ' + e.message);
                 }
@@ -479,24 +551,38 @@ export default function ApplyJobScreen() {
               // Cover letter file input
               const leverCLFile = document.querySelector('input[type="file"][id="cover-letter-upload-input"]') || 
                                   document.querySelector('input[type="file"][name="cover_letter"]');
-              if (leverCLFile && payload.coverLetterText && (!leverCLFile.files || !leverCLFile.files.length)) {
+              if (leverCLFile && (payload.coverLetterBase64 || payload.coverLetterText) && (!leverCLFile.files || !leverCLFile.files.length)) {
                 try {
-                  const blob = new Blob([payload.coverLetterText], { type: 'text/plain' });
-                  const file = new File([blob], 'cover_letter.txt', { type: 'text/plain' });
-                  const dataTransfer = new DataTransfer();
-                  dataTransfer.items.add(file);
-                  
-                  const filesSetter = Object.getOwnPropertyDescriptor(leverCLFile, 'files')?.set;
-                  const prototype = Object.getPrototypeOf(leverCLFile);
-                  const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
-                  if (prototypeFilesSetter) {
-                    prototypeFilesSetter.call(leverCLFile, dataTransfer.files);
-                  } else {
-                    leverCLFile.files = dataTransfer.files;
+                  let blob = null;
+                  let fileName = payload.coverLetterPdfName || 'Cover_Letter.pdf';
+                  let mimeType = 'application/pdf';
+
+                  if (payload.coverLetterBase64) {
+                    blob = base64ToBlob(payload.coverLetterBase64, 'application/pdf');
                   }
-                  
-                  leverCLFile.dispatchEvent(new Event('change', { bubbles: true }));
-                  filled++;
+                  if (!blob && payload.coverLetterText) {
+                    blob = new Blob([payload.coverLetterText], { type: 'text/plain' });
+                    fileName = 'Cover_Letter.txt';
+                    mimeType = 'text/plain';
+                  }
+
+                  if (blob) {
+                    const file = new File([blob], fileName, { type: mimeType });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    
+                    const filesSetter = Object.getOwnPropertyDescriptor(leverCLFile, 'files')?.set;
+                    const prototype = Object.getPrototypeOf(leverCLFile);
+                    const prototypeFilesSetter = Object.getOwnPropertyDescriptor(prototype, 'files')?.set;
+                    if (prototypeFilesSetter) {
+                      prototypeFilesSetter.call(leverCLFile, dataTransfer.files);
+                    } else {
+                      leverCLFile.files = dataTransfer.files;
+                    }
+                    
+                    leverCLFile.dispatchEvent(new Event('change', { bubbles: true }));
+                    filled++;
+                  }
                 } catch(e) {
                   sendLog('Failed to attach cover letter to Lever: ' + e.message);
                 }
@@ -848,22 +934,39 @@ export default function ApplyJobScreen() {
               });
             }
 
-            // Cover Letter File Auto-Attachment
-            if (clRawText) {
+            // Cover Letter File Auto-Attachment (PDF first, fallback TXT)
+            const clPdfB64 = "${(coverLetterBase64 || '').trim()}";
+            const clPdfName = "${(coverLetterPdfName || 'Cover_Letter.pdf').trim()}";
+            if (clPdfB64 || clRawText) {
               try {
-                const clBlob = new Blob([clRawText], { type: 'text/plain' });
-                const clFile = new File([clBlob], 'Cover_Letter.txt', { type: 'text/plain' });
-                const dtCL = new DataTransfer();
-                dtCL.items.add(clFile);
+                const attachCLInput = function(inp, fileObj) {
+                  const dtCL = new DataTransfer();
+                  dtCL.items.add(fileObj);
+                  try {
+                    const prototypeFilesSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(inp), 'files')?.set;
+                    if (prototypeFilesSetter) prototypeFilesSetter.call(inp, dtCL.files);
+                    else inp.files = dtCL.files;
+                  } catch(e) { inp.files = dtCL.files; }
+                  inp.dispatchEvent(new Event('change', { bubbles: true }));
+                  inp.dispatchEvent(new Event('input', { bubbles: true }));
+                };
+
                 doc.querySelectorAll('input[type="file"][name*="cover" i], input[type="file"][id*="cover" i]').forEach(inp => {
                   if (!inp.files || !inp.files.length) {
-                    try {
-                      const prototypeFilesSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(inp), 'files')?.set;
-                      if (prototypeFilesSetter) prototypeFilesSetter.call(inp, dtCL.files);
-                      else inp.files = dtCL.files;
-                    } catch(e) { inp.files = dtCL.files; }
-                    inp.dispatchEvent(new Event('change', { bubbles: true }));
-                    inp.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (clPdfB64) {
+                      fetch("data:application/pdf;base64," + clPdfB64)
+                        .then(r => r.blob())
+                        .then(blob => {
+                          if (blob) {
+                            const clFile = new File([blob], clPdfName, { type: 'application/pdf' });
+                            attachCLInput(inp, clFile);
+                          }
+                        }).catch(function(){});
+                    } else if (clRawText) {
+                      const clBlob = new Blob([clRawText], { type: 'text/plain' });
+                      const clFile = new File([clBlob], 'Cover_Letter.txt', { type: 'text/plain' });
+                      attachCLInput(inp, clFile);
+                    }
                   }
                 });
               } catch(e) {}

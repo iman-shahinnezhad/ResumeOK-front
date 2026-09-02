@@ -348,6 +348,8 @@ export default function JobDetailsScreen() {
         jobTitle: jobTitle,
         date: new Date().toLocaleDateString(),
         coverLetterText: generatedCL,
+        pdfUri: cleanCLUri,
+        pdfName: formattedCLName,
         jobUrl: jobData?.absolute_url || '',
         resumeName: formattedResumeName
       };
@@ -1311,7 +1313,9 @@ export default function JobDetailsScreen() {
                     params: {
                       url: jobData.absolute_url,
                       title: jobData.title || jobTitle,
-                      company: companyName
+                      company: companyName,
+                      resumeUri: tailoredResumeUri,
+                      clUri: tailoredCoverLetterUri
                     }
                   });
                 }
