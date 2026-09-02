@@ -20,10 +20,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const cleanJsCodeForInjection = (js: string) => {
-  const noComments = js.replace(/(^|[^:])\/\/[^\n]*/g, '$1');
-  return noComments.replace(/[\r\n]+/g, ' ');
-};
+const cleanJsCodeForInjection = (js: string) => js;
 
 export default function ApplyJobScreen() {
   const router = useRouter();
@@ -55,18 +52,33 @@ export default function ApplyJobScreen() {
           setProfileData(JSON.parse(content));
         }
 
-        // Load resumes
+        // Load resumes and auto-select tailored resume for this job if available
         const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
         const resumesInfo = await FileSystem.getInfoAsync(resumesPath);
         if (resumesInfo.exists) {
           const resumesContent = await FileSystem.readAsStringAsync(resumesPath);
           const parsedResumes = JSON.parse(resumesContent);
           if (Array.isArray(parsedResumes) && parsedResumes.length > 0) {
-            const defaultResume = parsedResumes.find(r => r.isDefault) || parsedResumes[0];
-            if (defaultResume && defaultResume.uri) {
-              const fileBase64 = await FileSystem.readAsStringAsync(defaultResume.uri, { encoding: 'base64' });
+            const targetCompany = (companyName || '').toLowerCase().trim();
+            const targetTitle = (jobTitle || '').toLowerCase().trim();
+
+            // 1. Search for job-specific tailored resume matching companyName or jobTitle
+            let matchedResume = parsedResumes.find(r => 
+              (r.companyName && targetCompany && r.companyName.toLowerCase().trim() === targetCompany) ||
+              (r.jobTitle && targetTitle && r.jobTitle.toLowerCase().trim() === targetTitle) ||
+              (r.name && targetCompany && r.name.toLowerCase().includes(targetCompany)) ||
+              (r.name && targetTitle && r.name.toLowerCase().includes(targetTitle))
+            );
+
+            // 2. Fallback to default or first resume if no job-tailored resume found
+            if (!matchedResume) {
+              matchedResume = parsedResumes.find(r => r.isDefault) || parsedResumes[0];
+            }
+
+            if (matchedResume && matchedResume.uri) {
+              const fileBase64 = await FileSystem.readAsStringAsync(matchedResume.uri, { encoding: 'base64' });
               setResumeBase64(fileBase64);
-              setResumeName(defaultResume.name || 'resume.pdf');
+              setResumeName(matchedResume.name || 'resume.pdf');
             }
           }
         }
@@ -651,13 +663,195 @@ export default function ApplyJobScreen() {
     `;
   };
 
-  const handleTriggerAutofill = () => {
+  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://188.166.164.115:3030';
+  const [isAutofilling, setIsAutofilling] = useState(false);
+
+  const handleTriggerAutofill = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (webViewRef.current && profileData) {
-      setDebugLogs(prev => [...prev, '[v2.2 Fast-Engine] Triggering proxy autofill...']);
-      const triggerCmd = 'if(window.__runAutofill){ window.__runAutofill(); } else { ' + cleanJsCodeForInjection(getAutofillJS()) + ' } true;';
-      webViewRef.current.injectJavaScript(triggerCmd);
+      setIsAutofilling(true);
+      const experiences = profileData.workExperiences || profileData.experiences || [];
+      const currentExp = experiences.length > 0 ? experiences[0] : null;
+
+      const educations = profileData.educations || profileData.education || [];
+      const currentEdu = educations.length > 0 ? educations[0] : null;
+
+      const fn = (profileData.firstName || '').trim();
+      const ln = (profileData.lastName || '').trim();
+      const full = `${fn} ${ln}`.trim();
+      const em = (profileData.email || profileData.emailAddress || '').trim();
+      const ph = (profileData.phone || profileData.phoneNumber || '').trim();
+      const li = (profileData.linkedinUrl || profileData.linkedin || '').trim();
+      const po = (profileData.portfolioUrl || profileData.portfolio || '').trim();
+      const ci = (profileData.city || profileData.location || '').trim();
+
+      const sch = (currentEdu?.schoolName || profileData.schoolName || '').trim();
+      const deg = (currentEdu?.degree || profileData.degree || '').trim();
+      const dis = (currentEdu?.fieldOfStudy || currentEdu?.degree || profileData.discipline || '').trim();
+      const edStart = (currentEdu?.startDate || '').trim();
+      const edEnd = (currentEdu?.endDate || '').trim();
+
+      const emp = (currentExp?.companyName || profileData.companyName || '').trim();
+      const tit = (currentExp?.jobTitle || profileData.jobTitle || profileData.role || '').trim();
+      const wkStart = (currentExp?.startDate || '').trim();
+      const wkEnd = (currentExp?.endDate || '').trim();
+
+      const gen = (profileData.gender || profileData.sex || '').trim();
+      const race = (profileData.race || profileData.ethnicity || '').trim();
+      const vet = (profileData.veteranStatus || profileData.veteran || '').trim();
+      const disab = (profileData.disabilityStatus || profileData.disability || '').trim();
+
+      setDebugLogs(prev => [...prev, `[Purple Button] Instant autofill script injecting: fn="${fn}" em="${em}"`]);
+
+      const purpleJs = `
+        (function() {
+          function setVal(el, v) {
+            if (!el || !v) return;
+            try {
+              const proto = Object.getPrototypeOf(el);
+              const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set || Object.getOwnPropertyDescriptor(el, 'value')?.set;
+              if (setter) setter.call(el, v); else el.value = v;
+            } catch(e) { el.value = v; }
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+
+          const docs = [document];
+          document.querySelectorAll('iframe').forEach(f => {
+            try { if (f.contentDocument) docs.push(f.contentDocument); } catch(e) {}
+          });
+
+          docs.forEach(doc => {
+            if ("${fn}") {
+              doc.querySelectorAll('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]').forEach(e => setVal(e, "${fn}"));
+            }
+            if ("${ln}") {
+              doc.querySelectorAll('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]').forEach(e => setVal(e, "${ln}"));
+            }
+            if ("${full}") {
+              doc.querySelectorAll('input[name="name" i], input[id="name" i]').forEach(e => setVal(e, "${full}"));
+            }
+            if ("${em}") {
+              doc.querySelectorAll('input[type="email" i], input[name*="email" i], input[id*="email" i]').forEach(e => setVal(e, "${em}"));
+            }
+            if ("${ph}") {
+              doc.querySelectorAll('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]').forEach(e => setVal(e, "${ph}"));
+            }
+            if ("${li}") {
+              doc.querySelectorAll('input[name*="linkedin" i], input[id*="linkedin" i]').forEach(e => setVal(e, "${li}"));
+            }
+            if ("${po}") {
+              doc.querySelectorAll('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i]').forEach(e => setVal(e, "${po}"));
+            }
+            if ("${ci}") {
+              doc.querySelectorAll('input[name*="city" i], input[id*="city" i], input[name*="location" i]').forEach(e => setVal(e, "${ci}"));
+            }
+            // School / University
+            if ("${sch}") {
+              doc.querySelectorAll('input[name*="school" i], input[name*="university" i], input[id*="school" i]').forEach(e => setVal(e, "${sch}"));
+            }
+            // Degree
+            if ("${deg}") {
+              doc.querySelectorAll('input[name*="degree" i], input[id*="degree" i]').forEach(e => setVal(e, "${deg}"));
+            }
+            // Discipline / Field of Study
+            if ("${dis}") {
+              doc.querySelectorAll('input[name*="discipline" i], input[name*="major" i], input[name*="field" i]').forEach(e => setVal(e, "${dis}"));
+            }
+            // Edu Start Date
+            if ("${edStart}") {
+              doc.querySelectorAll('input[name*="start" i][name*="school" i], input[name*="start" i][name*="edu" i]').forEach(e => setVal(e, "${edStart}"));
+            }
+            // Edu End Date
+            if ("${edEnd}") {
+              doc.querySelectorAll('input[name*="end" i][name*="school" i], input[name*="end" i][name*="edu" i], input[name*="grad" i]').forEach(e => setVal(e, "${edEnd}"));
+            }
+            // Current Employer
+            if ("${emp}") {
+              doc.querySelectorAll('input[name*="company" i], input[name*="employer" i], input[id*="company" i], input[name*="org" i]').forEach(e => setVal(e, "${emp}"));
+            }
+            // Current Job Title
+            if ("${tit}") {
+              doc.querySelectorAll('input[name*="title" i], input[id*="title" i], input[name*="position" i]').forEach(e => setVal(e, "${tit}"));
+            }
+            // Work Start Date
+            if ("${wkStart}") {
+              doc.querySelectorAll('input[name*="start" i][name*="work" i], input[name*="start" i][name*="job" i]').forEach(e => setVal(e, "${wkStart}"));
+            }
+            // Work End Date
+            if ("${wkEnd}") {
+              doc.querySelectorAll('input[name*="end" i][name*="work" i], input[name*="end" i][name*="job" i]').forEach(e => setVal(e, "${wkEnd}"));
+            }
+            // Gender
+            if ("${gen}") {
+              const gVal = "${gen}".toLowerCase();
+              doc.querySelectorAll('select[name*="gender" i], select[id*="gender" i], select[name*="sex" i]').forEach(s => {
+                const opts = Array.from(s.options || []);
+                const match = opts.find(o => (o.value || '').toLowerCase().includes(gVal) || (o.text || '').toLowerCase().includes(gVal));
+                if (match) { s.value = match.value; s.dispatchEvent(new Event('change', { bubbles: true })); }
+              });
+            }
+            // Race / Ethnicity
+            if ("${race}") {
+              const rVal = "${race}".toLowerCase();
+              doc.querySelectorAll('select[name*="race" i], select[name*="ethnicity" i], select[id*="race" i]').forEach(s => {
+                const opts = Array.from(s.options || []);
+                const match = opts.find(o => (o.value || '').toLowerCase().includes(rVal) || (o.text || '').toLowerCase().includes(rVal));
+                if (match) { s.value = match.value; s.dispatchEvent(new Event('change', { bubbles: true })); }
+              });
+            }
+            // Veteran Status
+            if ("${vet}") {
+              const vVal = "${vet}".toLowerCase();
+              doc.querySelectorAll('select[name*="veteran" i], select[id*="veteran" i]').forEach(s => {
+                const opts = Array.from(s.options || []);
+                const match = opts.find(o => (o.value || '').toLowerCase().includes(vVal) || (o.text || '').toLowerCase().includes(vVal));
+                if (match) { s.value = match.value; s.dispatchEvent(new Event('change', { bubbles: true })); }
+              });
+            }
+            // Disability Status
+            if ("${disab}") {
+              const dVal = "${disab}".toLowerCase();
+              doc.querySelectorAll('select[name*="disability" i], select[id*="disability" i]').forEach(s => {
+                const opts = Array.from(s.options || []);
+                const match = opts.find(o => (o.value || '').toLowerCase().includes(dVal) || (o.text || '').toLowerCase().includes(dVal));
+                if (match) { s.value = match.value; s.dispatchEvent(new Event('change', { bubbles: true })); }
+              });
+            }
+
+            // Instant PDF Resume Auto-Attachment via WebKit DOM Blob
+            if ("${(resumeBase64 || '').trim()}") {
+              try {
+                fetch("data:application/pdf;base64," + "${(resumeBase64 || '').trim()}")
+                  .then(r => r.blob())
+                  .then(blob => {
+                    if (blob) {
+                      const resFile = new File([blob], "${(resumeName || 'Resume.pdf').trim()}", { type: 'application/pdf' });
+                      const dt = new DataTransfer();
+                      dt.items.add(resFile);
+                      doc.querySelectorAll('input[type="file"]').forEach(inp => {
+                        const n = (inp.name || inp.id || '').toLowerCase();
+                        if (n.includes('resume') || n.includes('cv') || (!n.includes('cover') && !inp.files.length)) {
+                          inp.files = dt.files;
+                          inp.dispatchEvent(new Event('change', { bubbles: true }));
+                          inp.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                      });
+                    }
+                  }).catch(function(){});
+              } catch(e) {}
+            }
+          });
+        })();
+        true;
+      `;
+
+      webViewRef.current.injectJavaScript(cleanJsCodeForInjection(purpleJs));
+      setTimeout(() => {
+        setIsAutofilling(false);
+      }, 2000);
     } else {
+      setIsAutofilling(false);
       setDebugLogs(prev => [...prev, `[Manual] Error: webViewRef=${!!webViewRef.current} profileData=${!!profileData}`]);
       Alert.alert('Profile Empty', 'Please complete your onboarding profile first to use 1-Click Autofill.');
     }
@@ -743,50 +937,34 @@ export default function ApplyJobScreen() {
       }
     }
   };
+  const getDirectAtsUrl = (url: string) => {
+    if (!url) return url;
+    const ghJidMatch = url.match(/gh_jid=([0-9]+)/i);
+    if (ghJidMatch && ghJidMatch[1]) {
+      return `https://boards.greenhouse.io/embed/job_app?token=${ghJidMatch[1]}`;
+    }
+    return url;
+  };
+
+  const targetUri = getDirectAtsUrl(jobUrl);
 
   return (
     <View style={styles.container}>
       {/* Header Bar */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity
-          style={styles.closeBtn}
-          activeOpacity={0.7}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
-          }}
-        >
-          {Platform.OS === 'ios' ? (
-            <SymbolView name="xmark" size={18} tintColor="#1F2937" resizeMode="scaleAspectFit" />
-          ) : (
-            <Ionicons name="close" size={24} color="#1F2937" />
-          )}
+        <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
+          <Ionicons name="close-outline" size={24} color="#374151" />
         </TouchableOpacity>
-
         <View style={styles.headerTitleCol}>
-          <Text style={styles.headerTitle} numberOfLines={1}>{jobTitle}</Text>
-          {companyName ? <Text style={styles.headerSubtitle} numberOfLines={1}>{companyName}</Text> : null}
+          <Text style={styles.headerTitle} numberOfLines={1}>{jobTitle || 'Job Application'}</Text>
+          <Text style={styles.headerSubtitle} numberOfLines={1}>{companyName || 'Company'}</Text>
         </View>
-
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity
-            style={styles.reloadBtn}
-            activeOpacity={0.7}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              webViewRef.current?.reload();
-            }}
-          >
-            {Platform.OS === 'ios' ? (
-              <SymbolView name="arrow.clockwise" size={18} tintColor="#6B7280" resizeMode="scaleAspectFit" />
-            ) : (
-              <Ionicons name="refresh" size={20} color="#6B7280" />
-            )}
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <TouchableOpacity style={styles.reloadBtn} onPress={() => webViewRef.current?.reload()}>
+            <Ionicons name="reload-outline" size={18} color="#374151" />
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.reloadBtn, showDebug && { backgroundColor: '#FEE2E2' }]}
-            activeOpacity={0.7}
+          <TouchableOpacity 
+            style={[styles.reloadBtn, showDebug && { backgroundColor: '#FEE2E2' }]} 
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setShowDebug(!showDebug);
@@ -805,24 +983,14 @@ export default function ApplyJobScreen() {
       <View style={{ flex: 1 }}>
         <WebView
           ref={webViewRef}
-          source={{ uri: jobUrl }}
+          source={{ uri: targetUri }}
           onLoadStart={() => {
             setLoading(true);
-            setDebugLogs(prev => [...prev, `[WebView] Load started: ${jobUrl}`]);
+            setDebugLogs(prev => [...prev, `[WebView] Load started: ${targetUri}`]);
           }}
           onLoadEnd={() => {
             setLoading(false);
-            setDebugLogs(prev => [...prev, '[WebView] Load completed. Scheduling auto-inject in 1200ms...']);
-            // Auto-inject fields once page finishes loading
-            setTimeout(() => {
-              if (webViewRef.current && profileData) {
-                const jsToInject = cleanJsCodeForInjection(getAutofillJS());
-                setDebugLogs(prev => [...prev, `[WebView] Injecting script automatically (${jsToInject.length} chars)...`]);
-                webViewRef.current.injectJavaScript(jsToInject);
-              } else {
-                setDebugLogs(prev => [...prev, `[WebView] Skip auto-inject: webViewRef=${!!webViewRef.current} profileData=${!!profileData}`]);
-              }
-            }, 1200);
+            setDebugLogs(prev => [...prev, '[WebView] Page loaded. Tap "1-Click Autofill Form" button to fill fields.']);
           }}
           onMessage={(event) => {
             try {
@@ -894,20 +1062,30 @@ export default function ApplyJobScreen() {
       {/* Floating Bottom Autofill Toolbar */}
       <BlurView intensity={Platform.OS === 'ios' ? 80 : 100} tint="light" style={[styles.bottomToolbar, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
-          style={styles.autofillBtn}
+          style={[styles.autofillBtn, isAutofilling && { opacity: 0.85 }]}
           activeOpacity={0.85}
+          disabled={isAutofilling}
           onPress={handleTriggerAutofill}
         >
-          <View style={styles.autofillIconWrap}>
-            {Platform.OS === 'ios' ? (
-              <SymbolView name="sparkles" size={18} tintColor="#FFFFFF" resizeMode="scaleAspectFit" />
-            ) : (
-              <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-            )}
-          </View>
-          <Text style={styles.autofillBtnText}>
-            {autofillCount > 0 ? `Autofilled ${autofillCount} Fields` : '1-Click Autofill Form'}
-          </Text>
+          {isAutofilling ? (
+            <>
+              <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.autofillBtnText}>Attaching Resume & Filling...</Text>
+            </>
+          ) : (
+            <>
+              <View style={styles.autofillIconWrap}>
+                {Platform.OS === 'ios' ? (
+                  <SymbolView name="sparkles" size={18} tintColor="#FFFFFF" resizeMode="scaleAspectFit" />
+                ) : (
+                  <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+                )}
+              </View>
+              <Text style={styles.autofillBtnText}>
+                {autofillCount > 0 ? `Autofilled ${autofillCount} Fields` : '1-Click Autofill Form'}
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
 
         {/* Quick Copy Chips */}

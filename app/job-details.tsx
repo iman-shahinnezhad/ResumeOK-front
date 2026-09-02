@@ -222,13 +222,17 @@ export default function JobDetailsScreen() {
       setTailoredResumeUri(cleanResumeUri);
 
       // Save tailored resume back to local Resumes list
-      const newResumeEntry: SelectedResumeFile = {
+      const newResumeEntry: SelectedResumeFile & { companyName?: string; jobTitle?: string; jobId?: string; isTailored?: boolean } = {
         id: `tailored_${Date.now()}`,
         name: formattedResumeName,
         date: new Date().toLocaleDateString(),
         uri: cleanResumeUri,
         mimeType: 'application/pdf',
-        isBuilt: true
+        isBuilt: true,
+        companyName: companyName,
+        jobTitle: jobTitle,
+        jobId: jobData?.id,
+        isTailored: true
       };
 
       const updatedList = [newResumeEntry, ...resumesList];
@@ -249,7 +253,10 @@ export default function JobDetailsScreen() {
               fileName: formattedResumeName,
               fileBase64,
               type: 'resume',
-              userId: targetUserId
+              userId: targetUserId,
+              jobId: jobData?.id,
+              companyName,
+              jobTitle
             })
           });
         } catch (uploadErr) {
@@ -312,7 +319,11 @@ export default function JobDetailsScreen() {
               fileName: formattedCLName,
               fileBase64,
               type: 'cover-letter',
-              userId: targetUserId
+              userId: targetUserId,
+              jobId: jobData?.id,
+              companyName,
+              jobTitle,
+              coverLetterText: generatedCL
             })
           });
         } catch (uploadErr) {
