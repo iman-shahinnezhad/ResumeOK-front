@@ -135,9 +135,9 @@ export default function ApplyJobScreen() {
       portfolioUrl: (profileData.portfolioUrl || profileData.portfolio || profileData.website || profileData.url || '').trim(),
       city: (profileData.city || profileData.location || profileData.address || '').trim(),
       country: (profileData.country || 'United States').trim(),
-      resumeBase64: '',
-      resumeName: resumeName,
-      coverLetterText: '',
+      resumeBase64: (resumeBase64 || '').trim(),
+      resumeName: (resumeName || 'resume.pdf').trim(),
+      coverLetterText: (coverLetterText || '').trim(),
       currentJobTitle: (currentExp?.jobTitle || profileData.jobTitle || profileData.role || '').trim(),
       currentEmployer: (currentExp?.companyName || profileData.companyName || '').trim(),
       workStartDate: (currentExp?.startDate || '').trim(),
@@ -160,6 +160,25 @@ export default function ApplyJobScreen() {
 
         const payload = JSON.parse(decodeURIComponent("${payloadStr}"));
         let attempts = 0;
+
+        function base64ToBlob(b64Data, contentType) {
+          contentType = contentType || 'application/pdf';
+          try {
+            const byteCharacters = atob(b64Data);
+            const byteArrays = [];
+            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+              const slice = byteCharacters.slice(offset, offset + 512);
+              const byteNumbers = new Array(slice.length);
+              for (let i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+              }
+              byteArrays.push(new Uint8Array(byteNumbers));
+            }
+            return new Blob(byteArrays, { type: contentType });
+          } catch(e) {
+            return null;
+          }
+        }
 
         function postMsg(msgObj) {
           try {
@@ -819,6 +838,37 @@ export default function ApplyJobScreen() {
               });
             }
 
+            // Cover Letter Text Autofill
+            const clRawText = "${(coverLetterText || '').trim().replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}";
+            if (clRawText) {
+              doc.querySelectorAll('textarea#cover_letter_text, textarea[name*="cover" i], textarea[id*="cover" i], textarea[name="comments"], textarea[name*="additional" i]').forEach(ta => {
+                if (!ta.value) {
+                  setVal(ta, clRawText);
+                }
+              });
+            }
+
+            // Cover Letter File Auto-Attachment
+            if (clRawText) {
+              try {
+                const clBlob = new Blob([clRawText], { type: 'text/plain' });
+                const clFile = new File([clBlob], 'Cover_Letter.txt', { type: 'text/plain' });
+                const dtCL = new DataTransfer();
+                dtCL.items.add(clFile);
+                doc.querySelectorAll('input[type="file"][name*="cover" i], input[type="file"][id*="cover" i]').forEach(inp => {
+                  if (!inp.files || !inp.files.length) {
+                    try {
+                      const prototypeFilesSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(inp), 'files')?.set;
+                      if (prototypeFilesSetter) prototypeFilesSetter.call(inp, dtCL.files);
+                      else inp.files = dtCL.files;
+                    } catch(e) { inp.files = dtCL.files; }
+                    inp.dispatchEvent(new Event('change', { bubbles: true }));
+                    inp.dispatchEvent(new Event('input', { bubbles: true }));
+                  }
+                });
+              } catch(e) {}
+            }
+
             // Instant PDF Resume Auto-Attachment via WebKit DOM Blob
             if ("${(resumeBase64 || '').trim()}") {
               try {
@@ -832,7 +882,11 @@ export default function ApplyJobScreen() {
                       doc.querySelectorAll('input[type="file"]').forEach(inp => {
                         const n = (inp.name || inp.id || '').toLowerCase();
                         if (n.includes('resume') || n.includes('cv') || (!n.includes('cover') && !inp.files.length)) {
-                          inp.files = dt.files;
+                          try {
+                            const prototypeFilesSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(inp), 'files')?.set;
+                            if (prototypeFilesSetter) prototypeFilesSetter.call(inp, dt.files);
+                            else inp.files = dt.files;
+                          } catch(e) { inp.files = dt.files; }
                           inp.dispatchEvent(new Event('change', { bubbles: true }));
                           inp.dispatchEvent(new Event('input', { bubbles: true }));
                         }
