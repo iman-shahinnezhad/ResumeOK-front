@@ -17,7 +17,8 @@ import {
   Keyboard,
   Animated,
   Easing,
-  Modal
+  Modal,
+  BackHandler
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -370,6 +371,13 @@ export default function Onboarding() {
       }
     }
   }, [user]);
+
+  // Prevent authenticated user from remaining on or returning to welcome login step
+  useEffect(() => {
+    if ((isLoggedIn || !!user) && step === 'welcome') {
+      _setStep('engineered');
+    }
+  }, [isLoggedIn, user, step]);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
   const opacity = slideAnim.interpolate({
@@ -1273,8 +1281,9 @@ export default function Onboarding() {
   };
 
   const handleBack = () => {
+    const isUserAuth = isLoggedIn || !!user;
     if (step === 'welcome') setStep('intro');
-    else if (step === 'engineered') setStep('welcome');
+    else if (step === 'engineered') setStep(isUserAuth ? 'intro' : 'welcome');
     else if (step === 'upload') setStep('engineered');
     else if (step === 'name') setStep('upload');
     else if (step === 'email') setStep('name');
@@ -1289,6 +1298,19 @@ export default function Onboarding() {
     else if (step === 'notifications') setStep('rateUs');
     else if (step === 'referral') setStep('notifications');
   };
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (step === 'intro') {
+        return false;
+      }
+      handleBack();
+      return true;
+    };
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [step, isLoggedIn, user]);
 
   const toggleCategory = (catName: string) => {
     if (expandedCategory === catName) {
@@ -1423,7 +1445,7 @@ export default function Onboarding() {
 
             <AppleNativeButton
               style={styles.continueBtn}
-              onPress={() => setStep('welcome')}
+              onPress={() => setStep((isLoggedIn || !!user) ? 'engineered' : 'welcome')}
             >
               <Text style={styles.continueBtnText}>Continue</Text>
             </AppleNativeButton>
