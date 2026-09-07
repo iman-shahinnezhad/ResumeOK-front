@@ -553,12 +553,12 @@ export default function JobsScreen() {
             if (profilePhone) setPhone(profilePhone);
 
             if (!isProfileDefaultsLoaded.current) {
-              // Auto-populate filter values from onboarding choices
-              const onboardingRoles = Array.isArray(loadedProfile.skills) && loadedProfile.skills.length > 0
-                ? loadedProfile.skills
-                : (Array.isArray(loadedProfile.roles) ? loadedProfile.roles : []);
+              // Auto-populate filter values from onboarding choices (Prioritize targeted job roles)
+              const onboardingRoles = Array.isArray(loadedProfile.roles) && loadedProfile.roles.length > 0
+                ? loadedProfile.roles
+                : (Array.isArray(loadedProfile.skills) ? loadedProfile.skills : []);
 
-              const onboardingRole = loadedProfile.jobTitle || loadedProfile.role || (Array.isArray(loadedProfile.roles) && loadedProfile.roles[0]) || onboardingRoles[0] || '';
+              const onboardingRole = (Array.isArray(loadedProfile.roles) && loadedProfile.roles[0]) || loadedProfile.jobTitle || loadedProfile.role || onboardingRoles[0] || '';
               if (onboardingRole && !filterQuery) {
                 setFilterQuery(onboardingRole);
               }
@@ -5079,12 +5079,15 @@ function getUserSkillsList(profile: any): string[] {
     }
   };
 
-  if (Array.isArray(profile.skills)) profile.skills.forEach(addVal);
+  // 1. FIRST: Onboarding targeted job roles ("What job are you targeting?")
   if (Array.isArray(profile.roles)) profile.roles.forEach(addVal);
-  if (Array.isArray(profile.interests)) profile.interests.forEach(addVal);
+  if (profile.targetRole) addVal(profile.targetRole);
   if (profile.jobTitle) addVal(profile.jobTitle);
   if (profile.role) addVal(profile.role);
-  if (profile.targetRole) addVal(profile.targetRole);
+
+  // 2. SECOND: Resume skills & interests
+  if (Array.isArray(profile.skills)) profile.skills.forEach(addVal);
+  if (Array.isArray(profile.interests)) profile.interests.forEach(addVal);
 
   return list;
 }
