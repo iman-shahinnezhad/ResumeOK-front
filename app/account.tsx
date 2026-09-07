@@ -7,6 +7,7 @@ import {
   ScrollView,
   Image,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +28,13 @@ export default function Account() {
   const [resumesCount, setResumesCount] = useState<number>(0);
   const [completionRate, setCompletionRate] = useState<number>(0);
   const [personalInfoMissing, setPersonalInfoMissing] = useState<number>(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadRealData();
+    setRefreshing(false);
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -169,6 +177,9 @@ export default function Account() {
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollContentContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000000" colors={['#000000']} />
+        }
       >
         {/* USER PROFILE HEADER CARD */}
         <View style={styles.userProfileCard}>

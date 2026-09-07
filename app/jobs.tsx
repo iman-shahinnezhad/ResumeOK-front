@@ -17,6 +17,7 @@ import {
   PanResponder,
   Image,
   Share,
+  RefreshControl,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -507,9 +508,18 @@ export default function JobsScreen() {
   const [selectedReportReason, setSelectedReportReason] = useState<string>('');
   const [reportNote, setReportNote] = useState<string>('');
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const searchInputRef = useRef<TextInput>(null);
   const webViewRef = useRef<WebView>(null);
   const isProfileDefaultsLoaded = useRef(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchJobsFromAllBoards(1, false);
+    } catch(e) {}
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     if (currentIndex >= filteredJobs.length - 5 && hasMore && !isFetchingMore && !isLoadingJobs && filteredJobs.length > 0) {
@@ -2197,6 +2207,9 @@ export default function JobsScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000000" colors={['#000000']} />
+          }
           onScroll={(e) => {
             const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
             const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 350;

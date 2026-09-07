@@ -10,6 +10,7 @@ import {
   Platform,
   Image,
   Animated,
+  RefreshControl,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +31,13 @@ export default function ApplicationsTab() {
   const [appliedJobs, setAppliedJobs] = useState<any[]>([]);
   const [skippedJobs, setSkippedJobs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadApplicationsData();
+    setRefreshing(false);
+  };
 
   // Sliding tab switch animation
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -309,6 +317,9 @@ export default function ApplicationsTab() {
           data={currentList}
           keyExtractor={(item, index) => (item && item.id) ? String(item.id) : `app-job-${index}`}
           renderItem={renderJobCard}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000000" colors={['#000000']} />
+          }
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100, paddingTop: insets.top + 130 }}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={

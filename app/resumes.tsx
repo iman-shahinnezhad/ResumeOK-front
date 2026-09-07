@@ -8,6 +8,7 @@ import {
   ActionSheetIOS,
   Platform,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,6 +34,13 @@ export default function ResumesScreen() {
   const router = useRouter();
   const { user, guestId } = useAuth();
   const [resumes, setResumes] = useState<ResumeItem[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadResumes();
+    setRefreshing(false);
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -368,6 +376,9 @@ export default function ResumesScreen() {
           style={styles.scrollContent}
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000000" colors={['#000000']} />
+          }
         >
           {/* EXPLANATION BANNER CARD */}
           <View style={styles.explanationBanner}>
@@ -432,11 +443,17 @@ export default function ResumesScreen() {
           ))}
         </ScrollView>
       ) : (
-        <View style={styles.emptyStateContainer}>
+        <ScrollView
+          contentContainerStyle={[styles.emptyStateContainer, { flex: 1 }]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000000" colors={['#000000']} />
+          }
+        >
           <View style={styles.emptyFolderGraphic}>
             <Ionicons name="folder-open" size={90} color="#8E8E93" />
           </View>
-        </View>
+        </ScrollView>
       )}
 
       {/* BOTTOM ACTION BUTTONS */}

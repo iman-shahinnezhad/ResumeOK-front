@@ -13,6 +13,7 @@ import {
   Linking,
   Platform,
   ActionSheetIOS,
+  RefreshControl,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -53,8 +54,17 @@ export default function JobDetailsScreen() {
 
   const [jobData, setJobData] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'company'>('overview');
   const [showFullDescription, setShowFullDescription] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await initJobDetails();
+    } catch(e) {}
+    setRefreshing(false);
+  };
 
   // Resume & AI Match State
   const [resumesList, setResumesList] = useState<SelectedResumeFile[]>([]);
@@ -380,69 +390,69 @@ export default function JobDetailsScreen() {
     }
   };
 
-  useEffect(() => {
-    async function initJobDetails() {
-      setIsLoadingDetails(true);
-      try {
-        let jobObj: any = null;
-        const jobJsonStr = params.jobJson || params.job;
-        if (jobJsonStr) {
-          try {
-            jobObj = JSON.parse(jobJsonStr as string);
-          } catch (e) {
-            console.log("Error parsing job param:", e);
-          }
+  const initJobDetails = async () => {
+    setIsLoadingDetails(true);
+    try {
+      let jobObj: any = null;
+      const jobJsonStr = params.jobJson || params.job;
+      if (jobJsonStr) {
+        try {
+          jobObj = JSON.parse(jobJsonStr as string);
+        } catch (e) {
+          console.log("Error parsing job param:", e);
         }
-        if (!jobObj && params.id) {
-          jobObj = {
-            id: params.id,
-            title: params.title || 'Senior Technical Program Manager',
-            companyName: params.company || 'Kota',
-            location: { name: params.location || 'Dallas, USA' },
-            absolute_url: params.url || '',
-            content: params.content || '',
-            department: params.department || 'Computer Software',
-            postedAt: (params.postedAt || params.createdAt || params.date) as string | undefined
-          };
-        }
-        setJobData(jobObj);
-
-        // Load profile and resumes
-        const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
-        const profileInfo = await FileSystem.getInfoAsync(profilePath);
-        let profileObj: any = null;
-        if (profileInfo.exists) {
-          const profileStr = await FileSystem.readAsStringAsync(profilePath);
-          profileObj = JSON.parse(profileStr);
-          setUserProfile(profileObj);
-        }
-
-        const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
-        const resumesInfo = await FileSystem.getInfoAsync(resumesPath);
-        let defaultRes: SelectedResumeFile | null = null;
-        if (resumesInfo.exists) {
-          const resumesStr = await FileSystem.readAsStringAsync(resumesPath);
-          const list: SelectedResumeFile[] = JSON.parse(resumesStr);
-          const sortedList = sortResumesWithDefaultFirst(list);
-          setResumesList(sortedList);
-          defaultRes = sortedList[0] || null;
-          setSelectedResume(defaultRes);
-        }
-
-        // Calculate initial match score
-        if (jobObj && (profileObj || defaultRes)) {
-          setIsCalculatingMatch(true);
-          const calculated = calculateJobMatch(jobObj.content || '', jobObj.title || '', profileObj);
-          setMatchResult(calculated);
-          setIsCalculatingMatch(false);
-        }
-      } catch (err) {
-        console.log("Error initializing job details screen:", err);
-      } finally {
-        setIsLoadingDetails(false);
       }
-    }
+      if (!jobObj && params.id) {
+        jobObj = {
+          id: params.id,
+          title: params.title || 'Senior Technical Program Manager',
+          companyName: params.company || 'Kota',
+          location: { name: params.location || 'Dallas, USA' },
+          absolute_url: params.url || '',
+          content: params.content || '',
+          department: params.department || 'Computer Software',
+          postedAt: (params.postedAt || params.createdAt || params.date) as string | undefined
+        };
+      }
+      setJobData(jobObj);
 
+      // Load profile and resumes
+      const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+      const profileInfo = await FileSystem.getInfoAsync(profilePath);
+      let profileObj: any = null;
+      if (profileInfo.exists) {
+        const profileStr = await FileSystem.readAsStringAsync(profilePath);
+        profileObj = JSON.parse(profileStr);
+        setUserProfile(profileObj);
+      }
+
+      const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
+      const resumesInfo = await FileSystem.getInfoAsync(resumesPath);
+      let defaultRes: SelectedResumeFile | null = null;
+      if (resumesInfo.exists) {
+        const resumesStr = await FileSystem.readAsStringAsync(resumesPath);
+        const list: SelectedResumeFile[] = JSON.parse(resumesStr);
+        const sortedList = sortResumesWithDefaultFirst(list);
+        setResumesList(sortedList);
+        defaultRes = sortedList[0] || null;
+        setSelectedResume(defaultRes);
+      }
+
+      // Calculate initial match score
+      if (jobObj && (profileObj || defaultRes)) {
+        setIsCalculatingMatch(true);
+        const calculated = calculateJobMatch(jobObj.content || '', jobObj.title || '', profileObj);
+        setMatchResult(calculated);
+        setIsCalculatingMatch(false);
+      }
+    } catch (err) {
+      console.log("Error initializing job details screen:", err);
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  };
+
+  useEffect(() => {
     initJobDetails();
   }, [params.id, params.job]);
 
@@ -653,7 +663,13 @@ export default function JobDetailsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 110 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000000" colors={['#000000']} />
+        }
+      >
         {/* COMPANY & JOB TITLE CARD */}
         <View style={styles.topCardContainer}>
           <View style={styles.companyTopHeaderRow}>
