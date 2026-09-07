@@ -325,7 +325,15 @@ function AppleNativeButton({
   );
 }
 
-export default function Onboarding() {
+const ANALYSIS_STEPS = [
+  'Parsing resume structure & experience',
+  'Extracting core skills & technical stack',
+  'Matching credentials with target job roles',
+  'Calculating ATS score & keyword optimization',
+  'Personalizing your career dashboard'
+];
+
+export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { login, guestId, isLoggedIn, user } = useAuth();
@@ -335,6 +343,7 @@ export default function Onboarding() {
     'intro' | 'welcome' | 'referral' | 'engineered' | 'name' | 'email' | 'jobs' | 'interests' | 'challenge' | 'location' | 'experience' | 'salary' | 'hearAbout' | 'rateUs' | 'notifications' | 'upload' | 'loading'
   >('intro');
   const [loading, setLoading] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState<number>(0);
   const [isParsing, setIsParsing] = useState(false);
   const [roleQuery, setRoleQuery] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -653,22 +662,26 @@ export default function Onboarding() {
     };
   }, [step]);
 
-  // Trigger spinning loop and automatic redirect on loading step mount
+  // Trigger sequential analysis checklist steps and automatic redirect on loading step mount
   useEffect(() => {
     if (step === 'loading') {
-      Animated.loop(
-        Animated.timing(rotateAnim, {
-          toValue: 1,
-          duration: 1200,
-          useNativeDriver: true
-        })
-      ).start();
+      setCompletedSteps(0);
+      let current = 0;
+      const interval = setInterval(() => {
+        current += 1;
+        setCompletedSteps(current);
+        if (Platform.OS !== 'web') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        }
+        if (current >= ANALYSIS_STEPS.length) {
+          clearInterval(interval);
+          setTimeout(() => {
+            finishOnboarding();
+          }, 600);
+        }
+      }, 750);
 
-      const timer = setTimeout(() => {
-        finishOnboarding();
-      }, 2500);
-
-      return () => clearTimeout(timer);
+      return () => clearInterval(interval);
     }
   }, [step]);
 
@@ -2338,14 +2351,51 @@ export default function Onboarding() {
 
         {step === 'loading' && (
           <View style={styles.loadingScreenContainer}>
-            <ActivityIndicator
-              size="large"
-              color="#000000"
-              style={{ transform: [{ scale: 1.8 }], marginBottom: 50 }}
-            />
-            <Text style={styles.loadingText}>Building your</Text>
-            <Text style={styles.loadingText}>personalized career</Text>
-            <Text style={styles.loadingText}>journey</Text>
+            <View style={styles.loadingHeaderBlock}>
+              <ActivityIndicator
+                size="large"
+                color="#0F172A"
+                style={{ transform: [{ scale: 1.3 }], marginBottom: 20 }}
+              />
+              <Text style={styles.loadingMainTitle}>Analyzing Your Resume</Text>
+              <Text style={styles.loadingSubTitle}>Building your personalized career profile...</Text>
+            </View>
+
+            <View style={styles.checklistCard}>
+              {ANALYSIS_STEPS.map((itemText, idx) => {
+                const isDone = idx < completedSteps;
+                const isCurrent = idx === completedSteps;
+                const isLast = idx === ANALYSIS_STEPS.length - 1;
+                return (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.checklistItemRow,
+                      isLast && { borderBottomWidth: 0 }
+                    ]}
+                  >
+                    <View style={styles.checklistIconContainer}>
+                      {isDone ? (
+                        <Ionicons name="checkmark-circle" size={24} color="#16A34A" />
+                      ) : isCurrent ? (
+                        <ActivityIndicator size="small" color="#2563EB" />
+                      ) : (
+                        <Ionicons name="ellipse-outline" size={22} color="#CBD5E1" />
+                      )}
+                    </View>
+                    <Text
+                      style={[
+                        styles.checklistItemText,
+                        isDone && styles.checklistItemDoneText,
+                        isCurrent && styles.checklistItemActiveText
+                      ]}
+                    >
+                      {itemText}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
           </View>
         )}
       </Animated.View>
@@ -3065,13 +3115,68 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     width: '100%',
+    paddingHorizontal: 20,
   },
-  loadingText: {
+  loadingHeaderBlock: {
+    alignItems: 'center',
+    marginBottom: 28,
+    paddingHorizontal: 16,
+  },
+  loadingMainTitle: {
     fontSize: 26,
-    fontWeight: '600',
-    color: '#000000',
+    fontWeight: '700',
+    color: '#0F172A',
     textAlign: 'center',
-    lineHeight: 34,
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+  loadingSubTitle: {
+    fontSize: 15,
+    fontWeight: '400',
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  checklistCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  checklistItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  checklistIconContainer: {
+    width: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  checklistItemText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#94A3B8',
+    flex: 1,
+  },
+  checklistItemActiveText: {
+    color: '#2563EB',
+    fontWeight: '600',
+  },
+  checklistItemDoneText: {
+    color: '#0F172A',
+    fontWeight: '600',
   },
   // UPLOAD RESUME PAGE
   uploadFolderImage: {
