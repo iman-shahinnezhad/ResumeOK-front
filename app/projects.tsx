@@ -376,10 +376,6 @@ export default function ProjectsScreen() {
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Projects</Text>
-
-        <View style={styles.badgePillGreen}>
-          <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-        </View>
       </View>
 
       <ScrollView

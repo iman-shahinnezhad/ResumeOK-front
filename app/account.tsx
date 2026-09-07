@@ -274,11 +274,7 @@ export default function Account() {
               <View style={styles.badgePillRed}>
                 <Text style={styles.badgeTextWhite}>Add {personalInfoMissing}</Text>
               </View>
-            ) : (
-              <View style={styles.badgePillGreen}>
-                <Ionicons name="checkmark" size={12} color="#FFFFFF" />
-              </View>
-            )}
+            ) : null}
 
             <Ionicons name="chevron-forward" size={18} color="#999999" style={{ marginLeft: 4 }} />
           </TouchableOpacity>
@@ -317,11 +313,7 @@ export default function Account() {
                   </View>
                 );
               }
-              return (
-                <View style={styles.badgePillGreen}>
-                  <Ionicons name="checkmark" size={12} color="#FFFFFF" />
-                </View>
-              );
+              return null;
             })()}
 
             <Ionicons name="chevron-forward" size={18} color="#999999" style={{ marginLeft: 4 }} />
@@ -346,11 +338,7 @@ export default function Account() {
               <View style={styles.badgePillRed}>
                 <Text style={styles.badgeTextWhite}>Add 1</Text>
               </View>
-            ) : (
-              <View style={styles.badgePillGreen}>
-                <Ionicons name="checkmark" size={12} color="#FFFFFF" />
-              </View>
-            )}
+            ) : null}
 
             <Ionicons name="chevron-forward" size={18} color="#999999" style={{ marginLeft: 4 }} />
           </TouchableOpacity>

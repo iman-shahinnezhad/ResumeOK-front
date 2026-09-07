@@ -204,11 +204,7 @@ export default function ProfessionalDetailScreen() {
               </View>
             );
           }
-          return (
-            <View style={styles.badgePillGreen}>
-              <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-            </View>
-          );
+          return null;
         })()}
       </View>
 
@@ -239,11 +235,7 @@ export default function ProfessionalDetailScreen() {
                   </View>
                 );
               }
-              return (
-                <View style={styles.badgePillGreen}>
-                  <Ionicons name="checkmark" size={12} color="#FFFFFF" />
-                </View>
-              );
+              return null;
             })()}
             <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
           </View>
@@ -270,11 +262,7 @@ export default function ProfessionalDetailScreen() {
                   </View>
                 );
               }
-              return (
-                <View style={styles.badgePillGreen}>
-                  <Ionicons name="checkmark" size={12} color="#FFFFFF" />
-                </View>
-              );
+              return null;
             })()}
             <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
           </View>
@@ -291,9 +279,6 @@ export default function ProfessionalDetailScreen() {
           </View>
           <Text style={styles.menuCardTitle}>Projects</Text>
           <View style={styles.menuCardRight}>
-            <View style={styles.badgePillGreen}>
-              <Ionicons name="checkmark" size={12} color="#FFFFFF" />
-            </View>
             <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
           </View>
         </TouchableOpacity>
@@ -334,11 +319,7 @@ export default function ProfessionalDetailScreen() {
                   </View>
                 );
               }
-              return (
-                <View style={styles.badgePillGreen}>
-                  <Ionicons name="checkmark" size={12} color="#FFFFFF" />
-                </View>
-              );
+              return null;
             })()}
             <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
           </View>
@@ -367,11 +348,7 @@ export default function ProfessionalDetailScreen() {
                   </View>
                 );
               }
-              return (
-                <View style={styles.badgePillGreen}>
-                  <Ionicons name="checkmark" size={12} color="#FFFFFF" />
-                </View>
-              );
+              return null;
             })()}
             <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
           </View>
@@ -398,11 +375,7 @@ export default function ProfessionalDetailScreen() {
                   </View>
                 );
               }
-              return (
-                <View style={styles.badgePillGreen}>
-                  <Ionicons name="checkmark" size={12} color="#FFFFFF" />
-                </View>
-              );
+              return null;
             })()}
             <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
           </View>

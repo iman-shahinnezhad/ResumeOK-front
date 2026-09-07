@@ -244,11 +244,7 @@ export default function TitleSummaryScreen() {
           <View style={styles.badgePillRed}>
             <Text style={styles.badgeTextWhite}>Add {remainingNeeded}</Text>
           </View>
-        ) : (
-          <View style={styles.badgePillGreen}>
-            <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-          </View>
-        )}
+        ) : null}
       </View>
 
       <ScrollView

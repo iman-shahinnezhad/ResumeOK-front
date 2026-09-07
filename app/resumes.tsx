@@ -363,11 +363,7 @@ export default function ResumesScreen() {
           <View style={styles.badgePillRed}>
             <Text style={styles.badgeTextWhite}>Add 1</Text>
           </View>
-        ) : (
-          <View style={styles.badgePillGreen}>
-            <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-          </View>
-        )}
+        ) : null}
       </View>
 
       {/* CONTENT AREA */}
