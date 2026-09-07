@@ -22,40 +22,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch(e) {}
 
   if (!currentProfile) {
-    currentProfile = {
-      firstName: 'Iman',
-      middleName: '',
-      lastName: 'Shahinnezhad',
-      prefFirstName: 'Iman',
-      prefMiddleName: '',
-      prefLastName: 'Shahinnezhad',
-      email: 'iman.shahinnezhad@gmail.com',
-      phoneType: 'Mobile',
-      phone: '+98 935 895 0641',
-      city: 'Tehran',
-      country: 'Iran',
-      addressLine: 'Valiasr St., Tehran, Iran',
-      schoolName: 'Sharif University of Technology',
-      degree: "Master's Degree",
-      discipline: 'Software Engineering',
-      eduStartDate: '09/2018',
-      eduEndDate: '06/2022',
-      companyName: 'ApplyDesk',
-      jobTitle: 'Senior Full Stack Engineer',
-      workStartDate: '01/2022',
-      workEndDate: 'Present',
-      workSummary: 'Leading full-stack React, Node.js, Express and AI chrome extension development.',
-      skills: 'React, TypeScript, Node.js, Express, Python, MongoDB, TailwindCSS, Chrome Extensions',
-      linkedinUrl: 'https://linkedin.com/in/imanshahinnezhad',
-      portfolioUrl: 'https://github.com/imanshahinnezhad',
-      gender: 'Male',
-      race: 'Asian',
-      veteranStatus: 'Not a Veteran',
-      disabilityStatus: 'No',
-      noticePeriod: 'Immediate',
-      salaryExpectation: '$120,000 / year'
-    };
-    try { await chrome.storage.local.set({ resumeok_profile: currentProfile }); } catch(e) {}
+    try {
+      const res = await fetch('http://localhost:3000/api/user/default_user/profile');
+      const dbData = await res.json();
+      if (dbData && dbData.profile) {
+        currentProfile = dbData.profile;
+      }
+    } catch(e) {}
+  }
+  if (!currentProfile) {
+    currentProfile = {};
   }
 
   // Get current active tab

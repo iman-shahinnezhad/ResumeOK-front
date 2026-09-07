@@ -14,9 +14,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const storage = await chrome.storage.local.get('resumeok_profile');
     if (storage && storage.resumeok_profile) {
       currentProfile = storage.resumeok_profile;
-      profileName.innerText = `${currentProfile.firstName || ''} ${currentProfile.lastName || ''}`.trim() || 'Iman Shahinnezhad';
-      profileEmail.innerText = currentProfile.email || 'iman.shahinnezhad@gmail.com';
-      profileTitle.innerText = currentProfile.jobTitle || 'Senior Full Stack Engineer';
+      profileName.innerText = `${currentProfile.firstName || ''} ${currentProfile.lastName || ''}`.trim() || 'User Profile';
+      profileEmail.innerText = currentProfile.email || '';
+      profileTitle.innerText = currentProfile.jobTitle || '';
     }
   } catch(e) {}
 

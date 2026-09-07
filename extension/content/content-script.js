@@ -1031,61 +1031,22 @@
       modalOverlay.classList.remove('open');
     });
 
-    // Rich default profile fallback so fields are NEVER blank
-    const defaultCandidateProfile = {
-      firstName: 'Iman',
-      middleName: '',
-      lastName: 'Shahinnezhad',
-      prefFirstName: 'Iman',
-      prefMiddleName: '',
-      prefLastName: 'Shahinnezhad',
-      email: 'iman.shahinnezhad@gmail.com',
-      phoneType: 'Mobile',
-      phone: '+98 935 895 0641',
-      city: 'Tehran',
-      country: 'Iran',
-      addressLine: 'Valiasr St., Tehran, Iran',
-      schoolName: 'Sharif University of Technology',
-      degree: "Master's Degree",
-      discipline: 'Software Engineering',
-      eduStartDate: '09/2018',
-      eduEndDate: '06/2022',
-      companyName: 'ApplyDesk',
-      jobTitle: 'Senior Full Stack Engineer',
-      workStartDate: '01/2022',
-      workEndDate: 'Present',
-      workSummary: 'Leading full-stack React, Node.js, Express and AI chrome extension development.',
-      skills: 'React, TypeScript, Node.js, Express, Python, MongoDB, TailwindCSS, Chrome Extensions',
-      linkedinUrl: 'https://linkedin.com/in/imanshahinnezhad',
-      portfolioUrl: 'https://github.com/imanshahinnezhad',
-      gender: 'Male',
-      race: 'Asian',
-      veteranStatus: 'Not a Veteran',
-      disabilityStatus: 'No',
-      noticePeriod: 'Immediate',
-      salaryExpectation: '$120,000 / year'
-    };
-
     function loadProfileIntoModal() {
       chrome.storage.local.get('resumeok_profile', async (res) => {
         let p = (res && res.resumeok_profile) ? res.resumeok_profile : null;
 
-        // Try fetching from Express Server Mongo DB if local storage is missing fields
+        // Try fetching from Express Server Mongo DB if local storage is empty
         if (!p || !p.firstName) {
           try {
             const dbRes = await fetch('http://localhost:3000/api/user/default_user/profile');
             const dbData = await dbRes.json();
-            if (dbData && dbData.profile && dbData.profile.firstName) {
+            if (dbData && dbData.profile) {
               p = dbData.profile;
             }
           } catch(e) {}
         }
 
-        // Merge with default candidate fallback to guarantee NO blank fields
-        const finalProfile = { ...defaultCandidateProfile, ...(p || {}) };
-
-        // Save back to storage so it stays updated
-        chrome.storage.local.set({ resumeok_profile: finalProfile });
+        const finalProfile = p || {};
 
         const setVal = (id, v) => {
           const el = shadow.getElementById(id);
@@ -1123,7 +1084,7 @@
         setVal('m-disab', finalProfile.disabilityStatus);
         setVal('m-notice', finalProfile.noticePeriod);
         setVal('m-salary', finalProfile.salaryExpectation);
-        setVal('m-acc-email', finalProfile.email || 'user@applydesk.io');
+        setVal('m-acc-email', finalProfile.email || '');
       });
     }
 
