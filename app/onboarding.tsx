@@ -2258,7 +2258,7 @@ export default function OnboardingScreen() {
 
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <Image
-                source={require('../assets/images/bell.png')}
+                source={require('../assets/images/onboarding/notification.png')}
                 style={styles.bellImage}
                 resizeMode="contain"
               />
