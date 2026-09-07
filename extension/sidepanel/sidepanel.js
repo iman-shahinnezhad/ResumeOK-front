@@ -13,32 +13,63 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let currentProfile = null;
 
-  // Load Profile from storage
-  const storageData = await chrome.storage.local.get('resumeok_profile');
-  if (storageData.resumeok_profile) {
-    currentProfile = storageData.resumeok_profile;
-  } else {
-    // Default fallback candidate profile
+  // Safe wrapper for chrome storage
+  try {
+    const storageData = await chrome.storage.local.get('resumeok_profile');
+    if (storageData && storageData.resumeok_profile && storageData.resumeok_profile.firstName) {
+      currentProfile = storageData.resumeok_profile;
+    }
+  } catch(e) {}
+
+  if (!currentProfile) {
     currentProfile = {
-      firstName: 'Omid',
-      lastName: 'Moradi',
-      email: 'omid@example.com',
-      phone: '+1 555-0192',
-      city: 'San Francisco, CA',
-      linkedinUrl: 'https://linkedin.com/in/omidmoradi',
-      companyName: 'Acme Corp',
-      jobTitle: 'Software Engineer',
-      schoolName: 'Stanford University',
-      degree: 'Bachelor of Science',
-      discipline: 'Computer Science',
-      gender: 'Male'
+      firstName: 'Iman',
+      middleName: '',
+      lastName: 'Shahinnezhad',
+      prefFirstName: 'Iman',
+      prefMiddleName: '',
+      prefLastName: 'Shahinnezhad',
+      email: 'iman.shahinnezhad@gmail.com',
+      phoneType: 'Mobile',
+      phone: '+98 935 895 0641',
+      city: 'Tehran',
+      country: 'Iran',
+      addressLine: 'Valiasr St., Tehran, Iran',
+      schoolName: 'Sharif University of Technology',
+      degree: "Master's Degree",
+      discipline: 'Software Engineering',
+      eduStartDate: '09/2018',
+      eduEndDate: '06/2022',
+      companyName: 'ApplyDesk',
+      jobTitle: 'Senior Full Stack Engineer',
+      workStartDate: '01/2022',
+      workEndDate: 'Present',
+      workSummary: 'Leading full-stack React, Node.js, Express and AI chrome extension development.',
+      skills: 'React, TypeScript, Node.js, Express, Python, MongoDB, TailwindCSS, Chrome Extensions',
+      linkedinUrl: 'https://linkedin.com/in/imanshahinnezhad',
+      portfolioUrl: 'https://github.com/imanshahinnezhad',
+      gender: 'Male',
+      race: 'Asian',
+      veteranStatus: 'Not a Veteran',
+      disabilityStatus: 'No',
+      noticePeriod: 'Immediate',
+      salaryExpectation: '$120,000 / year'
     };
+    try { await chrome.storage.local.set({ resumeok_profile: currentProfile }); } catch(e) {}
   }
 
   // Get current active tab
   async function getActiveTab() {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    return tab;
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      return tab;
+    } catch(e) { return null; }
+  }
+
+  // Check if URL is scriptable page (http/https)
+  function isScriptableUrl(url) {
+    if (!url) return false;
+    return url.startsWith('http://') || url.startsWith('https://');
   }
 
   // Fetch job details from content script
@@ -46,9 +77,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tab = await getActiveTab();
     if (!tab || !tab.id) return;
 
+    if (!isScriptableUrl(tab.url)) {
+      jobTitleEl.innerText = tab.title || 'Browser Page';
+      jobCompanyEl.innerText = 'System Page';
+      return;
+    }
+
     try {
       chrome.tabs.sendMessage(tab.id, { type: 'GET_JOB_DETAILS' }, (res) => {
-        if (chrome.runtime.lastError || !res) {
+        const err = chrome.runtime.lastError;
+        if (err || !res) {
           jobTitleEl.innerText = tab.title || 'Active Web Page';
           jobCompanyEl.innerText = tab.url ? new URL(tab.url).hostname : '---';
           return;
@@ -57,11 +95,103 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (res.company) jobCompanyEl.innerText = res.company;
       });
     } catch(e) {
-      console.log('Error fetching job details:', e);
+      jobTitleEl.innerText = tab.title || 'Active Web Page';
     }
   }
 
   loadTabJobDetails();
+
+  const fillCountText = document.getElementById('fill-count-text');
+  const fillPercentText = document.getElementById('fill-percent-text');
+  const fillProgressBar = document.getElementById('fill-progress-bar');
+  const checklistItems = document.getElementById('checklist-items');
+  const missingNoticeBanner = document.getElementById('missing-notice-banner');
+  const missingNoticeTitle = document.getElementById('missing-notice-title');
+  const missingNoticeDesc = document.getElementById('missing-notice-desc');
+
+  // Render Jobright-style Form Checklist & Progress
+  function renderChecklist(scanData) {
+    if (!scanData || !scanData.fields || scanData.fields.length === 0) {
+      checklistItems.innerHTML = `<div class="check-item check-item-unfilled"><span class="check-icon">-</span> No input fields detected on page</div>`;
+      fillCountText.innerText = `0/0 required fields filled`;
+      fillPercentText.innerText = `0%`;
+      fillProgressBar.style.width = `0%`;
+      missingNoticeBanner.style.display = 'none';
+      return;
+    }
+
+    fillCountText.innerText = `${scanData.filledCount}/${scanData.totalCount} required fields filled`;
+    fillPercentText.innerText = `${scanData.percentage}%`;
+    fillProgressBar.style.width = `${scanData.percentage}%`;
+
+    // Render Missing Profile Field Banner Notice
+    if (scanData.missingProfileFields && scanData.missingProfileFields.length > 0) {
+      const fieldListStr = scanData.missingProfileFields.join(', ');
+      missingNoticeTitle.innerText = `Missing Profile Information (${scanData.missingProfileFields.length})`;
+      missingNoticeDesc.innerText = `The form asks for [${fieldListStr}]. Fill them out in ApplyDesk so they are automatically filled next time!`;
+      missingNoticeBanner.style.display = 'flex';
+    } else {
+      missingNoticeBanner.style.display = 'none';
+    }
+
+    // Render Checklist HTML
+    checklistItems.innerHTML = scanData.fields.map(field => {
+      if (field.status === 'filled') {
+        return `
+          <div class="check-item check-item-success">
+            <span class="check-icon">✔</span>
+            <span class="check-label">${field.label}</span>
+          </div>
+        `;
+      } else if (field.status === 'missing_profile') {
+        return `
+          <div class="check-item check-item-warning">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="check-icon">⚠️</span>
+              <span class="check-label">${field.label}</span>
+            </div>
+            <a href="http://localhost:5173/#/profile" target="_blank" class="missing-notice-btn">+ Add in Profile</a>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="check-item check-item-unfilled">
+            <span class="check-icon">-</span>
+            <span class="check-label">${field.label}</span>
+          </div>
+        `;
+      }
+    }).join('');
+  }
+
+  // Load Form Field Status on Sidepanel Open
+  async function loadFormFieldStatus() {
+    const tab = await getActiveTab();
+    if (!tab || !tab.id || !isScriptableUrl(tab.url)) return;
+
+    try {
+      chrome.tabs.sendMessage(tab.id, { type: 'GET_FORM_FIELDS_STATUS', profile: currentProfile }, (res) => {
+        const err = chrome.runtime.lastError;
+        if (!err && res) {
+          renderChecklist(res);
+        }
+      });
+    } catch(e) {}
+  }
+
+  loadFormFieldStatus();
+
+  const triggerAutofillInfo = document.getElementById('trigger-sidepanel-autofill-info');
+  if (triggerAutofillInfo) {
+    triggerAutofillInfo.addEventListener('click', async () => {
+      const tab = await getActiveTab();
+      if (tab && tab.id && isScriptableUrl(tab.url)) {
+        chrome.tabs.sendMessage(tab.id, { type: 'OPEN_AUTOFILL_MODAL' }, () => {
+          const err = chrome.runtime.lastError;
+        });
+      }
+    });
+  }
 
   // 1-Click Autofill Form Button Click
   autofillBtn.addEventListener('click', async () => {
@@ -69,33 +199,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     autofillStatus.style.color = '#c084fc';
 
     const tab = await getActiveTab();
-    if (!tab || !tab.id) {
-      autofillStatus.innerText = '⚠️ No active browser tab found';
+    if (!tab || !tab.id || !isScriptableUrl(tab.url)) {
+      autofillStatus.innerText = '⚠️ Please open a job application web page';
+      autofillStatus.style.color = '#f87171';
       return;
     }
 
     chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: currentProfile }, (res) => {
-      if (chrome.runtime.lastError || !res) {
-        // Inject content script if not already loaded
+      const err = chrome.runtime.lastError;
+      if (err || !res) {
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
           files: ['content/content-script.js']
         }).then(() => {
           setTimeout(() => {
             chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: currentProfile }, (res2) => {
+              const err2 = chrome.runtime.lastError;
               if (res2 && res2.count > 0) {
-                autofillStatus.innerText = `✅ Autofilled ${res2.count} fields successfully!`;
+                autofillStatus.innerText = `✅ Autofilled ${res2.count} fields!`;
                 autofillStatus.style.color = '#34d399';
+                if (res2.scan) renderChecklist(res2.scan);
               } else {
                 autofillStatus.innerText = '✅ Autofill executed!';
                 autofillStatus.style.color = '#34d399';
               }
             });
           }, 300);
+        }).catch(() => {
+          autofillStatus.innerText = '⚠️ Cannot inject script on this page';
         });
       } else {
-        autofillStatus.innerText = `✅ Autofilled ${res.count || 'form'} fields successfully!`;
+        autofillStatus.innerText = `✅ Autofilled ${res.count || 'form'} fields!`;
         autofillStatus.style.color = '#34d399';
+        if (res.scan) renderChecklist(res.scan);
       }
     });
   });
@@ -144,6 +280,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     chrome.runtime.sendMessage({ type: 'LOG_APPLIED_JOB', job: jobData }, () => {
+      const err = chrome.runtime.lastError;
       logAppBtn.innerText = '✅ Application Saved to Dashboard!';
       logAppBtn.style.color = '#34d399';
       logAppBtn.style.borderColor = '#34d399';

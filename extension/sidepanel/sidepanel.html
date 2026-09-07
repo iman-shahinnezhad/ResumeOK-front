@@ -17,15 +17,43 @@
           <span class="brand-subtitle">AI Job Copilot</span>
         </div>
       </div>
-      <div class="status-badge" id="profile-badge">Profile Synced</div>
+      <div class="header-controls">
+        <button class="icon-btn-text" id="feedback-btn">❓ Feedback</button>
+        <button class="icon-btn-round" id="settings-btn" title="Settings">⚙️</button>
+        <button class="icon-btn-round" id="collapse-sidepanel-btn" title="Collapse Panel">❯</button>
+      </div>
     </header>
 
     <!-- Main Action Button -->
     <section class="action-section">
       <button id="autofill-btn" class="btn-primary">
-        <span class="sparkle">✨</span> 1-Click Autofill Form
+        <span class="sparkle">⚡</span> 1-Click Autofill Form
       </button>
       <div id="autofill-status" class="status-msg">Click to fill detected ATS form fields</div>
+    </section>
+
+    <!-- Accordion Cards (Jobright Style) -->
+    <section class="accordion-section" style="padding: 0 16px; display: flex; flex-direction: column; gap: 8px;">
+      <div class="accordion-card">
+        <div id="trigger-sidepanel-autofill-info" class="accordion-row" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:rgba(30,41,59,0.7);border:1px solid rgba(255,255,255,0.1);border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;color:#f8fafc;">
+          <div style="display:flex;align-items:center;gap:8px;">📁 Your Autofill Information</div>
+          <div style="font-size:12px;color:#94a3b8;">❯</div>
+        </div>
+      </div>
+
+      <div class="accordion-card">
+        <div class="accordion-row" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:rgba(30,41,59,0.7);border:1px solid rgba(255,255,255,0.1);border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;color:#f8fafc;">
+          <div style="display:flex;align-items:center;gap:8px;">📄 Upload Resume</div>
+          <div style="font-size:12px;color:#94a3b8;">❯</div>
+        </div>
+      </div>
+
+      <div class="accordion-card">
+        <div class="accordion-row" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:rgba(30,41,59,0.7);border:1px solid rgba(255,255,255,0.1);border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;color:#f8fafc;">
+          <div style="display:flex;align-items:center;gap:8px;">✉️ Upload Cover Letter</div>
+          <div style="font-size:12px;color:#94a3b8;">❯</div>
+        </div>
+      </div>
     </section>
 
     <!-- Quick Field Fill Pills -->
@@ -38,6 +66,16 @@
         <button class="chip-btn" id="chip-resume">📄 Resume</button>
       </div>
     </section>
+
+    <!-- Missing Profile Notice Banner -->
+    <div id="missing-notice-banner" class="notice-banner" style="display: none;">
+      <div class="notice-icon">⚠️</div>
+      <div class="notice-body">
+        <strong id="missing-notice-title">Missing Profile Information</strong>
+        <p id="missing-notice-desc">Fill out your missing fields in ApplyDesk so they are automatically filled next time.</p>
+      </div>
+      <a href="http://localhost:5173/#/profile" target="_blank" class="notice-btn">Edit Profile</a>
+    </div>
 
     <!-- Real-time AI Match Score -->
     <section class="card match-card">
@@ -64,6 +102,25 @@
         <div id="missing-skills" class="skills-tags">
           <span class="tag tag-amber">GraphQL</span>
           <span class="tag tag-amber">Docker</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Required Fields Fill Status (Jobright-style Progress & Checklist) -->
+    <section class="card progress-card">
+      <div class="card-header">
+        <span id="fill-count-text" class="card-title">0/0 required fields filled</span>
+        <span id="fill-percent-text" class="badge-score badge-emerald">0%</span>
+      </div>
+
+      <div class="progress-bar-track">
+        <div id="fill-progress-bar" class="progress-bar-fill" style="width: 0%"></div>
+      </div>
+
+      <div class="checklist-container">
+        <div class="section-label" style="margin-bottom: 8px;">FORM FIELDS CHECKLIST</div>
+        <div id="checklist-items" class="checklist-items">
+          <div class="check-item"><span class="check-icon">-</span> Detecting form fields...</div>
         </div>
       </div>
     </section>

@@ -9,33 +9,47 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let currentProfile = null;
 
-  // Read stored profile
-  const storage = await chrome.storage.local.get('resumeok_profile');
-  if (storage.resumeok_profile) {
-    currentProfile = storage.resumeok_profile;
-    profileName.innerText = `${currentProfile.firstName || ''} ${currentProfile.lastName || ''}`.trim() || 'Omid Moradi';
-    profileEmail.innerText = currentProfile.email || 'omid@example.com';
-    profileTitle.innerText = currentProfile.jobTitle || 'Software Engineer';
-  }
+  // Read stored profile with safe error handling
+  try {
+    const storage = await chrome.storage.local.get('resumeok_profile');
+    if (storage && storage.resumeok_profile) {
+      currentProfile = storage.resumeok_profile;
+      profileName.innerText = `${currentProfile.firstName || ''} ${currentProfile.lastName || ''}`.trim() || 'Iman Shahinnezhad';
+      profileEmail.innerText = currentProfile.email || 'iman.shahinnezhad@gmail.com';
+      profileTitle.innerText = currentProfile.jobTitle || 'Senior Full Stack Engineer';
+    }
+  } catch(e) {}
 
   // Handle 1-Click Autofill from Popup
   autofillBtn.addEventListener('click', async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab || !tab.id) return;
+    let tab = null;
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      tab = tabs[0];
+    } catch(e) {}
+
+    if (!tab || !tab.id || !tab.url || (!tab.url.startsWith('http://') && !tab.url.startsWith('https://'))) {
+      autofillBtn.innerText = '⚠️ Open a Web Page First';
+      return;
+    }
 
     autofillBtn.innerText = '⚡ Filling Form...';
 
     chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: currentProfile }, (res) => {
-      if (chrome.runtime.lastError || !res) {
+      const err = chrome.runtime.lastError;
+      if (err || !res) {
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
           files: ['content/content-script.js']
         }).then(() => {
           setTimeout(() => {
-            chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: currentProfile }, () => {
+            chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: currentProfile }, (res2) => {
+              const err2 = chrome.runtime.lastError;
               autofillBtn.innerText = '✅ Form Autofilled!';
             });
           }, 300);
+        }).catch(() => {
+          autofillBtn.innerText = '⚠️ Page Not Scriptable';
         });
       } else {
         autofillBtn.innerText = `✅ Autofilled ${res.count || ''} Fields!`;
@@ -45,9 +59,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Open Side Panel
   sidepanelBtn.addEventListener('click', async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab && tab.id) {
-      chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => {});
-    }
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.id) {
+        chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => {});
+      }
+    } catch(e) {}
   });
 });

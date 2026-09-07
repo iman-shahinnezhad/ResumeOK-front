@@ -63,14 +63,50 @@ body {
   color: #94a3b8;
 }
 
-.status-badge {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(52, 211, 153, 0.3);
-  padding: 4px 8px;
-  border-radius: 20px;
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-btn-text {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 5px 10px;
+  border-radius: 16px;
   font-size: 11px;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icon-btn-text:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.icon-btn-round {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.icon-btn-round:hover {
+  background: rgba(124, 58, 237, 0.3);
+  border-color: rgba(168, 85, 247, 0.5);
+  color: #ffffff;
+  transform: scale(1.1);
 }
 
 /* Action Button */
@@ -298,3 +334,166 @@ body {
 .footer-link:hover {
   color: #ffffff;
 }
+
+/* Notice Banner */
+.notice-banner {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.notice-icon {
+  font-size: 18px;
+}
+
+.notice-body {
+  flex: 1;
+}
+
+.notice-body strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fbbf24;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.notice-body p {
+  font-size: 11px;
+  color: #cbd5e1;
+  line-height: 1.35;
+}
+
+.notice-btn {
+  background: #f59e0b;
+  color: #0f172a;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  align-self: center;
+  transition: opacity 0.15s ease;
+}
+
+.notice-btn:hover {
+  opacity: 0.9;
+}
+
+/* Progress Bar & Badges */
+.badge-emerald {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.progress-bar-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 4px 0 8px 0;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  border-radius: 10px;
+  transition: width 0.4s ease;
+}
+
+/* Checklist Items (Jobright Competitor Style) */
+.checklist-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.checklist-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.check-item-success {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.check-item-warning {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.25);
+  justify-content: space-between;
+}
+
+.check-item-unfilled {
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.check-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.check-item-success .check-icon {
+  background: #10b981;
+  color: #0f172a;
+}
+
+.check-item-warning .check-icon {
+  background: #f59e0b;
+  color: #0f172a;
+}
+
+.check-item-unfilled .check-icon {
+  background: rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+}
+
+.missing-notice-btn {
+  font-size: 10px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.missing-notice-btn:hover {
+  background: #f59e0b;
+  color: #0f172a;
+}
+
