@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   idPill: {
-    backgroundColor: '#F0EEFF',
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   idPillText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: '#000000',
   },
   descriptionText: {
     fontSize: 14,

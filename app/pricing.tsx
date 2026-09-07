@@ -175,7 +175,7 @@ export default function Pricing() {
   const renderFeature = (text: string) => (
     <View style={styles.featureRow}>
       <View style={styles.featureIcon}>
-        <Ionicons name="checkmark-circle-outline" size={20} color="#7C3AED" />
+        <Ionicons name="checkmark-circle-outline" size={20} color="#000000" />
       </View>
       <Text style={styles.featureText}>{text}</Text>
     </View>
@@ -212,7 +212,7 @@ export default function Pricing() {
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#7C3AED" />
+            <ActivityIndicator size="large" color="#000000" />
             <Text style={styles.loadingText}>Fetching live plans from Apple...</Text>
           </View>
         ) : (
@@ -251,12 +251,12 @@ export default function Pricing() {
                 activeOpacity={0.8}
                 onPress={() => setReferralVisible(true)}
               >
-                <Ionicons name="gift" size={20} color="#7C3AED" style={{ marginRight: 12 }} />
+                <Ionicons name="gift" size={20} color="#000000" style={{ marginRight: 12 }} />
                 <View style={styles.inviteContent}>
                   <Text style={styles.inviteTitle}>Or Invite Friends</Text>
                   <Text style={styles.inviteDesc}>Get free credits for each friend who joins</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#7C3AED" />
+                <Ionicons name="chevron-forward" size={18} color="#000000" />
               </TouchableOpacity>
             </View>
             <Text style={styles.subscriptionTermsText}>
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   title: {
-    color: '#2E1A8E',
+    color: '#0F172A',
     fontSize: 32,
     fontWeight: '800',
     textAlign: 'center',
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#7C3AED',
+    color: '#000000',
     marginTop: 16,
     fontSize: 14,
     fontWeight: '500',
@@ -387,14 +387,14 @@ const styles = StyleSheet.create({
   packageCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#F1F5F9',
     borderRadius: 28,
     padding: 16,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   packageCardSelected: {
-    borderColor: '#7C3AED',
+    borderColor: '#000000',
     backgroundColor: '#EBE7FF',
   },
   packageContent: {
@@ -411,32 +411,32 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#7C3AED',
+    borderColor: '#000000',
     marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioContainerSelected: {
-    borderColor: '#7C3AED',
+    borderColor: '#000000',
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#000000',
   },
   pkgTitle: {
-    color: '#2E1A8E',
+    color: '#0F172A',
     fontSize: 17,
     fontWeight: '800',
   },
   pkgDesc: {
-    color: '#6355D8',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '600',
   },
   pkgPrice: {
-    color: '#2E1A8E',
+    color: '#0F172A',
     fontSize: 17,
     fontWeight: '800',
   },
@@ -508,13 +508,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inviteTitle: {
-    color: '#2E1A8E',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
     marginBottom: 2,
   },
   inviteDesc: {
-    color: '#6355D8',
+    color: '#0F172A',
     fontSize: 12,
     fontWeight: '600',
   },

@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   chipItemSoft: {
-    backgroundColor: '#F0EEFF',
+    backgroundColor: '#F1F5F9',
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   chipTextSoft: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: '#000000',
   },
 
   addInputRow: {

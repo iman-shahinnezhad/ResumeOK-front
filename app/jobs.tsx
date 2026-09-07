@@ -1874,8 +1874,8 @@ export default function JobsScreen() {
           <head>
             <meta charset="utf-8">
             <style>
-              body { font-family: Arial, sans-serif; margin: 40px; color: #2E1A8E; line-height: 1.5; font-size: 11pt; }
-              h1, h2, h3 { color: #7C3AED; margin-top: 16px; margin-bottom: 6px; }
+              body { font-family: Arial, sans-serif; margin: 40px; color: #0F172A; line-height: 1.5; font-size: 11pt; }
+              h1, h2, h3 { color: #000000; margin-top: 16px; margin-bottom: 6px; }
               p { margin-bottom: 12px; text-align: justify; }
               ul { padding-left: 20px; margin-top: 4px; }
               li { margin-bottom: 4px; }
@@ -2210,7 +2210,7 @@ export default function JobsScreen() {
         >
           {isLoadingJobs ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
-              <ActivityIndicator size="large" color="#7C3AED" />
+              <ActivityIndicator size="large" color="#000000" />
             </View>
           ) : filteredJobs.length === 0 ? (
             <View style={styles.emptyContainer}>
@@ -2233,7 +2233,7 @@ export default function JobsScreen() {
 
               {isFetchingMore && (
                 <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                  <ActivityIndicator size="small" color="#7C3AED" />
+                  <ActivityIndicator size="small" color="#000000" />
                   <Text style={{ fontSize: 13, color: '#64748B', marginTop: 8, fontWeight: '500' }}>
                     Loading more jobs...
                   </Text>
@@ -2250,7 +2250,7 @@ export default function JobsScreen() {
         >
           {isLoadingJobs ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-              <ActivityIndicator size="large" color="#7C3AED" />
+              <ActivityIndicator size="large" color="#000000" />
             </View>
           ) : filteredJobs.length === 0 ? (
             <View style={styles.emptyContainer}>
@@ -2259,7 +2259,7 @@ export default function JobsScreen() {
             </View>
           ) : currentIndex >= filteredJobs.length ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="sparkles" size={48} color="#7C3AED" style={{ marginBottom: 12 }} />
+              <Ionicons name="sparkles" size={48} color="#000000" style={{ marginBottom: 12 }} />
               <Text style={styles.emptyText}>{"You've swiped through all jobs!"}</Text>
               <TouchableOpacity
                 style={styles.resetSwipesBtn}
@@ -2404,7 +2404,7 @@ export default function JobsScreen() {
                       </View>
 
                       <View style={styles.defaultResumeFileRow}>
-                        <Ionicons name="document-text" size={20} color="#7C3AED" />
+                        <Ionicons name="document-text" size={20} color="#000000" />
                         <Text style={styles.defaultResumeFileName} numberOfLines={1}>
                           {resumesList.find(r => String(r.id) === String(selectedResumeId))?.name || resumesList[0]?.name || 'Default Resume'}
                         </Text>
@@ -2429,7 +2429,7 @@ export default function JobsScreen() {
                           <Ionicons
                             name="document-text"
                             size={16}
-                            color={previewTab === 'resume' ? '#7C3AED' : '#64748B'}
+                            color={previewTab === 'resume' ? '#000000' : '#64748B'}
                           />
                           <Text
                             style={[
@@ -2452,7 +2452,7 @@ export default function JobsScreen() {
                           <Ionicons
                             name="mail"
                             size={16}
-                            color={previewTab === 'cover_letter' ? '#7C3AED' : '#64748B'}
+                            color={previewTab === 'cover_letter' ? '#000000' : '#64748B'}
                           />
                           <Text
                             style={[
@@ -2479,7 +2479,7 @@ export default function JobsScreen() {
                                 activeOpacity={0.8}
                                 onPress={handleViewTailoredResume}
                               >
-                                <Ionicons name="open-outline" size={14} color="#7C3AED" />
+                                <Ionicons name="open-outline" size={14} color="#000000" />
                                 <Text style={styles.openPdfHeaderBtnText}>Full PDF</Text>
                               </TouchableOpacity>
                             </View>
@@ -2495,8 +2495,8 @@ export default function JobsScreen() {
                                         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
                                         <style>
                                           body { font-family: -apple-system, sans-serif; padding: 15px; color: #1E293B; line-height: 1.4; background: #FFFFFF; }
-                                          h1 { color: #7C3AED; font-size: 18px; margin-bottom: 4px; }
-                                          h2 { color: #475569; font-size: 13px; margin-top: 12px; border-bottom: 1.5px solid #7C3AED; padding-bottom: 3px; }
+                                          h1 { color: #000000; font-size: 18px; margin-bottom: 4px; }
+                                          h2 { color: #475569; font-size: 13px; margin-top: 12px; border-bottom: 1.5px solid #000000; padding-bottom: 3px; }
                                           p { font-size: 12px; margin: 6px 0; }
                                           li { font-size: 11px; margin-bottom: 3px; }
                                         </style>
@@ -2527,7 +2527,7 @@ export default function JobsScreen() {
                                   Alert.alert('Copied!', 'Cover Letter text copied to clipboard.');
                                 }}
                               >
-                                <Ionicons name="copy-outline" size={14} color="#7C3AED" />
+                                <Ionicons name="copy-outline" size={14} color="#000000" />
                                 <Text style={styles.copyBtnText}>Copy Text</Text>
                               </TouchableOpacity>
                             </View>
@@ -2677,7 +2677,7 @@ export default function JobsScreen() {
             renderLoading={() => (
               <ActivityIndicator
                 size="large"
-                color="#7C3AED"
+                color="#000000"
                 style={StyleSheet.absoluteFillObject}
               />
             )}
@@ -2721,7 +2721,7 @@ export default function JobsScreen() {
       >
         <View style={styles.loaderOverlay}>
           <View style={styles.loaderCard}>
-            <ActivityIndicator size="large" color="#7C3AED" />
+            <ActivityIndicator size="large" color="#000000" />
             <Text style={styles.loaderTitle}>AI Matching Active</Text>
             <Text style={styles.loaderText}>{matchLoadingStep}</Text>
           </View>
@@ -2752,7 +2752,7 @@ export default function JobsScreen() {
                 <Ionicons
                   name="mail-outline"
                   size={18}
-                  color={previewTab === 'cover_letter' ? '#7C3AED' : '#64748B'}
+                  color={previewTab === 'cover_letter' ? '#000000' : '#64748B'}
                   style={{ marginRight: 6 }}
                 />
                 <Text style={[styles.tabText, previewTab === 'cover_letter' && styles.tabTextActive]}>
@@ -2767,7 +2767,7 @@ export default function JobsScreen() {
                 <Ionicons
                   name="document-text-outline"
                   size={18}
-                  color={previewTab === 'resume' ? '#7C3AED' : '#64748B'}
+                  color={previewTab === 'resume' ? '#000000' : '#64748B'}
                   style={{ marginRight: 6 }}
                 />
                 <Text style={[styles.tabText, previewTab === 'resume' && styles.tabTextActive]}>
@@ -2802,7 +2802,7 @@ export default function JobsScreen() {
                       activeOpacity={0.8}
                       onPress={handleViewTailoredResume}
                     >
-                      <Ionicons name="open-outline" size={15} color="#7C3AED" />
+                      <Ionicons name="open-outline" size={15} color="#000000" />
                       <Text style={styles.openPdfHeaderBtnText}>Full PDF</Text>
                     </TouchableOpacity>
                   </View>
@@ -2817,8 +2817,8 @@ export default function JobsScreen() {
                               <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
                               <style>
                                 body { font-family: -apple-system, Helvetica, Arial, sans-serif; padding: 20px; color: #1E293B; line-height: 1.5; background: #FFFFFF; }
-                                h1 { color: #7C3AED; font-size: 20px; margin-bottom: 4px; font-weight: 800; }
-                                h2 { color: #475569; font-size: 14px; margin-top: 16px; border-bottom: 2px solid #7C3AED; padding-bottom: 4px; font-weight: 700; }
+                                h1 { color: #000000; font-size: 20px; margin-bottom: 4px; font-weight: 800; }
+                                h2 { color: #475569; font-size: 14px; margin-top: 16px; border-bottom: 2px solid #000000; padding-bottom: 4px; font-weight: 700; }
                                 p { font-size: 13px; margin: 8px 0; }
                                 ul { padding-left: 18px; margin: 6px 0; }
                                 li { font-size: 12px; margin-bottom: 4px; color: #334155; }
@@ -2976,7 +2976,7 @@ export default function JobsScreen() {
             <TouchableOpacity activeOpacity={1} style={styles.reportModalCard}>
               <View style={styles.reportHeaderRow}>
                 <View style={styles.reportShieldIconBox}>
-                  <Ionicons name="shield-checkmark" size={22} color="#7C3AED" />
+                  <Ionicons name="shield-checkmark" size={22} color="#000000" />
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={styles.reportModalTitle}>Report Listing</Text>
@@ -3097,7 +3097,7 @@ export default function JobsScreen() {
               {/* Modal Header (Pinned at Top) */}
               <View style={styles.searchModalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Ionicons name="options-outline" size={20} color="#7C3AED" style={{ marginRight: 6 }} />
+                  <Ionicons name="options-outline" size={20} color="#000000" style={{ marginRight: 6 }} />
                   <Text style={styles.searchModalTitle}>Filter Jobs & Roles</Text>
                 </View>
 
@@ -3368,7 +3368,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   searchLabel: {
-    color: '#2E1A8E',
+    color: '#0F172A',
     fontSize: 15,
     fontWeight: '800',
     marginBottom: 8,
@@ -3396,8 +3396,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   companyPillActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: '#000000',
+    borderColor: '#000000',
   },
   companyPillText: {
     color: '#4B5563',
@@ -3454,7 +3454,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   cardTitle: {
-    color: '#2E1A8E',
+    color: '#0F172A',
     fontSize: 22,
     fontWeight: '900',
     lineHeight: 28,
@@ -3468,14 +3468,14 @@ const styles = StyleSheet.create({
   cardMetaBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
     flexShrink: 1,
   },
   cardMetaText: {
-    color: '#6355D8',
+    color: '#0F172A',
     fontSize: 12,
     fontWeight: '700',
     marginLeft: 6,
@@ -3487,7 +3487,7 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   cardSectionHeading: {
-    color: '#2E1A8E',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
     marginBottom: 8,
@@ -3506,13 +3506,13 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   premiumApplyBtn: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#000000',
     height: 50,
     borderRadius: 25,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#7C3AED',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
@@ -3551,7 +3551,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalJobTitle: {
-    color: '#2E1A8E',
+    color: '#0F172A',
     fontSize: 20,
     fontWeight: '800',
   },
@@ -3573,7 +3573,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionHeading: {
-    color: '#2E1A8E',
+    color: '#0F172A',
     fontSize: 16,
     fontWeight: '800',
     marginBottom: 10,
@@ -3600,7 +3600,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   inputLabel: {
-    color: '#2E1A8E',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
     marginTop: 8,
@@ -3622,7 +3622,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   dropdownItemSelected: {
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#F1F5F9',
   },
   dropdownText: {
     color: '#4B5563',
@@ -3631,7 +3631,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dropdownTextSelected: {
-    color: '#7C3AED',
+    color: '#000000',
     fontWeight: '700',
   },
   noResumesWarning: {
@@ -3668,7 +3668,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
   },
   modalSubmitBtn: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#000000',
     height: 52,
     borderRadius: 26,
     flexDirection: 'row',
@@ -3706,13 +3706,13 @@ const styles = StyleSheet.create({
   editContactBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
   },
   editContactBtnText: {
-    color: '#7C3AED',
+    color: '#000000',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -3761,7 +3761,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   resetSwipesBtn: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#000000',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
@@ -3870,7 +3870,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: '#f1f5f9',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -3902,8 +3902,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   reportReasonRowSelected: {
-    backgroundColor: '#F3E8FF',
-    borderColor: '#7C3AED',
+    backgroundColor: '#f1f5f9',
+    borderColor: '#000000',
   },
   radioCircle: {
     width: 20,
@@ -3915,13 +3915,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioCircleSelected: {
-    borderColor: '#7C3AED',
+    borderColor: '#000000',
   },
   radioDotInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#000000',
   },
   reportReasonTitle: {
     fontSize: 14,
@@ -3929,7 +3929,7 @@ const styles = StyleSheet.create({
     color: '#0F172A',
   },
   reportReasonTitleSelected: {
-    color: '#6D28D9',
+    color: '#000000',
   },
   reportReasonSub: {
     fontSize: 12,
@@ -3971,7 +3971,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 22,
     borderRadius: 12,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#000000',
   },
   reportSubmitBtnText: {
     fontSize: 14,
@@ -4017,7 +4017,7 @@ const styles = StyleSheet.create({
   loadingCardText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: '#000000',
     textAlign: 'center',
     marginTop: 8,
   },
@@ -4086,13 +4086,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   webViewShareBtn: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#000000',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#7C3AED',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
@@ -4193,7 +4193,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   tabTextActive: {
-    color: '#7C3AED',
+    color: '#000000',
     fontWeight: '700',
   },
   previewBody: {
@@ -4281,7 +4281,7 @@ const styles = StyleSheet.create({
   },
   previewProceedBtn: {
     flex: 2,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#000000',
     paddingVertical: 14,
     borderRadius: 12,
     flexDirection: 'row',
@@ -4331,7 +4331,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#000000',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 24,
@@ -4382,7 +4382,7 @@ const styles = StyleSheet.create({
   openPdfHeaderBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: '#000000',
   },
   webViewWrapper: {
     flex: 1,
@@ -4409,8 +4409,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   inlineTabBtnActive: {
-    backgroundColor: '#F3E8FF',
-    borderColor: '#7C3AED',
+    backgroundColor: '#f1f5f9',
+    borderColor: '#000000',
   },
   inlineTabText: {
     fontSize: 13,
@@ -4418,7 +4418,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   inlineTabTextActive: {
-    color: '#7C3AED',
+    color: '#000000',
   },
   inlinePreviewBox: {
     backgroundColor: '#FFFFFF',
@@ -4449,7 +4449,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: '#f1f5f9',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
@@ -4457,7 +4457,7 @@ const styles = StyleSheet.create({
   copyBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: '#000000',
   },
   inlineCoverLetterInput: {
     minHeight: 180,
@@ -4502,7 +4502,7 @@ const styles = StyleSheet.create({
   changeResumeLinkText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: '#000000',
   },
   defaultResumeFileRow: {
     flexDirection: 'row',
@@ -4632,7 +4632,7 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 22,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 14,
@@ -4810,7 +4810,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   applyFilterBtn: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#000000',
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
@@ -4842,7 +4842,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -4931,8 +4931,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   filterChipActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: '#000000',
+    borderColor: '#000000',
   },
   filterChipText: {
     fontSize: 13,

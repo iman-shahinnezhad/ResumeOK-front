@@ -461,8 +461,8 @@ export default function Library() {
       badgeText = '#991B1B';
       statusLabel = 'REJECTED';
     } else if (item.status === 'active') {
-      badgeBg = '#F5F3FF'; // light purple
-      badgeText = '#5B21B6';
+      badgeBg = '#F1F5F9';
+      badgeText = '#0F172A';
       statusLabel = 'ACTIVE';
     }
 
@@ -481,7 +481,7 @@ export default function Library() {
         <View style={styles.appliedJobFooter}>
           <View style={{ flex: 1 }}>
             <Text style={styles.appliedJobMetaText}>
-              Stage: <Text style={{ fontWeight: '700', color: '#2E1A8E' }}>{item.currentStage || 'Application Review'}</Text>
+              Stage: <Text style={{ fontWeight: '700', color: '#0F172A' }}>{item.currentStage || 'Application Review'}</Text>
             </Text>
             <Text style={styles.appliedJobDateText}>Applied: {item.date}</Text>
             <Text style={styles.appliedJobResumeText} numberOfLines={1}>Resume: {item.resumeName}</Text>
@@ -823,7 +823,7 @@ export default function Library() {
             ) : (
               <View style={{ width: '100%' }}>
                 <LinearGradient
-                  colors={['#4F46E5', '#7C3AED']}
+                  colors={['#4F46E5', '#000000']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.heroCard}
@@ -1072,12 +1072,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   appliedJobTitle: {
-    color: '#2E1A8E',
+    color: '#0F172A',
     fontSize: 16,
     fontWeight: '800',
   },
   appliedJobCompany: {
-    color: '#6355D8',
+    color: '#0F172A',
     fontSize: 13,
     fontWeight: '600',
     marginTop: 2,

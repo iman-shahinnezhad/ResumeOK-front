@@ -33,7 +33,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } else if (message.type === 'FORM_DETECTED') {
         if (sender.tab && sender.tab.id) {
           await chrome.action.setBadgeText({ tabId: sender.tab.id, text: 'FIT' });
-          await chrome.action.setBadgeBackgroundColor({ tabId: sender.tab.id, color: '#7C3AED' });
+          await chrome.action.setBadgeBackgroundColor({ tabId: sender.tab.id, color: '#000000' });
         }
         sendResponse({ success: true });
       }

@@ -1692,7 +1692,7 @@ export default function ApplyJobScreen() {
 
         {loading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#7C3AED" />
+            <ActivityIndicator size="large" color="#000000" />
             <Text style={styles.loadingText}>Opening Application Page...</Text>
           </View>
         )}
@@ -1870,14 +1870,14 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   autofillBtn: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#000000',
     borderRadius: 16,
     height: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    shadowColor: '#7C3AED',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

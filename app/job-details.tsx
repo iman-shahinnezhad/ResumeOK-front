@@ -219,8 +219,8 @@ export default function JobDetailsScreen() {
           <head>
             <meta charset="utf-8">
             <style>
-              body { font-family: Arial, sans-serif; margin: 40px; color: #2E1A8E; line-height: 1.5; font-size: 11pt; }
-              h1, h2, h3 { color: #7C3AED; margin-top: 16px; margin-bottom: 6px; }
+              body { font-family: Arial, sans-serif; margin: 40px; color: #0F172A; line-height: 1.5; font-size: 11pt; }
+              h1, h2, h3 { color: #000000; margin-top: 16px; margin-bottom: 6px; }
               p { margin-bottom: 12px; text-align: justify; }
               ul { padding-left: 20px; margin-top: 4px; }
               li { margin-bottom: 4px; }
@@ -1011,7 +1011,7 @@ export default function JobDetailsScreen() {
                     <Ionicons name="checkmark" size={18} color="#16A34A" />
                   ) : aiStep === 0 ? (
                     <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
-                      <ActivityIndicator size="small" color="#7C3AED" />
+                      <ActivityIndicator size="small" color="#000000" />
                     </View>
                   ) : (
                     <View style={styles.progressCircleHollow} />
@@ -1026,7 +1026,7 @@ export default function JobDetailsScreen() {
                     <Ionicons name="checkmark" size={18} color="#16A34A" />
                   ) : aiStep === 1 ? (
                     <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
-                      <ActivityIndicator size="small" color="#7C3AED" />
+                      <ActivityIndicator size="small" color="#000000" />
                     </View>
                   ) : (
                     <View style={styles.progressCircleHollow} />
@@ -1041,7 +1041,7 @@ export default function JobDetailsScreen() {
                     <Ionicons name="checkmark" size={18} color="#16A34A" />
                   ) : aiStep === 2 ? (
                     <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
-                      <ActivityIndicator size="small" color="#7C3AED" />
+                      <ActivityIndicator size="small" color="#000000" />
                     </View>
                   ) : (
                     <View style={styles.progressCircleHollow} />
@@ -1056,7 +1056,7 @@ export default function JobDetailsScreen() {
                     <Ionicons name="checkmark" size={18} color="#16A34A" />
                   ) : aiStep === 3 ? (
                     <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
-                      <ActivityIndicator size="small" color="#7C3AED" />
+                      <ActivityIndicator size="small" color="#000000" />
                     </View>
                   ) : (
                     <View style={styles.progressCircleHollow} />
@@ -1077,7 +1077,7 @@ export default function JobDetailsScreen() {
                     <Ionicons name="checkmark" size={18} color="#16A34A" />
                   ) : aiStep === 0 ? (
                     <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
-                      <ActivityIndicator size="small" color="#7C3AED" />
+                      <ActivityIndicator size="small" color="#000000" />
                     </View>
                   ) : (
                     <View style={styles.progressCircleHollow} />
@@ -1092,7 +1092,7 @@ export default function JobDetailsScreen() {
                     <Ionicons name="checkmark" size={18} color="#16A34A" />
                   ) : aiStep === 1 ? (
                     <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center' }}>
-                      <ActivityIndicator size="small" color="#7C3AED" />
+                      <ActivityIndicator size="small" color="#000000" />
                     </View>
                   ) : (
                     <View style={styles.progressCircleHollow} />
@@ -1515,7 +1515,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   paperCompanyText: {
-    color: '#7C3AED',
+    color: '#000000',
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 4,
@@ -1626,7 +1626,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#6D28D9',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
   },

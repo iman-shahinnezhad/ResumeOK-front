@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   causeBadge: {
-    backgroundColor: '#F0EEFF',
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
   causeBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: '#000000',
   },
   menuDotsBtn: {
     padding: 4,

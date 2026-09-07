@@ -639,7 +639,7 @@ export default function Jobs() {
                           {job.postedAgo}
                         </span>
                         {job.tags.map((t, idx) => (
-                          <span key={idx} style={{ fontSize: '12px', fontWeight: '700', color: t.includes('Kotlin') ? '#7c3aed' : '#059669', backgroundColor: t.includes('Kotlin') ? '#f3e8ff' : '#ecfdf5', padding: '2px 8px', borderRadius: '4px' }}>
+                          <span key={idx} style={{ fontSize: '12px', fontWeight: '700', color: t.includes('Kotlin') ? '#0f172a' : '#059669', backgroundColor: t.includes('Kotlin') ? '#f1f5f9' : '#ecfdf5', padding: '2px 8px', borderRadius: '4px' }}>
                             {t}
                           </span>
                         ))}

@@ -740,20 +740,20 @@
       .btn-modal-update {
         min-width: 260px;
         height: 46px;
-        background: linear-gradient(135deg, #7c3aed, #4f46e5);
+        background: #000000;
         color: #ffffff;
-        border: none;
+        border: 1px solid #334155;
         border-radius: 24px;
         font-size: 14px;
         font-weight: 800;
         cursor: pointer;
-        box-shadow: 0 8px 24px rgba(124, 58, 237, 0.45);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
       }
 
       .btn-modal-update:hover {
-        background: linear-gradient(135deg, #8b5cf6, #6366f1);
-        box-shadow: 0 12px 32px rgba(124, 58, 237, 0.6);
+        background: #0f172a;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
         transform: translateY(-2px);
       }
     `;

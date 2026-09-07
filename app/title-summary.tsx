@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   aiCard: {
-    backgroundColor: '#F0EEFF',
+    backgroundColor: '#F1F5F9',
     borderRadius: 20,
     padding: 14,
     flexDirection: 'row',
