@@ -3130,10 +3130,20 @@ export default function JobsScreen() {
                   <TextInput
                     ref={searchInputRef}
                     style={styles.searchModalInputText}
-                    placeholder="e.g. Product Manager, Designer, React..."
+                    placeholder="Type a skill/role and press Enter (e.g. Designer, SEO...)"
                     placeholderTextColor="#94A3B8"
                     value={filterQuery}
                     onChangeText={setFilterQuery}
+                    onSubmitEditing={() => {
+                      const queryVal = filterQuery.trim();
+                      if (queryVal.length > 0) {
+                        if (!selectedSkillsFilter.some(s => s.toLowerCase() === queryVal.toLowerCase())) {
+                          setSelectedSkillsFilter(prev => [...prev, queryVal]);
+                        }
+                        setFilterQuery('');
+                      }
+                    }}
+                    returnKeyType="done"
                     autoFocus={false}
                   />
                   {filterQuery.length > 0 && (
@@ -3142,32 +3152,6 @@ export default function JobsScreen() {
                     </TouchableOpacity>
                   )}
                 </View>
-
-                {/* Onboarding Target Role Quick Chips */}
-                {userProfile && getUserSkillsList(userProfile).length > 0 && (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterChipRow, { marginTop: 8 }]}>
-                    {getUserSkillsList(userProfile).map((skill: string, idx: number) => {
-                      const isSelected = selectedSkillsFilter.includes(skill) || filterQuery.toLowerCase() === skill.toLowerCase();
-                      return (
-                        <TouchableOpacity
-                          key={`onboard-quick-skill-${idx}`}
-                          style={[styles.filterChip, isSelected && styles.filterChipActive]}
-                          onPress={() => {
-                            if (selectedSkillsFilter.includes(skill)) {
-                              setSelectedSkillsFilter(prev => prev.filter(s => s !== skill));
-                            } else {
-                              setSelectedSkillsFilter(prev => [...prev, skill]);
-                            }
-                          }}
-                        >
-                          <Text style={[styles.filterChipText, isSelected && styles.filterChipTextActive]}>
-                            🎯 {skill}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                )}
               </View>
 
               {/* SCROLLABLE CHIP FILTERS */}
@@ -3178,46 +3162,52 @@ export default function JobsScreen() {
                 keyboardShouldPersistTaps="handled"
               >
                 {/* SECTION 0: YOUR SKILLS & TARGET ROLES */}
-                {userProfile && getUserSkillsList(userProfile).length > 0 && (
-                  <View style={{ marginTop: 4, marginBottom: 14 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <Text style={styles.searchLabel}>Skills & Target Roles (From Onboarding)</Text>
-                      {selectedSkillsFilter.length > 0 && (
-                        <TouchableOpacity onPress={() => setSelectedSkillsFilter([])}>
-                          <Text style={{ fontSize: 12, color: '#3B82F6', fontWeight: '600' }}>Clear ({selectedSkillsFilter.length})</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
-                      <TouchableOpacity
-                        style={[styles.filterChip, selectedSkillsFilter.length === 0 && styles.filterChipActive]}
-                        onPress={() => setSelectedSkillsFilter([])}
-                      >
-                        <Text style={[styles.filterChipText, selectedSkillsFilter.length === 0 && styles.filterChipTextActive]}>
-                          ✨ All Skills
-                        </Text>
-                      </TouchableOpacity>
-                      {getUserSkillsList(userProfile).map((skill: string, idx: number) => {
-                        const isSelected = selectedSkillsFilter.includes(skill);
-                        return (
-                          <TouchableOpacity
-                            key={`onboard-filter-skill-${idx}`}
-                            style={[styles.filterChip, isSelected && styles.filterChipActive]}
-                            onPress={() => {
-                              setSelectedSkillsFilter(prev =>
-                                isSelected ? prev.filter(s => s !== skill) : [...prev, skill]
-                              );
-                            }}
-                          >
-                            <Text style={[styles.filterChipText, isSelected && styles.filterChipTextActive]}>
-                              {isSelected ? '✓ ' : ''}{skill}
-                            </Text>
+                {(() => {
+                  const onboardSkills = userProfile ? getUserSkillsList(userProfile) : [];
+                  const allDisplaySkills = Array.from(new Set([...onboardSkills, ...selectedSkillsFilter]));
+                  if (allDisplaySkills.length === 0) return null;
+
+                  return (
+                    <View style={{ marginTop: 4, marginBottom: 14 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <Text style={styles.searchLabel}>Skills & Target Roles</Text>
+                        {selectedSkillsFilter.length > 0 && (
+                          <TouchableOpacity onPress={() => setSelectedSkillsFilter([])}>
+                            <Text style={{ fontSize: 12, color: '#3B82F6', fontWeight: '600' }}>Clear ({selectedSkillsFilter.length})</Text>
                           </TouchableOpacity>
-                        );
-                      })}
-                    </ScrollView>
-                  </View>
-                )}
+                        )}
+                      </View>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
+                        <TouchableOpacity
+                          style={[styles.filterChip, selectedSkillsFilter.length === 0 && styles.filterChipActive]}
+                          onPress={() => setSelectedSkillsFilter([])}
+                        >
+                          <Text style={[styles.filterChipText, selectedSkillsFilter.length === 0 && styles.filterChipTextActive]}>
+                            ✨ All Skills
+                          </Text>
+                        </TouchableOpacity>
+                        {allDisplaySkills.map((skill: string, idx: number) => {
+                          const isSelected = selectedSkillsFilter.includes(skill);
+                          return (
+                            <TouchableOpacity
+                              key={`skill-chip-${idx}-${skill}`}
+                              style={[styles.filterChip, isSelected && styles.filterChipActive]}
+                              onPress={() => {
+                                setSelectedSkillsFilter(prev =>
+                                  isSelected ? prev.filter(s => s !== skill) : [...prev, skill]
+                                );
+                              }}
+                            >
+                              <Text style={[styles.filterChipText, isSelected && styles.filterChipTextActive]}>
+                                {isSelected ? '✓ ' : ''}{skill}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+                  );
+                })()}
                 {/* SECTION 1: EXPECTED SALARY RANGE */}
                 <View style={{ marginTop: 4 }}>
                   <Text style={styles.searchLabel}>Expected Salary Range</Text>
