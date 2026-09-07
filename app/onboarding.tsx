@@ -2109,12 +2109,18 @@ export default function OnboardingScreen() {
                       <Text style={styles.sliderValue}>${minSalary.toLocaleString()}</Text>
                     </View>
                     <Slider
+                      key={`min-slider-${step}-${minSalary}`}
                       style={styles.sliderBar}
                       minimumValue={0}
                       maximumValue={300000}
                       step={5000}
                       value={minSalary}
-                      onValueChange={setMinSalary}
+                      onValueChange={(val) => {
+                        setMinSalary(val);
+                        if (val > maxSalary) {
+                          setMaxSalary(val);
+                        }
+                      }}
                       minimumTrackTintColor="#007AFF"
                       maximumTrackTintColor="#EAEAEA"
                       thumbTintColor="#FFFFFF"
@@ -2127,12 +2133,18 @@ export default function OnboardingScreen() {
                       <Text style={styles.sliderValue}>${maxSalary.toLocaleString()}</Text>
                     </View>
                     <Slider
+                      key={`max-slider-${step}-${maxSalary}`}
                       style={styles.sliderBar}
                       minimumValue={100000}
                       maximumValue={500000}
                       step={5000}
                       value={maxSalary}
-                      onValueChange={setMaxSalary}
+                      onValueChange={(val) => {
+                        setMaxSalary(val);
+                        if (val < minSalary) {
+                          setMinSalary(val);
+                        }
+                      }}
                       minimumTrackTintColor="#007AFF"
                       maximumTrackTintColor="#EAEAEA"
                       thumbTintColor="#FFFFFF"
