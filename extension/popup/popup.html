@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ApplyDesk</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <div class="brand">
+        <div class="logo">AD</div>
+        <div class="brand-title">ApplyDesk</div>
+      </div>
+      <div class="status-badge" id="popup-status">Synced</div>
+    </div>
+
+    <div class="popup-actions">
+      <button id="popup-autofill-btn" class="btn-primary">
+        ✨ 1-Click Autofill Form
+      </button>
+      <button id="popup-sidepanel-btn" class="btn-secondary">
+        ⚡ Open Side Panel Copilot
+      </button>
+    </div>
+
+    <div class="profile-preview-card">
+      <div class="card-label">ACTIVE CANDIDATE PROFILE</div>
+      <div id="profile-name" class="profile-name-text">Omid Moradi</div>
+      <div id="profile-email" class="profile-email-text">omid@example.com</div>
+      <div id="profile-title" class="profile-title-text">Senior Software Engineer</div>
+    </div>
+
+    <div class="popup-footer">
+      <a href="http://localhost:5173/#/profile" target="_blank" class="footer-link">Edit Profile</a>
+      <span>•</span>
+      <a href="http://localhost:5173/#/jobs" target="_blank" class="footer-link">Open Dashboard</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

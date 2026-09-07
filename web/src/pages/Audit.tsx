@@ -4,7 +4,7 @@ import useSEO from '../hooks/useSEO';
 
 export default function Audit() {
   useSEO(
-    "AI Resume Audit & ATS Compatibility Score - ResumeOK",
+    "AI Resume Audit & ATS Compatibility Score - ApplyDesk",
     "Get an instant recruiter-level audit of your resume with ATS compatibility breakdown, metric impact ratings, and missing keyword suggestions."
   );
 

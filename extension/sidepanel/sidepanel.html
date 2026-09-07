@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ApplyDesk Copilot</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="panel-container">
+    <!-- Header -->
+    <header class="panel-header">
+      <div class="brand">
+        <div class="logo">AD</div>
+        <div>
+          <h1 class="brand-title">ApplyDesk</h1>
+          <span class="brand-subtitle">AI Job Copilot</span>
+        </div>
+      </div>
+      <div class="status-badge" id="profile-badge">Profile Synced</div>
+    </header>
+
+    <!-- Main Action Button -->
+    <section class="action-section">
+      <button id="autofill-btn" class="btn-primary">
+        <span class="sparkle">✨</span> 1-Click Autofill Form
+      </button>
+      <div id="autofill-status" class="status-msg">Click to fill detected ATS form fields</div>
+    </section>
+
+    <!-- Quick Field Fill Pills -->
+    <section class="pills-section">
+      <div class="section-label">1-TAP QUICK FILL</div>
+      <div class="pills-row">
+        <button class="chip-btn" id="chip-name">👤 Name</button>
+        <button class="chip-btn" id="chip-email">✉️ Email</button>
+        <button class="chip-btn" id="chip-phone">📞 Phone</button>
+        <button class="chip-btn" id="chip-resume">📄 Resume</button>
+      </div>
+    </section>
+
+    <!-- Real-time AI Match Score -->
+    <section class="card match-card">
+      <div class="card-header">
+        <span class="card-title">ATS Job Match Score</span>
+        <span id="match-score-badge" class="badge-score">88% MATCH</span>
+      </div>
+      <div class="job-info">
+        <div id="job-title" class="job-title-text">Detecting active job post...</div>
+        <div id="job-company" class="job-company-text">---</div>
+      </div>
+
+      <div class="skills-block">
+        <div class="skill-label">MATCHING SKILLS</div>
+        <div id="matching-skills" class="skills-tags">
+          <span class="tag tag-green">React</span>
+          <span class="tag tag-green">TypeScript</span>
+          <span class="tag tag-green">Node.js</span>
+        </div>
+      </div>
+
+      <div class="skills-block">
+        <div class="skill-label">MISSING KEYWORDS</div>
+        <div id="missing-skills" class="skills-tags">
+          <span class="tag tag-amber">GraphQL</span>
+          <span class="tag tag-amber">Docker</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI Q&A Copilot -->
+    <section class="card qna-card">
+      <div class="card-header">
+        <span class="card-title">AI Answer Assistant</span>
+      </div>
+      <p class="card-subtext">Ask AI to answer custom application questions based on your profile.</p>
+      <input type="text" id="qna-question" class="panel-input" placeholder="e.g. Why are you a good fit for this role?">
+      <button id="qna-generate-btn" class="btn-secondary">Generate AI Response</button>
+      <textarea id="qna-answer" class="panel-textarea" placeholder="AI answer will appear here..." readonly></textarea>
+    </section>
+
+    <!-- Application Tracker -->
+    <section class="card tracker-card">
+      <div class="card-header">
+        <span class="card-title">Application Tracker</span>
+      </div>
+      <button id="log-app-btn" class="btn-outline">
+        📌 Log Job to ApplyDesk Dashboard
+      </button>
+    </section>
+
+    <!-- Footer -->
+    <footer class="panel-footer">
+      <a href="http://localhost:5173/#/profile" target="_blank" class="footer-link">Edit Candidate Profile</a>
+      <span>•</span>
+      <a href="http://localhost:5173/#/jobs" target="_blank" class="footer-link">Open Dashboard</a>
+    </footer>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

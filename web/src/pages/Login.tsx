@@ -10,7 +10,7 @@ interface Props {
 
 export default function Login({ onLogin }: Props) {
   useSEO(
-    "Log in & Sign Up - ResumeOK",
+    "Log in & Sign Up - ApplyDesk",
     "Access your AI job search copilot, ATS resume builder, auto-apply history, and insider referrals."
   );
 

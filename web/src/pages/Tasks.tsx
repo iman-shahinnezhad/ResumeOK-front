@@ -4,7 +4,7 @@ import useSEO from '../hooks/useSEO';
 
 export default function Tasks() {
   useSEO(
-    "Daily Rewards & AI Credits - ResumeOK",
+    "Daily Rewards & AI Credits - ApplyDesk",
     "Complete quick daily tasks to earn free AI scanning and auto-apply credits."
   );
 

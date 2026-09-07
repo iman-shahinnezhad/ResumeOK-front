@@ -62,7 +62,7 @@ export default function TasksScreen() {
     {
       id: 'app_review',
       tag: '⭐️ Rate App',
-      title: 'Rate ResumeOK 5-Stars',
+      title: 'Rate ApplyDesk 5-Stars',
       subtitle: 'Leave a 5-star review on the App Store',
       reward: 15,
       url: 'https://apps.apple.com',
@@ -71,8 +71,8 @@ export default function TasksScreen() {
     {
       id: 'share_referral',
       tag: '🎁 Referral',
-      title: 'Invite Friends to ResumeOK',
-      subtitle: 'Share ResumeOK with developer friends',
+      title: 'Invite Friends to ApplyDesk',
+      subtitle: 'Share ApplyDesk with developer friends',
       reward: 25,
       actionType: 'share',
     },
@@ -138,11 +138,6 @@ export default function TasksScreen() {
         'phone',
         'city',
         'expectedSalary',
-        'dob',
-        'gender',
-        'ethnicity',
-        'disability',
-        'citizenship',
       ];
       let personalFilled = 0;
       if (loadedProfile) {
@@ -159,22 +154,21 @@ export default function TasksScreen() {
         });
       }
 
-      // Pillar B: Professional Detail (12 items target)
-      const summaryRemaining = Math.max(0, 2 - (loadedProfile?.summaries?.length || (loadedProfile?.jobTitle ? 1 : 0)));
+      // Pillar B: Professional Detail (8 items target, Projects are optional)
+      const summaryRemaining = Math.max(0, 1 - (loadedProfile?.summaries?.length || (loadedProfile?.jobTitle || loadedProfile?.summary ? 1 : 0)));
       const expRemaining = Math.max(0, 2 - (loadedProfile?.experiences?.length || 0));
-      const projectRemaining = Math.max(0, 3 - (loadedProfile?.projects?.length || 0));
       const eduRemaining = Math.max(0, 1 - (loadedProfile?.educations?.length || 0));
       const techCount = loadedProfile?.skills?.length || 0;
       const softCount = loadedProfile?.softSkills?.length || 0;
       const skillRemaining = Math.max(0, 3 - (techCount + softCount));
       const langRemaining = Math.max(0, 1 - (loadedProfile?.languages?.length || 0));
 
-      const profFilled = (2 - summaryRemaining) + (2 - expRemaining) + (3 - projectRemaining) + (1 - eduRemaining) + (3 - skillRemaining) + (1 - langRemaining);
+      const profFilled = (1 - summaryRemaining) + (2 - expRemaining) + (1 - eduRemaining) + (3 - skillRemaining) + (1 - langRemaining);
 
       // Pillar C: Resumes (1 target)
       const resumeFilled = count > 0 ? 1 : 0;
 
-      const totalTarget = 24;
+      const totalTarget = 15;
       const totalFilled = personalFilled + profFilled + resumeFilled;
       const rate = Math.min(100, Math.max(0, Math.round((totalFilled / totalTarget) * 100)));
       setCompletionRate(rate);
@@ -235,7 +229,7 @@ export default function TasksScreen() {
     } else if (task.actionType === 'share') {
       try {
         await Share.share({
-          message: 'Build an ATS-friendly resume in seconds with ResumeOK! Download here: https://resumeok.app',
+          message: 'Build an ATS-friendly resume in seconds with ApplyDesk!',
         });
         // Open confirmation modal
         setActiveTaskModal(task);

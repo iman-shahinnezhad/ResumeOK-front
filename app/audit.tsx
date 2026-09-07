@@ -20,6 +20,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useAuth, API_URL } from '../context/AuthContext';
 import ReferralBottomSheet from '../components/ReferralBottomSheet';
+import { sortResumesWithDefaultFirst } from '../utils/resumeUtils';
 
 const getFriendlyErrorMessage = (error: any) => {
   const msg = error?.message || '';
@@ -34,9 +35,10 @@ interface SelectedResumeFile {
   name: string;
   date: string;
   uri?: string;
-  size?: number;
+  size?: number | string;
   mimeType?: string;
   isBuilt?: boolean;
+  isDefault?: boolean;
 }
 
 interface AnalysisResult {
@@ -571,16 +573,17 @@ export default function AuditScreen() {
         }
 
         if (Array.isArray(parsed)) {
-          setUploadedResumes(parsed);
+          const sorted = sortResumesWithDefaultFirst(parsed);
+          setUploadedResumes(sorted);
           
           if (resumeId) {
-            const found = parsed.find(item => item.id === resumeId);
+            const found = sorted.find(item => item.id === resumeId);
             if (found) {
               setSelectedResume(found);
             }
-          } else if (parsed.length > 0) {
+          } else if (sorted.length > 0) {
             // Default to first one selected
-            setSelectedResume(parsed[0]);
+            setSelectedResume(sorted[0]);
           }
         }
       } catch (err) {
@@ -592,8 +595,10 @@ export default function AuditScreen() {
 
   const saveResumesToStorage = async (list: SelectedResumeFile[]) => {
     try {
+      const sorted = sortResumesWithDefaultFirst(list);
       const resumesJsonPath = `${FileSystem.documentDirectory}resumes.json`;
-      await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(list));
+      await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(sorted));
+      setUploadedResumes(sorted);
     } catch (e) {
       console.log("Error saving resumes to storage:", e);
     }

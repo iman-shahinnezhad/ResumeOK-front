@@ -20,11 +20,38 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { API_URL, useAuth } from '../context/AuthContext';
+
 const cleanJsCodeForInjection = (js: string) => js;
+
+async function fetchBase64FromUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        if (dataUrl && dataUrl.includes(',')) {
+          resolve(dataUrl.split(',')[1]);
+        } else {
+          resolve(null);
+        }
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.log('Failed to fetch base64 from server url:', url, e);
+    return null;
+  }
+}
 
 export default function ApplyJobScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, guestId } = useAuth();
   const params = useLocalSearchParams<{
     url: string;
     title?: string;
@@ -42,14 +69,12 @@ export default function ApplyJobScreen() {
   const [coverLetterText, setCoverLetterText] = useState<string>('');
   const [coverLetterBase64, setCoverLetterBase64] = useState<string>('');
   const [coverLetterPdfName, setCoverLetterPdfName] = useState<string>('Cover_Letter.pdf');
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
-  const [showDebug, setShowDebug] = useState(false);
 
   const jobUrl = params.url || 'https://google.com';
   const jobTitle = params.title || 'Job Application';
   const companyName = params.company || '';
 
-  // Load User Profile Data for Form Filling
+  // Load User Profile Data & Server PDF Files for Form Filling
   useEffect(() => {
     async function loadProfile() {
       try {
@@ -58,6 +83,88 @@ export default function ApplyJobScreen() {
         if (info.exists) {
           const content = await FileSystem.readAsStringAsync(path);
           setProfileData(JSON.parse(content));
+        }
+
+        const targetUserId = user?.id || guestId;
+
+        // 1. PRIMARY: Fetch user resumes & cover letters directly from MongoDB Backend Server
+        if (targetUserId) {
+          try {
+            const serverRes = await fetch(`${API_URL}/api/user/${targetUserId}/documents`);
+            if (serverRes.ok) {
+              const serverData = await serverRes.json();
+              if (serverData.success) {
+                const targetCompany = (companyName || '').toLowerCase().trim();
+                const targetTitle = (jobTitle || '').toLowerCase().trim();
+                const companyWords = targetCompany.split(/[^a-zA-Z0-9]/).filter(w => w.length > 2);
+                const titleWords = targetTitle.split(/[^a-zA-Z0-9]/).filter(w => w.length > 2);
+
+                // A. Match tailored resume from backend MongoDB
+                const serverResumes = serverData.resumes || [];
+                let matchedServerRes = serverResumes.find((r: any) => {
+                  const rComp = (r.companyName || '').toLowerCase();
+                  const rTitle = (r.jobTitle || '').toLowerCase();
+                  const rName = (r.fileName || '').toLowerCase();
+
+                  if (targetCompany && rComp && rComp === targetCompany) return true;
+                  if (targetTitle && rTitle && rTitle === targetTitle) return true;
+                  if (targetCompany && rName.includes(targetCompany)) return true;
+                  if (targetTitle && rName.includes(targetTitle)) return true;
+
+                  if (companyWords.some(w => rName.includes(w) || rComp.includes(w))) return true;
+                  if (titleWords.some(w => rName.includes(w) || rTitle.includes(w))) return true;
+
+                  return false;
+                });
+
+                if (!matchedServerRes && serverResumes.length > 0) {
+                  matchedServerRes = serverResumes.find((r: any) => r.isDefault) || serverResumes[serverResumes.length - 1];
+                }
+
+                if (matchedServerRes && matchedServerRes.url) {
+                  const b64 = await fetchBase64FromUrl(matchedServerRes.url);
+                  if (b64) {
+                    setResumeBase64(b64);
+                    setResumeName(matchedServerRes.fileName || 'resume.pdf');
+                  }
+                }
+
+                // B. Match tailored cover letter from backend MongoDB
+                const serverCLs = serverData.coverLetters || [];
+                let matchedServerCL = serverCLs.find((cl: any) => {
+                  const cComp = (cl.companyName || '').toLowerCase();
+                  const cTitle = (cl.jobTitle || '').toLowerCase();
+                  const cName = (cl.fileName || '').toLowerCase();
+
+                  if (targetCompany && cComp && cComp === targetCompany) return true;
+                  if (targetTitle && cTitle && cTitle === targetTitle) return true;
+                  if (companyWords.some(w => cName.includes(w) || cComp.includes(w))) return true;
+                  if (titleWords.some(w => cName.includes(w) || cTitle.includes(w))) return true;
+
+                  return false;
+                });
+
+                if (!matchedServerCL && serverCLs.length > 0) {
+                  matchedServerCL = serverCLs[serverCLs.length - 1];
+                }
+
+                if (matchedServerCL) {
+                  if (matchedServerCL.coverLetterText) {
+                    setCoverLetterText(matchedServerCL.coverLetterText);
+                  }
+                  if (matchedServerCL.url) {
+                    const clB64 = await fetchBase64FromUrl(matchedServerCL.url);
+                    if (clB64) {
+                      setCoverLetterBase64(clB64);
+                      setCoverLetterPdfName(matchedServerCL.fileName || 'Cover_Letter.pdf');
+                    }
+                  }
+                }
+              }
+            }
+          } catch (serverErr) {
+            console.log('Error fetching user documents from MongoDB backend:', serverErr);
+          }
         }
 
         // 1. Load Resume (Direct param or smart match in resumes.json)
@@ -100,10 +207,38 @@ export default function ApplyJobScreen() {
                 matchedResume = parsedResumes.find(r => r.isDefault) || parsedResumes[0];
               }
 
+              let loadedB64 = '';
+              let loadedName = 'resume.pdf';
+
               if (matchedResume && matchedResume.uri) {
-                const fileBase64 = await FileSystem.readAsStringAsync(matchedResume.uri, { encoding: 'base64' });
-                setResumeBase64(fileBase64);
-                setResumeName(matchedResume.name || 'resume.pdf');
+                try {
+                  const fInfo = await FileSystem.getInfoAsync(matchedResume.uri);
+                  if (fInfo.exists) {
+                    loadedB64 = await FileSystem.readAsStringAsync(matchedResume.uri, { encoding: 'base64' });
+                    loadedName = matchedResume.name || 'resume.pdf';
+                  }
+                } catch (e) {}
+              }
+
+              // Fallback to default or first valid resume if matched resume couldn't be read
+              if (!loadedB64) {
+                for (const r of parsedResumes) {
+                  if (r && r.uri) {
+                    try {
+                      const fInfo = await FileSystem.getInfoAsync(r.uri);
+                      if (fInfo.exists) {
+                        loadedB64 = await FileSystem.readAsStringAsync(r.uri, { encoding: 'base64' });
+                        loadedName = r.name || 'resume.pdf';
+                        break;
+                      }
+                    } catch (e) {}
+                  }
+                }
+              }
+
+              if (loadedB64) {
+                setResumeBase64(loadedB64);
+                setResumeName(loadedName);
               }
             }
           }
@@ -146,17 +281,47 @@ export default function ApplyJobScreen() {
               matchedCL = parsedCLs[0];
             }
 
+            let loadedCLB64 = '';
+            let loadedCLName = 'Cover_Letter.pdf';
+            let loadedCLText = '';
+
             if (matchedCL) {
               if (matchedCL.coverLetterText) {
-                setCoverLetterText(matchedCL.coverLetterText);
+                loadedCLText = matchedCL.coverLetterText;
               }
               if (matchedCL.pdfUri && !params.clUri) {
                 try {
-                  const b64 = await FileSystem.readAsStringAsync(matchedCL.pdfUri, { encoding: 'base64' });
-                  setCoverLetterBase64(b64);
-                  if (matchedCL.pdfName) setCoverLetterPdfName(matchedCL.pdfName);
+                  const fInfo = await FileSystem.getInfoAsync(matchedCL.pdfUri);
+                  if (fInfo.exists) {
+                    loadedCLB64 = await FileSystem.readAsStringAsync(matchedCL.pdfUri, { encoding: 'base64' });
+                    loadedCLName = matchedCL.pdfName || 'Cover_Letter.pdf';
+                  }
                 } catch(e) {}
               }
+            }
+
+            if (!loadedCLB64 && !loadedCLText) {
+              for (const cl of parsedCLs) {
+                if (cl) {
+                  if (cl.coverLetterText && !loadedCLText) loadedCLText = cl.coverLetterText;
+                  if (cl.pdfUri && !loadedCLB64 && !params.clUri) {
+                    try {
+                      const fInfo = await FileSystem.getInfoAsync(cl.pdfUri);
+                      if (fInfo.exists) {
+                        loadedCLB64 = await FileSystem.readAsStringAsync(cl.pdfUri, { encoding: 'base64' });
+                        loadedCLName = cl.pdfName || 'Cover_Letter.pdf';
+                        break;
+                      }
+                    } catch(e) {}
+                  }
+                }
+              }
+            }
+
+            if (loadedCLText) setCoverLetterText(loadedCLText);
+            if (loadedCLB64) {
+              setCoverLetterBase64(loadedCLB64);
+              setCoverLetterPdfName(loadedCLName);
             }
           }
         }
@@ -192,15 +357,33 @@ export default function ApplyJobScreen() {
     const extractedFirstName = profileData.firstName || profileData.givenName || (nameParts.length > 0 ? nameParts[0] : '');
     const extractedLastName = profileData.lastName || profileData.familyName || profileData.surname || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '');
 
+    const skillsList = Array.isArray(profileData.skills) ? profileData.skills : [];
+    const toolsList = Array.isArray(profileData.tools) ? profileData.tools : (profileData.technicalSkills || []);
+    const languagesList = (profileData.languages || []).map((l: any) => typeof l === 'string' ? l : l.name || '').filter(Boolean);
+    const projectsList = profileData.projects || [];
+    const formattedProjectsText = projectsList.map((p: any) => (p.projectName || p.name || '') + (p.description ? ': ' + p.description : '')).filter(Boolean).join('\n');
+
     const payload = {
       firstName: (extractedFirstName || '').trim(),
       lastName: (extractedLastName || '').trim(),
+      fullName: (fullNameCombined || '').trim(),
       email: (profileData.email || profileData.emailAddress || profileData.contactEmail || '').trim(),
-      phone: (profileData.phone || profileData.phoneNumber || profileData.mobile || profileData.cell || profileData.telephone || '').trim(),
+      phone: (profileData.phone || profileData.phoneNumber || profileData.mobile || profileData.cell || profileData.telephone || profileData.phone_number || profileData.contactPhone || '').trim(),
+      gender: (profileData.gender || profileData.sex || 'Male').trim(),
+      ethnicity: (profileData.ethnicity || profileData.race || '').trim(),
+      disability: (profileData.disability || profileData.disabilityStatus || '').trim(),
+      citizenship: (profileData.citizenship || profileData.workAuthorization || profileData.visaStatus || '').trim(),
+      dob: (profileData.dob || profileData.dateOfBirth || '').trim(),
       linkedinUrl: (profileData.linkedinUrl || profileData.linkedin || profileData.linkedIn || '').trim(),
+      githubUrl: (profileData.githubUrl || profileData.github || '').trim(),
       portfolioUrl: (profileData.portfolioUrl || profileData.portfolio || profileData.website || profileData.url || '').trim(),
       city: (profileData.city || profileData.location || profileData.address || '').trim(),
-      country: (profileData.country || 'United States').trim(),
+      country: (profileData.country || profileData.countryName || profileData.nationality || 'United States').trim(),
+      summary: (profileData.summary || profileData.bio || '').trim(),
+      skills: skillsList.join(', '),
+      tools: toolsList.join(', '),
+      languages: languagesList.join(', '),
+      projects: formattedProjectsText,
       resumeBase64: (resumeBase64 || '').trim(),
       resumeName: (resumeName || 'resume.pdf').trim(),
       coverLetterText: (coverLetterText || '').trim(),
@@ -210,6 +393,7 @@ export default function ApplyJobScreen() {
       currentEmployer: (currentExp?.companyName || profileData.companyName || '').trim(),
       workStartDate: (currentExp?.startDate || '').trim(),
       workEndDate: (currentExp?.endDate || '').trim(),
+      workDescription: (currentExp?.description || currentExp?.jobDescription || '').trim(),
       educationSchool: (currentEdu?.schoolName || profileData.schoolName || '').trim(),
       degree: (currentEdu?.degree || profileData.degree || '').trim(),
       discipline: (currentEdu?.fieldOfStudy || currentEdu?.degree || '').trim(),
@@ -304,24 +488,62 @@ export default function ApplyJobScreen() {
         }
 
         function setNativeValue(el, val) {
-          if (!el || !val) return;
+          if (!el || val === undefined || val === null || val === '') return;
+          const valStr = String(val).trim();
+          if (!valStr) return;
+
           if (el.tagName === 'SELECT') {
             const opts = Array.from(el.options || []);
-            const vLower = String(val).toLowerCase();
-            const match = opts.find(o => (o.value || '').toLowerCase() === vLower || (o.text || '').toLowerCase().includes(vLower));
+            const vLower = valStr.toLowerCase();
+            
+            const aliasesDict = {
+              'united states': ['us', 'usa', 'united states of america', 'u.s.', 'u.s.a.'],
+              'us': ['united states', 'usa', 'united states of america'],
+              'usa': ['united states', 'us', 'united states of america'],
+              'united kingdom': ['uk', 'gb', 'gbr', 'great britain', 'england'],
+              'uk': ['united kingdom', 'gb', 'gbr', 'great britain'],
+              'canada': ['ca', 'can'],
+              'ca': ['canada', 'can'],
+              'germany': ['de', 'deu', 'deutschland'],
+              'france': ['fr', 'fra'],
+              'india': ['in', 'ind'],
+              'australia': ['au', 'aus'],
+              'male': ['male', 'men', 'man', 'm'],
+              'female': ['female', 'women', 'woman', 'f'],
+              'non-binary': ['non-binary', 'nonbinary', 'other']
+            };
+
+            const aliases = aliasesDict[vLower] ? [vLower, ...aliasesDict[vLower]] : [vLower];
+
+            let match = opts.find(o => {
+              const oVal = (o.value || '').toLowerCase().trim();
+              const oTxt = (o.text || '').toLowerCase().trim();
+              return aliases.some(a => oVal === a || oTxt === a);
+            });
+
+            if (!match) {
+              match = opts.find(o => {
+                const oVal = (o.value || '').toLowerCase().trim();
+                const oTxt = (o.text || '').toLowerCase().trim();
+                return aliases.some(a => (oTxt.length > 1 && oTxt.includes(a)) || (oVal.length > 1 && oVal.includes(a)));
+              });
+            }
+
             if (match) {
               el.value = match.value;
               el.dispatchEvent(new Event('change', { bubbles: true }));
+              el.dispatchEvent(new Event('input', { bubbles: true }));
             }
             return;
           }
+
           try {
             const proto = Object.getPrototypeOf(el);
             const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set || Object.getOwnPropertyDescriptor(el, 'value')?.set;
-            if (setter) setter.call(el, val);
-            else el.value = val;
+            if (setter) setter.call(el, valStr);
+            else el.value = valStr;
           } catch (e) {
-            el.value = val;
+            el.value = valStr;
           }
           el.dispatchEvent(new Event('input', { bubbles: true }));
           el.dispatchEvent(new Event('change', { bubbles: true }));
@@ -418,43 +640,33 @@ export default function ApplyJobScreen() {
               }
               // Phone
               if (payload.phone) {
-                findInputs('input[type="tel" i], input[name*="phone" i]', ['phone', 'mobile'], ['phone', 'mobile']).forEach(el => {
+                findInputs(document, 'input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i], input[id*="mobile" i]', ['phone', 'mobile', 'telephone'], ['phone', 'mobile']).forEach(el => {
                   if (!el.value) { setNativeValue(el, payload.phone); filled++; }
                 });
               }
               // LinkedIn
               if (payload.linkedinUrl) {
-                findInputs('input[name*="linkedin" i], input[id*="linkedin" i]', ['linkedin'], ['linkedin']).forEach(el => {
+                findInputs(document, 'input[name*="linkedin" i], input[id*="linkedin" i]', ['linkedin'], ['linkedin']).forEach(el => {
                   if (!el.value) { setNativeValue(el, payload.linkedinUrl); filled++; }
                 });
               }
               // Portfolio
               if (payload.portfolioUrl) {
-                findInputs('input[name*="portfolio" i], input[name*="website" i]', ['portfolio', 'website'], ['portfolio', 'website']).forEach(el => {
+                findInputs(document, 'input[name*="portfolio" i], input[name*="website" i]', ['portfolio', 'website'], ['portfolio', 'website']).forEach(el => {
                   if (!el.value) { setNativeValue(el, payload.portfolioUrl); filled++; }
                 });
               }
               // City
               if (payload.city) {
-                findInputs('input[name*="city" i], input[id*="city" i], input[name*="location" i]', ['city', 'location'], ['city', 'location']).forEach(el => {
+                findInputs(document, 'input[name*="city" i], input[id*="city" i], input[name*="location" i]', ['city', 'location'], ['city', 'location']).forEach(el => {
                   if (!el.value) { setNativeValue(el, payload.city); filled++; }
                 });
               }
 
               // Country
               if (payload.country) {
-                const els = findInputs('select[name*="country" i], select[id*="country" i], input[name*="country" i], input[id*="country" i]', ['country'], ['country']);
-                els.forEach(el => {
-                  if (el.tagName === 'SELECT') {
-                    const options = Array.from(el.options);
-                    const valLower = payload.country.toLowerCase();
-                    let matchedOption = options.find(opt => opt.value.toLowerCase() === valLower || opt.text.toLowerCase().includes(valLower));
-                    if (matchedOption) {
-                      el.value = matchedOption.value;
-                      el.dispatchEvent(new Event('change', { bubbles: true }));
-                      filled++;
-                    }
-                  } else if (el.tagName === 'INPUT' && !el.value) {
+                findInputs(document, 'select[name*="country" i], select[id*="country" i], input[name*="country" i], input[id*="country" i]', ['country'], ['country']).forEach(el => {
+                  if (el.tagName === 'SELECT' || (el.tagName === 'INPUT' && !el.value)) {
                     setNativeValue(el, payload.country);
                     filled++;
                   }
@@ -693,9 +905,17 @@ export default function ApplyJobScreen() {
                 });
               }
               if (payload.phone) {
-                findInputs('input[type="tel" i], input[name*="phone" i]', ['phone', 'mobile'], ['phone', 'mobile']).forEach(el => {
+                findInputs(document, 'input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i], input[id*="mobile" i], input[name*="tel" i], input[id*="tel" i], input[autocomplete*="tel" i]', ['phone', 'mobile', 'telephone', 'contact number'], ['phone', 'mobile', 'tel']).forEach(el => {
                   if (!el.value) {
                     setNativeValue(el, payload.phone);
+                    filled++;
+                  }
+                });
+              }
+              if (payload.country) {
+                findInputs(document, 'select[name*="country" i], select[id*="country" i], input[name*="country" i], input[id*="country" i], select[autocomplete*="country" i], input[autocomplete*="country" i]', ['country', 'nation', 'location country'], ['country']).forEach(el => {
+                  if (el.tagName === 'SELECT' || (el.tagName === 'INPUT' && !el.value)) {
+                    setNativeValue(el, payload.country);
                     filled++;
                   }
                 });
@@ -820,14 +1040,172 @@ export default function ApplyJobScreen() {
             });
           }
           if (payload.eduEndDate) {
-            const els = findInputs('input[name*="end" i][name*="school" i], input[name*="end" i][name*="edu" i], input[name*="grad" i]', ['school end', 'education end', 'graduation', 'degree end'], ['end date', 'end year', 'graduation date']);
+            const els = findInputs(document, 'input[name*="end" i][name*="school" i], input[name*="end" i][name*="edu" i], input[name*="grad" i]', ['school end', 'education end', 'graduation', 'degree end'], ['end date', 'end year', 'graduation date']);
             els.forEach(el => {
               if (!el.value) {
                 setNativeValue(el, payload.eduEndDate);
                 filled++;
               }
             });
-          // Universal Resume & Cover Letter Attachment for all forms
+          }
+
+          // 5. Fill Gender, Ethnicity, Disability, Citizenship, GitHub, DOB, Summary, Skills, Twitter, Description
+          if (payload.gender) {
+            const gLower = payload.gender.toLowerCase().trim();
+            let targetTerms = ['male', 'men', 'man'];
+            if (gLower.includes('female') || gLower === 'women' || gLower === 'woman' || gLower === 'f') {
+              targetTerms = ['female', 'women', 'woman'];
+            } else if (gLower.includes('non') || gLower.includes('other')) {
+              targetTerms = ['non-binary', 'nonbinary', 'other', 'another'];
+            } else if (gLower.includes('prefer') || gLower.includes('decline')) {
+              targetTerms = ['prefer not', 'decline', 'choose not'];
+            }
+
+            const selects = findInputs(document, 'select[name*="gender" i], select[id*="gender" i], select[name*="sex" i], select[id*="sex" i]', ['gender', 'sex'], ['gender', 'sex']);
+            selects.forEach(el => {
+              if (el.tagName === 'SELECT') {
+                setNativeValue(el, payload.gender);
+                filled++;
+              }
+            });
+
+            try {
+              document.querySelectorAll('input[type="radio"], [role="radio"], button, label').forEach(inp => {
+                const attr = ((inp.getAttribute('name')||'') + ' ' + (inp.getAttribute('id')||'') + ' ' + (inp.getAttribute('value')||'') + ' ' + (inp.getAttribute('aria-label')||'')).toLowerCase();
+                const parentTxt = (inp.parentElement ? inp.parentElement.innerText || inp.parentElement.textContent || '' : '').toLowerCase();
+                if (attr.includes('gender') || attr.includes('sex') || parentTxt.includes('gender') || parentTxt.includes('sex')) {
+                  if (targetTerms.some(term => attr.includes(term) || parentTxt.includes(term))) {
+                    if (inp.tagName === 'INPUT' && !(inp as HTMLInputElement).checked) {
+                      (inp as HTMLInputElement).checked = true;
+                      inp.dispatchEvent(new Event('change', { bubbles: true }));
+                      inp.dispatchEvent(new Event('click', { bubbles: true }));
+                      filled++;
+                    } else if (inp.getAttribute('role') === 'radio' && inp.getAttribute('aria-checked') !== 'true') {
+                      inp.dispatchEvent(new Event('click', { bubbles: true }));
+                      filled++;
+                    }
+                  }
+                }
+              });
+            } catch(e) {}
+          }
+
+          if (payload.ethnicity) {
+            const els = findInputs(document, 'select[name*="race" i], select[id*="race" i], select[name*="ethnicity" i], select[id*="ethnicity" i], input[name*="race" i], input[name*="ethnicity" i]', ['race', 'ethnicity'], ['race', 'ethnicity']);
+            els.forEach(el => {
+              setNativeValue(el, payload.ethnicity);
+              filled++;
+            });
+          }
+
+          if (payload.disability) {
+            const els = findInputs(document, 'select[name*="disability" i], select[id*="disability" i], input[name*="disability" i], input[id*="disability" i]', ['disability'], ['disability']);
+            els.forEach(el => {
+              setNativeValue(el, payload.disability);
+              filled++;
+            });
+          }
+
+          if (payload.citizenship) {
+            const els = findInputs(document, 'select[name*="citizenship" i], select[name*="visa" i], select[name*="sponsor" i], select[name*="authorized" i], input[name*="citizenship" i], input[name*="visa" i], input[name*="sponsor" i], input[name*="authorized" i]', ['citizenship', 'visa', 'sponsorship', 'authorized'], ['citizenship', 'visa']);
+            els.forEach(el => {
+              setNativeValue(el, payload.citizenship);
+              filled++;
+            });
+          }
+
+          if (payload.githubUrl) {
+            const els = findInputs(document, 'input[name*="github" i], input[id*="github" i], input[name="urls[GitHub]"]', ['github'], ['github']);
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.githubUrl);
+                filled++;
+              }
+            });
+          }
+
+          if (payload.dob) {
+            const els = findInputs(document, 'input[type="date"], input[name*="dob" i], input[id*="dob" i], input[name*="birth" i]', ['date of birth', 'dob', 'birthdate'], ['birth', 'dob']);
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.dob);
+                filled++;
+              }
+            });
+          }
+
+          if (payload.summary) {
+            const els = findInputs(document, 'textarea[name*="summary" i], textarea[id*="summary" i], textarea[name*="bio" i], textarea[id*="bio" i]', ['summary', 'bio', 'about yourself'], ['summary', 'bio']);
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.summary);
+                filled++;
+              }
+            });
+          }
+
+          if (payload.skills) {
+            const els = findInputs(document, 'input[name*="skill" i], textarea[name*="skill" i], input[id*="skill" i], textarea[id*="skill" i]', ['skills', 'key skills'], ['skill']);
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.skills);
+                filled++;
+              }
+            });
+          }
+
+          if (payload.tools) {
+            const els = findInputs(document, 'input[name*="tool" i], textarea[name*="tool" i], input[id*="tool" i], textarea[id*="tool" i], input[name*="software" i], textarea[name*="software" i], input[name*="technology" i], textarea[name*="technology" i]', ['tools', 'software', 'technologies', 'stack'], ['tool', 'software']);
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.tools);
+                filled++;
+              }
+            });
+          }
+
+          if (payload.languages) {
+            const els = findInputs(document, 'input[name*="language" i], select[name*="language" i], textarea[name*="language" i], input[id*="language" i], select[id*="language" i]', ['languages', 'language', 'spoken language'], ['language']);
+            els.forEach(el => {
+              if (el.tagName === 'SELECT') {
+                setNativeValue(el, payload.languages);
+                filled++;
+              } else if (!el.value) {
+                setNativeValue(el, payload.languages);
+                filled++;
+              }
+            });
+          }
+
+          if (payload.projects) {
+            const els = findInputs(document, 'input[name*="project" i], textarea[name*="project" i], input[id*="project" i], textarea[id*="project" i]', ['projects', 'key projects', 'project summary'], ['project']);
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.projects);
+                filled++;
+              }
+            });
+          }
+
+          if (payload.twitterUrl) {
+            const els = findInputs(document, 'input[name*="twitter" i], input[id*="twitter" i], input[name="urls[Twitter]"]', ['twitter'], ['twitter']);
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.twitterUrl);
+                filled++;
+              }
+            });
+          }
+
+          if (payload.workDescription) {
+            const els = findInputs(document, 'textarea[name*="description" i], textarea[id*="description" i], textarea[name*="responsibilit" i]', ['job description', 'responsibilities', 'work summary'], ['description', 'responsibility']);
+            els.forEach(el => {
+              if (!el.value) {
+                setNativeValue(el, payload.workDescription);
+                filled++;
+              }
+            });
+          }// Universal Resume & Cover Letter Attachment for all forms
           if (payload.resumeBase64) {
             try {
               const resInputs = document.querySelectorAll('input[type="file"]');
@@ -952,7 +1330,6 @@ export default function ApplyJobScreen() {
       const vet = (profileData.veteranStatus || profileData.veteran || '').trim();
       const disab = (profileData.disabilityStatus || profileData.disability || '').trim();
 
-      setDebugLogs(prev => [...prev, `[Purple Button] Instant autofill script injecting: fn="${fn}" em="${em}"`]);
 
       const purpleJs = `
         (function() {
@@ -1080,6 +1457,15 @@ export default function ApplyJobScreen() {
               });
             }
 
+            function b64ToBlobSync(b64, mime) {
+              try {
+                const chars = atob(b64);
+                const bytes = new Uint8Array(chars.length);
+                for (let i = 0; i < chars.length; i++) bytes[i] = chars.charCodeAt(i);
+                return new Blob([bytes], { type: mime || 'application/pdf' });
+              } catch(e) { return null; }
+            }
+
             // Cover Letter File Auto-Attachment (PDF first, fallback TXT)
             const clPdfB64 = "${(coverLetterBase64 || '').trim()}";
             const clPdfName = "${(coverLetterPdfName || 'Cover_Letter.pdf').trim()}";
@@ -1093,21 +1479,18 @@ export default function ApplyJobScreen() {
                     if (prototypeFilesSetter) prototypeFilesSetter.call(inp, dtCL.files);
                     else inp.files = dtCL.files;
                   } catch(e) { inp.files = dtCL.files; }
-                  inp.dispatchEvent(new Event('change', { bubbles: true }));
-                  inp.dispatchEvent(new Event('input', { bubbles: true }));
+                  inp.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+                  inp.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
                 };
 
                 doc.querySelectorAll('input[type="file"][name*="cover" i], input[type="file"][id*="cover" i]').forEach(inp => {
                   if (!inp.files || !inp.files.length) {
                     if (clPdfB64) {
-                      fetch("data:application/pdf;base64," + clPdfB64)
-                        .then(r => r.blob())
-                        .then(blob => {
-                          if (blob) {
-                            const clFile = new File([blob], clPdfName, { type: 'application/pdf' });
-                            attachCLInput(inp, clFile);
-                          }
-                        }).catch(function(){});
+                      const blob = b64ToBlobSync(clPdfB64, 'application/pdf');
+                      if (blob) {
+                        const clFile = new File([blob], clPdfName, { type: 'application/pdf' });
+                        attachCLInput(inp, clFile);
+                      }
                     } else if (clRawText) {
                       const clBlob = new Blob([clRawText], { type: 'text/plain' });
                       const clFile = new File([clBlob], 'Cover_Letter.txt', { type: 'text/plain' });
@@ -1118,30 +1501,29 @@ export default function ApplyJobScreen() {
               } catch(e) {}
             }
 
-            // Instant PDF Resume Auto-Attachment via WebKit DOM Blob
-            if ("${(resumeBase64 || '').trim()}") {
+            // Instant PDF Resume Auto-Attachment via Synchronous Blob
+            const resB64 = "${(resumeBase64 || '').trim()}";
+            const resName = "${(resumeName || 'Resume.pdf').trim()}";
+            if (resB64) {
               try {
-                fetch("data:application/pdf;base64," + "${(resumeBase64 || '').trim()}")
-                  .then(r => r.blob())
-                  .then(blob => {
-                    if (blob) {
-                      const resFile = new File([blob], "${(resumeName || 'Resume.pdf').trim()}", { type: 'application/pdf' });
-                      const dt = new DataTransfer();
-                      dt.items.add(resFile);
-                      doc.querySelectorAll('input[type="file"]').forEach(inp => {
-                        const n = (inp.name || inp.id || '').toLowerCase();
-                        if (n.includes('resume') || n.includes('cv') || (!n.includes('cover') && !inp.files.length)) {
-                          try {
-                            const prototypeFilesSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(inp), 'files')?.set;
-                            if (prototypeFilesSetter) prototypeFilesSetter.call(inp, dt.files);
-                            else inp.files = dt.files;
-                          } catch(e) { inp.files = dt.files; }
-                          inp.dispatchEvent(new Event('change', { bubbles: true }));
-                          inp.dispatchEvent(new Event('input', { bubbles: true }));
-                        }
-                      });
+                const blob = b64ToBlobSync(resB64, 'application/pdf');
+                if (blob) {
+                  const resFile = new File([blob], resName, { type: 'application/pdf' });
+                  const dt = new DataTransfer();
+                  dt.items.add(resFile);
+                  doc.querySelectorAll('input[type="file"]').forEach(inp => {
+                    const n = (inp.name || inp.id || '').toLowerCase();
+                    if (n.includes('resume') || n.includes('cv') || (!n.includes('cover') && !inp.files.length)) {
+                      try {
+                        const prototypeFilesSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(inp), 'files')?.set;
+                        if (prototypeFilesSetter) prototypeFilesSetter.call(inp, dt.files);
+                        else inp.files = dt.files;
+                      } catch(e) { inp.files = dt.files; }
+                      inp.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+                      inp.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
                     }
-                  }).catch(function(){});
+                  });
+                }
               } catch(e) {}
             }
           });
@@ -1155,8 +1537,7 @@ export default function ApplyJobScreen() {
       }, 2000);
     } else {
       setIsAutofilling(false);
-      setDebugLogs(prev => [...prev, `[Manual] Error: webViewRef=${!!webViewRef.current} profileData=${!!profileData}`]);
-      Alert.alert('Profile Empty', 'Please complete your onboarding profile first to use 1-Click Autofill.');
+      Alert.alert('Profile Empty', 'Please complete your onboarding profile first to use Autofill with Applydesk.');
     }
   };
 
@@ -1166,7 +1547,6 @@ export default function ApplyJobScreen() {
       Clipboard.setStringAsync(val);
     }
     if (webViewRef.current && profileData) {
-      setDebugLogs(prev => [...prev, `[1-Tap Fill] Injecting ${label}: "${val}"`]);
       const fn = (profileData.firstName || '').trim();
       const ln = (profileData.lastName || '').trim();
       const full = `${fn} ${ln}`.trim();
@@ -1266,19 +1646,6 @@ export default function ApplyJobScreen() {
           <TouchableOpacity style={styles.reloadBtn} onPress={() => webViewRef.current?.reload()}>
             <Ionicons name="reload-outline" size={18} color="#374151" />
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.reloadBtn, showDebug && { backgroundColor: '#FEE2E2' }]} 
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowDebug(!showDebug);
-            }}
-          >
-            {Platform.OS === 'ios' ? (
-              <SymbolView name="ladybug" size={18} tintColor={showDebug ? '#EF4444' : '#6B7280'} resizeMode="scaleAspectFit" />
-            ) : (
-              <Ionicons name="bug-outline" size={20} color={showDebug ? '#EF4444' : '#6B7280'} />
-            )}
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -1288,12 +1655,10 @@ export default function ApplyJobScreen() {
           ref={webViewRef}
           source={{ uri: targetUri }}
           onLoadStart={() => {
-            setLoading(true);
-            setDebugLogs(prev => [...prev, `[WebView] Load started: ${targetUri}`]);
+            setLoading(false);
           }}
           onLoadEnd={() => {
             setLoading(false);
-            setDebugLogs(prev => [...prev, '[WebView] Page loaded. Injecting autofill script...']);
             if (webViewRef.current) {
               setTimeout(() => {
                 const js = getAutofillJS();
@@ -1309,17 +1674,12 @@ export default function ApplyJobScreen() {
               if (data.type === 'AUTOFILL_SUCCESS' && data.count > 0) {
                 setAutofillCount(data.count);
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                setDebugLogs(prev => [...prev, `[Success] Autofilled ${data.count} fields!`]);
               } else if (data.type === 'log') {
                 console.log('\x1b[33m[WebView Log]\x1b[0m', data.message);
-                setDebugLogs(prev => [...prev, `[Log] ${data.message}`]);
               } else if (data.type === 'AUTOFILL_ERROR') {
                 console.log('\x1b[31m[WebView Error]\x1b[0m', data.error);
-                setDebugLogs(prev => [...prev, `[Error] ${data.error}`]);
               }
-            } catch (e) {
-              setDebugLogs(prev => [...prev, `[Parse Error] Failed to parse message: ${e instanceof Error ? e.message : String(e)}`]);
-            }
+            } catch (e) { }
           }}
           javaScriptEnabled={true}
           domStorageEnabled={true}
@@ -1334,38 +1694,6 @@ export default function ApplyJobScreen() {
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#7C3AED" />
             <Text style={styles.loadingText}>Opening Application Page...</Text>
-          </View>
-        )}
-
-        {showDebug && (
-          <View style={styles.debugPanel}>
-            <View style={styles.debugHeader}>
-              <Text style={styles.debugTitle}>Debug Logs ({debugLogs.length})</Text>
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                <TouchableOpacity onPress={() => setDebugLogs([])}>
-                  <Text style={styles.debugActionText}>Clear</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowDebug(false)}>
-                  <Text style={styles.debugActionText}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            <ScrollView style={styles.debugScroll} contentContainerStyle={{ padding: 10 }}>
-              {debugLogs.length === 0 ? (
-                <Text style={styles.debugEmptyText}>No logs captured yet.</Text>
-              ) : (
-                debugLogs.map((log, idx) => (
-                  <Text key={idx} style={[
-                    styles.debugLogLine,
-                    log.includes('[Error]') && { color: '#EF4444' },
-                    log.includes('[Success]') && { color: '#10B981' },
-                    log.includes('[Manual]') && { color: '#3B82F6' }
-                  ]}>
-                    {log}
-                  </Text>
-                ))
-              )}
-            </ScrollView>
           </View>
         )}
       </View>
@@ -1393,7 +1721,7 @@ export default function ApplyJobScreen() {
                 )}
               </View>
               <Text style={styles.autofillBtnText}>
-                {autofillCount > 0 ? `Autofilled ${autofillCount} Fields` : '1-Click Autofill Form'}
+                {autofillCount > 0 ? `Autofilled ${autofillCount} Fields` : 'Autofill with Applydesk'}
               </Text>
             </>
           )}

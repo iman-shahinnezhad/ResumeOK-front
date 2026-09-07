@@ -21,15 +21,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as FileSystem from 'expo-file-system/legacy';
 import { copyToClipboard } from '../../utils/clipboard';
 import { useAuth } from '../../context/AuthContext';
+import { sortResumesWithDefaultFirst } from '../../utils/resumeUtils';
 
 interface SelectedResumeFile {
   id: string;
   name: string;
   date: string;
   uri?: string;
-  size?: number;
+  size?: number | string;
   mimeType?: string;
   isBuilt?: boolean;
+  isDefault?: boolean;
 }
 
 interface SavedCoverLetter {
@@ -75,7 +77,7 @@ export default function Library() {
         const content = await FileSystem.readAsStringAsync(resumesJsonPath);
         const parsed = JSON.parse(content);
         if (Array.isArray(parsed)) {
-          setResumes(parsed);
+          setResumes(sortResumesWithDefaultFirst(parsed));
         }
       } else {
         setResumes([]);
@@ -298,7 +300,7 @@ export default function Library() {
                 }
               }
               const resumesJsonPath = `${FileSystem.documentDirectory}resumes.json`;
-              const filtered = resumes.filter(r => r.id !== item.id);
+              const filtered = sortResumesWithDefaultFirst(resumes.filter(r => r.id !== item.id));
               await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(filtered));
               setResumes(filtered);
             } catch (err) {
@@ -775,7 +777,7 @@ export default function Library() {
               <TouchableOpacity
                 style={styles.actionButton}
                 activeOpacity={0.8}
-                onPress={() => router.push('/jobs' as any)}
+                onPress={() => router.push('/(tabs)/jobs' as any)}
               >
                 <Text style={styles.actionButtonText}>Find Jobs 💼</Text>
               </TouchableOpacity>

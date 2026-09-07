@@ -5,7 +5,7 @@ import useSEO from '../hooks/useSEO';
 
 export default function Pricing() {
   useSEO(
-    "Simple & Honest Pricing - ResumeOK Pro",
+    "Simple & Honest Pricing - ApplyDesk Pro",
     "Get unlimited AI auto-apply, ATS resume tailoring, insider referral access, and instant interview intelligence for $19/mo."
   );
 

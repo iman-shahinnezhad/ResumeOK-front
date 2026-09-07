@@ -186,9 +186,9 @@ export default function ProfessionalDetailScreen() {
         <Text style={styles.headerTitle}>Professional Detail</Text>
 
         {(() => {
-          const summaryRemaining = Math.max(0, 2 - (profile?.summaries?.length || (profile?.jobTitle ? 1 : 0)));
+          const summaryRemaining = Math.max(0, 1 - (profile?.summaries?.length || (profile?.jobTitle || profile?.summary ? 1 : 0)));
           const expRemaining = Math.max(0, 2 - (profile?.experiences?.length || 0));
-          const projectRemaining = Math.max(0, 3 - (profile?.projects?.length || 0));
+          const projectRemaining = 0; // Optional
           const eduRemaining = Math.max(0, 1 - (profile?.educations?.length || 0));
           const techCount = profile?.skills?.length || 0;
           const softCount = profile?.softSkills?.length || 0;
@@ -230,8 +230,8 @@ export default function ProfessionalDetailScreen() {
           <Text style={styles.menuCardTitle}>Title & Summary</Text>
           <View style={styles.menuCardRight}>
             {(() => {
-              const count = profile?.summaries?.length || (profile?.jobTitle ? 1 : 0);
-              const remaining = Math.max(0, 2 - count);
+              const count = profile?.summaries?.length || (profile?.jobTitle || profile?.summary ? 1 : 0);
+              const remaining = Math.max(0, 1 - count);
               if (remaining > 0) {
                 return (
                   <View style={styles.badgePillRed}>
@@ -291,22 +291,9 @@ export default function ProfessionalDetailScreen() {
           </View>
           <Text style={styles.menuCardTitle}>Projects</Text>
           <View style={styles.menuCardRight}>
-            {(() => {
-              const count = profile?.projects?.length || 0;
-              const remaining = Math.max(0, 3 - count);
-              if (remaining > 0) {
-                return (
-                  <View style={styles.badgePillRed}>
-                    <Text style={styles.badgeTextWhite}>Add {remaining}</Text>
-                  </View>
-                );
-              }
-              return (
-                <View style={styles.badgePillGreen}>
-                  <Ionicons name="checkmark" size={12} color="#FFFFFF" />
-                </View>
-              );
-            })()}
+            <View style={styles.badgePillGreen}>
+              <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+            </View>
             <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
           </View>
         </TouchableOpacity>

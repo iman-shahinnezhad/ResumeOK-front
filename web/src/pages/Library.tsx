@@ -13,7 +13,7 @@ interface ResourceArticle {
 
 export default function Library() {
   useSEO(
-    "Career Library & Job Search Playbook - ResumeOK",
+    "Career Library & Job Search Playbook - ApplyDesk",
     "Battle-tested job search frameworks, ATS resume templates, interview prep questions, and salary negotiation scripts."
   );
 

@@ -82,7 +82,7 @@ export default function Partnership() {
         <header className="partnership-header text-center">
           <div className="partnership-badge">
             <Sparkles className="w-4 h-4 text-emerald-600 inline-block mr-1.5" />
-            <span>ResumeOK Ambassador Network</span>
+            <span>ApplyDesk Ambassador Network</span>
           </div>
 
           <h1 className="partnership-title">
@@ -131,7 +131,7 @@ export default function Partnership() {
               </div>
               <div className="benefit-content">
                 <strong>Premium access to the service, free for you.</strong>
-                <span>Enjoy full, unlimited access to all ResumeOK AI tools, builders, and templates at zero cost.</span>
+                <span>Enjoy full, unlimited access to all ApplyDesk AI tools, builders, and templates at zero cost.</span>
               </div>
             </div>
 
@@ -168,7 +168,7 @@ export default function Partnership() {
               <ul className="partnership-checklist">
                 <li>
                   <span className="bullet-dot" />
-                  <p>Create creative posts how you think its going to work for your audience to introduce ResumeOK.</p>
+                  <p>Create creative posts how you think its going to work for your audience to introduce ApplyDesk.</p>
                 </li>
                 <li>
                   <span className="bullet-dot" />
@@ -176,11 +176,11 @@ export default function Partnership() {
                 </li>
                 <li>
                   <span className="bullet-dot" />
-                  <p>Highlight the latest features and updates of ResumeOK in your posts and videos.</p>
+                  <p>Highlight the latest features and updates of ApplyDesk in your posts and videos.</p>
                 </li>
                 <li>
                   <span className="bullet-dot" />
-                  <p>Revise your bio to include <em>"App Ambassador @ ResumeOK"</em> on your social media profiles.</p>
+                  <p>Revise your bio to include <em>"App Ambassador @ ApplyDesk"</em> on your social media profiles.</p>
                 </li>
               </ul>
             </div>
@@ -234,7 +234,7 @@ export default function Partnership() {
                 </div>
                 <h3>Application Saved & Submitted!</h3>
                 <p>
-                  Thank you for applying to the ResumeOK App Ambassador Program. Your application details have been saved, and our team will review your profile within 48 hours.
+                  Thank you for applying to the ApplyDesk App Ambassador Program. Your application details have been saved, and our team will review your profile within 48 hours.
                 </p>
               </div>
             ) : (
@@ -305,7 +305,7 @@ export default function Partnership() {
                 </div>
 
                 <div className="form-group">
-                  <label>How do you plan to introduce ResumeOK to your audience?</label>
+                  <label>How do you plan to introduce ApplyDesk to your audience?</label>
                   <textarea
                     rows={3}
                     placeholder="Tell us briefly about your content ideas and audience..."

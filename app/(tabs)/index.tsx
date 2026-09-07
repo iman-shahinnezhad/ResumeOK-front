@@ -25,6 +25,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useAuth } from '../../context/AuthContext';
 import { copyToClipboard } from '../../utils/clipboard';
+import { sortResumesWithDefaultFirst } from '../../utils/resumeUtils';
 
 interface ResumeItem {
   id: string;
@@ -86,7 +87,7 @@ export default function Home() {
         const content = await FileSystem.readAsStringAsync(resumesJsonPath);
         const parsed = JSON.parse(content);
         if (Array.isArray(parsed)) {
-          setResumes(parsed);
+          setResumes(sortResumesWithDefaultFirst(parsed));
         }
       } else {
         // Fallback checks from onboarding profile
@@ -198,12 +199,13 @@ export default function Home() {
 
   const saveResumesList = async (list: ResumeItem[]) => {
     try {
+      const sorted = sortResumesWithDefaultFirst(list);
       const path = `${FileSystem.documentDirectory}resumes.json`;
-      await FileSystem.writeAsStringAsync(path, JSON.stringify(list));
-      setResumes(list);
+      await FileSystem.writeAsStringAsync(path, JSON.stringify(sorted));
+      setResumes(sorted);
 
       // Sync default resume with onboarding profile
-      const defaultItem = list.find((r) => r.isDefault);
+      const defaultItem = sorted.find((r) => r.isDefault);
       if (defaultItem) {
         const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
         const profileInfo = await FileSystem.getInfoAsync(profilePath);

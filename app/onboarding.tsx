@@ -557,8 +557,31 @@ export default function Onboarding() {
   const displayedCities = citySearch.trim().length >= 2 ? citySearchResults : [];
 
   useEffect(() => {
-    if (step !== 'rateUs') setShowIRated(false);
-    if (step !== 'notifications') setShowIEnabled(false);
+    let rateTimer: any = null;
+    let notifTimer: any = null;
+
+    if (step === 'rateUs') {
+      setShowIRated(false);
+      rateTimer = setTimeout(() => {
+        setShowIRated(true);
+      }, 2000);
+    } else {
+      setShowIRated(false);
+    }
+
+    if (step === 'notifications') {
+      setShowIEnabled(false);
+      notifTimer = setTimeout(() => {
+        setShowIEnabled(true);
+      }, 2000);
+    } else {
+      setShowIEnabled(false);
+    }
+
+    return () => {
+      if (rateTimer) clearTimeout(rateTimer);
+      if (notifTimer) clearTimeout(notifTimer);
+    };
   }, [step]);
 
   // Spinning Loader Animation Refs
@@ -803,6 +826,7 @@ export default function Onboarding() {
                     expectedSalary: { min: 100000, max: 180000 },
                     hearAbout: 'Google Search',
                     skills: parsed.skills && parsed.skills.length > 0 ? parsed.skills : [],
+                    tools: parsed.tools && parsed.tools.length > 0 ? parsed.tools : [],
                     softSkills: parsed.softSkills || ['Communication', 'Problem Solving', 'Leadership'],
                     languages: formattedLanguages.length > 0 ? formattedLanguages : [
                       { id: '1', name: 'English', proficiency: 'Fluent' }
@@ -812,7 +836,7 @@ export default function Onboarding() {
                     workExperiences: formattedExperiences,
                     educations: formattedEducations,
                     education: formattedEducations,
-                    summary: `${parsed.targetRole || 'Professional'} with ${parsed.experienceYears || 5}+ years of experience in ${parsed.skills?.slice(0, 3).join(', ') || 'field'}.`
+                    summary: parsed.summary || `${parsed.targetRole || 'Professional'} with ${parsed.experienceYears || 5}+ years of experience in ${parsed.skills?.slice(0, 3).join(', ') || 'field'}.`
                   };
 
                   const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
@@ -915,7 +939,7 @@ export default function Onboarding() {
   const validIosClientId = (rawIosId && !rawIosId.includes('your_google')) ? rawIosId : rawWebId;
 
   const redirectUri = AuthSession.makeRedirectUri({
-    scheme: 'resumeok',
+    scheme: 'applydesk',
   });
 
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -1245,7 +1269,7 @@ export default function Onboarding() {
     } catch (e) {
       console.error(e);
     }
-    router.replace('/(tabs)');
+    router.replace('/(tabs)/jobs');
   };
 
   const handleBack = () => {
@@ -1697,7 +1721,7 @@ export default function Onboarding() {
                 <Ionicons name="search" size={20} color="#94A3B8" style={{ marginRight: 8 }} />
                 <TextInput
                   style={styles.searchBarInput}
-                  placeholder="Search or type custom role..."
+                  placeholder="Search roles..."
                   placeholderTextColor="#94A3B8"
                   value={roleQuery}
                   onChangeText={setRoleQuery}
@@ -1710,25 +1734,6 @@ export default function Onboarding() {
                 )}
               </View>
 
-              {roleQuery.trim().length > 0 && !allPredefinedRoles.some(r => r.toLowerCase() === roleQuery.trim().toLowerCase()) && !selectedRoles.some(r => r.toLowerCase() === roleQuery.trim().toLowerCase()) && (
-                <TouchableOpacity
-                  style={styles.addCustomRoleRow}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    const newRole = roleQuery.trim();
-                    if (newRole && !selectedRoles.includes(newRole)) {
-                      setSelectedRoles(prev => [...prev, newRole]);
-                    }
-                    setRoleQuery('');
-                  }}
-                >
-                  <Ionicons name="add-circle" size={22} color="#007AFF" style={{ marginRight: 8 }} />
-                  <Text style={styles.addCustomRoleText}>
-                    Add "<Text style={{ fontWeight: '600' }}>{roleQuery.trim()}</Text>" as custom role
-                  </Text>
-                </TouchableOpacity>
-              )}
-
               <ScrollView
                 style={styles.accordionScrollView}
                 contentContainerStyle={styles.accordionScrollContent}
@@ -1738,39 +1743,7 @@ export default function Onboarding() {
                 bounces={true}
                 overScrollMode="always"
               >
-                {/* 1. Custom Roles Section */}
-                {customSelectedRoles.length > 0 && (
-                  <View style={[styles.accordionSection, { borderBottomColor: '#007AFF', borderBottomWidth: 1.5 }]}>
-                    <View style={styles.accordionHeader}>
-                      <View style={styles.accordionHeaderLeft}>
-                        <Ionicons name="star" size={20} color="#007AFF" style={{ marginRight: 10 }} />
-                        <View>
-                          <Text style={[styles.accordionCategoryTitle, { color: '#007AFF' }]}>Custom Roles</Text>
-                          <Text style={styles.accordionCategorySubtitle}>
-                            {customSelectedRoles.length} Custom {customSelectedRoles.length === 1 ? 'Role' : 'Roles'} Selected
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                    <View style={[styles.accordionContent, { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', marginTop: 12, gap: 8 }]}>
-                      {customSelectedRoles.map((role) => (
-                        <TouchableOpacity
-                          key={role}
-                          style={[styles.roleBadge, styles.roleBadgeSelected, { borderColor: '#007AFF', flexDirection: 'row', alignItems: 'center' }]}
-                          activeOpacity={0.8}
-                          onPress={() => toggleRoleSelection(role)}
-                        >
-                          <Text style={[styles.roleBadgeText, styles.roleBadgeTextSelected, { color: '#FFFFFF' }]}>
-                            {role}
-                          </Text>
-                          <Ionicons name="close-circle" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                )}
-
-                {/* 2. Predefined Categories */}
+                {/* Predefined Categories */}
                 {CATEGORIES_DATA.map((category) => {
                   const filteredRoles = category.roles.filter(role =>
                     role.toLowerCase().includes(roleQuery.toLowerCase())
@@ -2153,7 +2126,7 @@ export default function Onboarding() {
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
               <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
                 <View style={styles.questionHeadingContainer}>
-                  <Text style={[styles.questionTitle, { paddingBottom: 68 }]}>How did you hear{"\n"}about ResumeOK?</Text>
+                  <Text style={[styles.questionTitle, { paddingBottom: 68 }]}>How did you hear{"\n"}about ApplyDesk?</Text>
                 </View>
 
                 <View style={styles.optionsListGroup}>

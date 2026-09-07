@@ -12,7 +12,7 @@ interface Props {
 
 export default function Checkout({ setUser }: Props) {
   useSEO(
-    "Checkout & Upgrade to Pro - ResumeOK",
+    "Checkout & Upgrade to Pro - ApplyDesk",
     "Complete your Pro Job Seeker subscription for unlimited AI auto-applies and instant ATS resume matching."
   );
 
@@ -105,7 +105,7 @@ export default function Checkout({ setUser }: Props) {
           <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '32px', color: '#141414', marginBottom: '12px' }}>Subscription Active!</h2>
           <p style={{ fontSize: '15px', color: '#555555', marginBottom: '24px' }}>
-            Welcome to ResumeOK Pro. Your account now has unlimited AI auto-applies and ATS matching scans.
+            Welcome to ApplyDesk Pro. Your account now has unlimited AI auto-applies and ATS matching scans.
           </p>
           <button className="btn-resumeok-black" onClick={() => navigate('/jobs')} style={{ padding: '14px 28px' }}>
             Go to Job Tracker & Auto-Apply <ArrowRight className="w-4 h-4 ml-1 inline-block" />

@@ -266,7 +266,7 @@ export default function Pricing() {
         )}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 140) }]}>
         <TouchableOpacity
           style={[styles.continueBtn, (!selectedPack || isPurchasing || isLoading) ? styles.continueBtnDisabled : undefined]}
           activeOpacity={0.8}

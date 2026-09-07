@@ -64,7 +64,7 @@ export default function RootLayout() {
 
         // 2. Fetch from App Store lookup
         try {
-          const response = await fetch('https://itunes.apple.com/lookup?bundleId=com.pixflow.resumeok&country=us');
+          const response = await fetch('https://itunes.apple.com/lookup?bundleId=com.pixflow.applydesk&country=us');
           const data = await response.json();
           if (data.results && data.results.length > 0) {
             remoteVersion = data.results[0].version;
@@ -93,7 +93,7 @@ export default function RootLayout() {
         if (isVersionNewer(localVersion, remoteVersion)) {
           Alert.alert(
             "Update Available",
-            `A new version (${remoteVersion}) of ResumeOK is available. Please update the app to the latest version for improved features and stability.`,
+            `A new version (${remoteVersion}) of ApplyDesk is available. Please update the app to the latest version for improved features and stability.`,
             [
               {
                 text: "Later",

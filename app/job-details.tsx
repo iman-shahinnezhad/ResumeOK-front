@@ -28,6 +28,7 @@ import { WebView } from 'react-native-webview';
 import { API_URL, useAuth } from '../context/AuthContext';
 import { getSession } from '../utils/session';
 import { calculateJobMatch, JobMatchResult } from '../utils/jobMatch';
+import { sortResumesWithDefaultFirst } from '../utils/resumeUtils';
 import Svg, { Circle } from 'react-native-svg';
 
 interface SelectedResumeFile {
@@ -66,6 +67,8 @@ export default function JobDetailsScreen() {
   const [showTailorModal, setShowTailorModal] = useState(false);
   const [isMatchingWithAI, setIsMatchingWithAI] = useState(false);
   const [showMatchResultModal, setShowMatchResultModal] = useState(false);
+  const [tailoredScore, setTailoredScore] = useState<number>(98);
+  const [issuesFixedCount, setIssuesFixedCount] = useState<number>(7);
   const [showResumePreview, setShowResumePreview] = useState(false);
   const [showCoverLetterPreview, setShowCoverLetterPreview] = useState(false);
   const [showDidYouApplyModal, setShowDidYouApplyModal] = useState(false);
@@ -178,6 +181,18 @@ export default function JobDetailsScreen() {
         throw new Error(matchData.error || "Failed to analyze match from server.");
       }
 
+      // Calculate dynamic tailored score and issues fixed count
+      const finalScore = (typeof matchData.score === 'number' && matchData.score > overallScore)
+        ? matchData.score
+        : Math.min(99, Math.max(overallScore + 22, 95));
+      
+      const fixedCount = Array.isArray(matchData.missingSkills) && matchData.missingSkills.length > 0
+        ? matchData.missingSkills.length
+        : Math.max(3, Math.round((finalScore - overallScore) / 4));
+
+      setTailoredScore(finalScore);
+      setIssuesFixedCount(fixedCount);
+
       setAiStep(3);
 
       const tailoredHtml = matchData.tailoredResumeHtml || "";
@@ -235,7 +250,7 @@ export default function JobDetailsScreen() {
         isTailored: true
       };
 
-      const updatedList = [newResumeEntry, ...resumesList];
+      const updatedList = sortResumesWithDefaultFirst([newResumeEntry, ...resumesList]);
       const resumesJsonPath = `${FileSystem.documentDirectory}resumes.json`;
       await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(updatedList));
       setResumesList(updatedList);
@@ -387,7 +402,7 @@ export default function JobDetailsScreen() {
             absolute_url: params.url || '',
             content: params.content || '',
             department: params.department || 'Computer Software',
-            updated_at: '18 hour ago'
+            postedAt: (params.postedAt || params.createdAt || params.date) as string | undefined
           };
         }
         setJobData(jobObj);
@@ -408,8 +423,9 @@ export default function JobDetailsScreen() {
         if (resumesInfo.exists) {
           const resumesStr = await FileSystem.readAsStringAsync(resumesPath);
           const list: SelectedResumeFile[] = JSON.parse(resumesStr);
-          setResumesList(list);
-          defaultRes = list.find(r => r.isDefault) || list[0] || null;
+          const sortedList = sortResumesWithDefaultFirst(list);
+          setResumesList(sortedList);
+          defaultRes = sortedList[0] || null;
           setSelectedResume(defaultRes);
         }
 
@@ -476,10 +492,10 @@ export default function JobDetailsScreen() {
   const locationName = jobData?.location?.name || 'Dallas, USA';
   const jobDetailsHtml = jobData?.content || '';
 
-  const overallScore = matchResult ? matchResult.overallScore : 68;
-  const matchPercent = matchResult ? matchResult.industryScore : 90;
-  const skillsPercent = matchResult ? matchResult.skillsScore : 40;
-  const resumePercent = matchResult ? matchResult.expLevelScore : 66;
+  const overallScore = matchResult ? matchResult.jobMatch : 68;
+  const jobMatchPercent = matchResult ? matchResult.jobMatch : 90;
+  const resumePercent = matchResult ? matchResult.resume : 66;
+  const keywordsPercent = matchResult ? matchResult.keywords : 40;
 
   const handleMarkApplied = async () => {
     try {
@@ -583,7 +599,7 @@ export default function JobDetailsScreen() {
             if (router.canGoBack()) {
               router.back();
             } else {
-              router.replace('/jobs');
+              router.replace('/(tabs)/jobs');
             }
           }}
         >
@@ -648,49 +664,61 @@ export default function JobDetailsScreen() {
 
             <View style={styles.companyTitleCol}>
               <Text style={styles.companyNameText}>{companyName}</Text>
-              <Text style={styles.companySubText}>Computer Software</Text>
+              <Text style={styles.companySubText}>{getJobDepartment(jobData)}</Text>
             </View>
 
             {/* Time Pill Badge */}
             <View style={styles.timeBadgePill}>
-              <Text style={styles.timeBadgeText}>18 hour ago</Text>
+              <Text style={styles.timeBadgeText}>{getJobPostedTime(jobData)}</Text>
             </View>
           </View>
 
           {/* Main Job Title */}
           <Text style={styles.mainJobTitleText}>{jobTitle}</Text>
 
-          {/* 3x2 JOB SPECS GRID */}
+          {/* JOB SPECS GRID */}
           <View style={styles.specsGrid}>
-            <View style={styles.specItem}>
-              <Ionicons name="location-outline" size={15} color="#475569" />
-              <Text style={styles.specItemText}>{cleanLocation(locationName)}</Text>
-            </View>
+            {cleanLocation(locationName) ? (
+              <View style={styles.specItem}>
+                <Ionicons name="location-outline" size={15} color="#475569" />
+                <Text style={styles.specItemText}>{cleanLocation(locationName)}</Text>
+              </View>
+            ) : null}
 
-            <View style={styles.specItem}>
-              <Ionicons name="cash-outline" size={15} color="#475569" />
-              <Text style={styles.specItemText}>$50K-$80 Salary</Text>
-            </View>
+            {getJobSalary(jobData) ? (
+              <View style={styles.specItem}>
+                <Ionicons name="cash-outline" size={15} color="#475569" />
+                <Text style={styles.specItemText}>{getJobSalary(jobData)}</Text>
+              </View>
+            ) : null}
 
-            <View style={styles.specItem}>
-              <Ionicons name="home-outline" size={15} color="#475569" />
-              <Text style={styles.specItemText}>5+ years exp</Text>
-            </View>
+            {getJobExperience(jobData) ? (
+              <View style={styles.specItem}>
+                <Ionicons name="home-outline" size={15} color="#475569" />
+                <Text style={styles.specItemText}>{getJobExperience(jobData)}</Text>
+              </View>
+            ) : null}
 
-            <View style={styles.specItem}>
-              <Ionicons name="time-outline" size={15} color="#475569" />
-              <Text style={styles.specItemText}>Full Time</Text>
-            </View>
+            {getJobEmploymentType(jobData) ? (
+              <View style={styles.specItem}>
+                <Ionicons name="time-outline" size={15} color="#475569" />
+                <Text style={styles.specItemText}>{getJobEmploymentType(jobData)}</Text>
+              </View>
+            ) : null}
 
-            <View style={styles.specItem}>
-              <Ionicons name="laptop-outline" size={15} color="#475569" />
-              <Text style={styles.specItemText}>In Person</Text>
-            </View>
+            {getJobWorkModel(jobData) ? (
+              <View style={styles.specItem}>
+                <Ionicons name="laptop-outline" size={15} color="#475569" />
+                <Text style={styles.specItemText}>{getJobWorkModel(jobData)}</Text>
+              </View>
+            ) : null}
 
-            <View style={styles.specItem}>
-              <Ionicons name="time-outline" size={15} color="#475569" />
-              <Text style={styles.specItemText}>19 hours ago</Text>
-            </View>
+            {getJobPostedTime(jobData) ? (
+              <View style={styles.specItem}>
+                <Ionicons name="time-outline" size={15} color="#475569" />
+                <Text style={styles.specItemText}>{getJobPostedTime(jobData)}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
@@ -711,26 +739,21 @@ export default function JobDetailsScreen() {
                 <View style={[styles.progressBarFill, { width: `${overallScore}%` }]} />
               </View>
 
-              {/* 4 METRIC CARDS ROW */}
+              {/* 3 METRIC CARDS ROW (JOB MATCH, RESUME, KEYWORDS) */}
               <View style={styles.metricCardsRow}>
-                <View style={[styles.metricCard, styles.metricCardOrange]}>
-                  <Text style={styles.metricCardValueWhite}>{overallScore}%</Text>
-                  <Text style={styles.metricCardLabelWhite}>OVERALL</Text>
-                </View>
-
                 <View style={[styles.metricCard, styles.metricCardGreen]}>
-                  <Text style={styles.metricCardValueGreen}>{matchPercent}%</Text>
+                  <Text style={styles.metricCardValueGreen}>{jobMatchPercent}%</Text>
                   <Text style={styles.metricCardLabelGreen}>JOB MATCH</Text>
-                </View>
-
-                <View style={[styles.metricCard, styles.metricCardGray]}>
-                  <Text style={styles.metricCardValueGray}>{skillsPercent}%</Text>
-                  <Text style={styles.metricCardLabelGray}>SKILLS</Text>
                 </View>
 
                 <View style={[styles.metricCard, styles.metricCardGray]}>
                   <Text style={styles.metricCardValueGray}>{resumePercent}%</Text>
                   <Text style={styles.metricCardLabelGray}>RESUME</Text>
+                </View>
+
+                <View style={[styles.metricCard, styles.metricCardGray]}>
+                  <Text style={styles.metricCardValueGray}>{keywordsPercent}%</Text>
+                  <Text style={styles.metricCardLabelGray}>KEYWORDS</Text>
                 </View>
               </View>
 
@@ -867,7 +890,7 @@ export default function JobDetailsScreen() {
 
             {/* Improvement Section */}
             <View style={styles.modalImprovementSection}>
-              <Text style={styles.modalImprovementHeader}>+30% Improve available</Text>
+              <Text style={styles.modalImprovementHeader}>Available improves</Text>
               <View style={styles.modalChipsWrap}>
                 <View style={styles.modalGreenChip}>
                   <Text style={styles.modalGreenChipText}>Add Missing Keywords</Text>
@@ -888,8 +911,20 @@ export default function JobDetailsScreen() {
             <TouchableOpacity
               style={styles.applyWithoutCustomizingBtn}
               activeOpacity={0.7}
-              onPress={() => {
+              onPress={async () => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                const currentCredit = user?.credit ?? guestCredit ?? 0;
+                if (currentCredit < 1) {
+                  setShowTailorModal(false);
+                  router.push('/pricing' as any);
+                  return;
+                }
+                const success = await deductCredits(1);
+                if (!success) {
+                  setShowTailorModal(false);
+                  Alert.alert("Credit Error", "Failed to deduct credit. Please purchase more credits.");
+                  return;
+                }
                 hasOpenedApplyRef.current = true;
                 setShowTailorModal(false);
                 if (jobData?.absolute_url) {
@@ -912,16 +947,17 @@ export default function JobDetailsScreen() {
               activeOpacity={0.85}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setShowTailorModal(false);
                 const currentCredit = user?.credit ?? guestCredit ?? 0;
-                if (currentCredit <= 0) {
+                if (currentCredit < 2) {
+                  setShowTailorModal(false);
                   router.push('/pricing' as any);
                 } else {
+                  setShowTailorModal(false);
                   handleStartAiTailoring();
                 }
               }}
             >
-              <Text style={styles.customizeBlackBtnText}>Customize resume & Cover letter</Text>
+              <Text style={styles.customizeBlackBtnText}>Tailor resume & Cover letter</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1140,22 +1176,22 @@ export default function JobDetailsScreen() {
                   stroke="#000000"
                   strokeWidth="14"
                   strokeDasharray={`${2 * Math.PI * 74}`}
-                  strokeDashoffset={`${2 * Math.PI * 74 * 0.01}`}
+                  strokeDashoffset={`${2 * Math.PI * 74 * (1 - tailoredScore / 100)}`}
                   strokeLinecap="round"
                   fill="none"
                   transform="rotate(-90 100 100)"
                 />
               </Svg>
               <View style={styles.modalGaugeCenterCol}>
-                <Text style={styles.modalResultScoreText}>99%</Text>
+                <Text style={styles.modalResultScoreText}>{tailoredScore}%</Text>
                 <Text style={styles.modalResultScoreSub}>Match score</Text>
               </View>
             </View>
 
             {/* Title & Subtitle */}
-            <Text style={styles.issuesFixedTitle}>7 issues Fixed</Text>
+            <Text style={styles.issuesFixedTitle}>{issuesFixedCount} issues Fixed</Text>
             <Text style={styles.issuesFixedSubtitle}>
-              Awesome! Your score jumped{'\n'}from 68% to 99%
+              Awesome! Your score jumped{'\n'}from {overallScore}% to {tailoredScore}%
             </Text>
 
             {/* Horizontal Side-by-Side Documents Section */}
@@ -2163,3 +2199,190 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
+function extractSalaryFromText(text: string | null | undefined): string | null {
+  if (!text || typeof text !== 'string') return null;
+
+  const labelMatch = text.match(/(?:salary|compensation|base pay|pay range|remuneration|rate)\s*(?:range|rate)?\s*[:\-\=]?\s*([\$€£¥]\s*\d[\d,\.]*\s*(?:[kK]|thousand)?\s*(?:[\-\–\—]|to)\s*[\$€£¥]?\s*\d[\d,\.]*\s*(?:[kK]|thousand)?(?:\s*\/(?:yr|year|hr|hour|mo|month))?|[\$€£¥]\s*\d[\d,\.]*\s*(?:[kK]|thousand)?(?:\s*\/(?:yr|year|hr|hour|mo|month))?)/i);
+  if (labelMatch && labelMatch[1]) {
+    return labelMatch[1].trim();
+  }
+
+  const rangeMatch = text.match(/([\$€£¥]\s*\d{2,3}(?:,\d{3})*(?:\.\d{2})?\s*(?:[kK])?\s*(?:[\-\–\—]|to)\s*[\$€£¥]?\s*\d{2,3}(?:,\d{3})*(?:\.\d{2})?\s*(?:[kK])?(?:\s*(?:USD|EUR|GBP|CAD|AUD))?(?:\s*\/(?:yr|year|hr|hour|mo|month|annum))?)/i);
+  if (rangeMatch && rangeMatch[1]) {
+    return rangeMatch[1].trim();
+  }
+
+  const shortRangeMatch = text.match(/([\$€£¥]?\s*\d{2,3}\s*k\s*(?:[\-\–\—]|to)\s*[\$€£¥]?\s*\d{2,3}\s*k(?:\s*(?:USD|EUR|GBP))?)/i);
+  if (shortRangeMatch && shortRangeMatch[1]) {
+    return shortRangeMatch[1].trim();
+  }
+
+  return null;
+}
+
+function formatSalaryText(raw: string): string {
+  if (!raw) return '';
+  let formatted = raw.trim();
+
+  // Remove word 'Salary'
+  formatted = formatted.replace(/\bsalary\b/gi, '').trim();
+
+  // Convert numbers with thousands like 140,000 or 140000 into 140K
+  formatted = formatted
+    .replace(/([\$€£¥]?\d{1,3}),000\b/g, '$1K')
+    .replace(/([\$€£¥]?\d{2,3})000\b/g, '$1K')
+    .replace(/([\$€£¥]?\d{1,3}(?:\.\d+)?)\s*k\b/gi, '$1K');
+
+  // Fix spaces around hyphens e.g. $140K-$180K -> $140K - $180K
+  formatted = formatted.replace(/([\$€£¥]?\d+[Kk]?)\s*[\-\–\—]\s*([\$€£¥]?\d+[Kk]?)/g, '$1 - $2');
+
+  formatted = formatted.replace(/\s+/g, ' ').trim();
+
+  if (!formatted.startsWith('$') && !formatted.startsWith('€') && !formatted.startsWith('£') && /^\d/.test(formatted)) {
+    formatted = `$${formatted}`;
+  }
+
+  return formatted;
+}
+
+function getJobSalary(job: any): string {
+  if (!job) return '';
+
+  if (job.salary && typeof job.salary === 'string' && job.salary.trim()) {
+    return formatSalaryText(job.salary.trim());
+  }
+
+  const extracted = extractSalaryFromText(job.content || job.cleanSnippet || '');
+  if (extracted) {
+    return formatSalaryText(extracted);
+  }
+
+  return '';
+}
+
+function getJobExperience(job: any): string {
+  if (!job) return '';
+
+  if (job.experience) return String(job.experience);
+  if (job.experienceLevel) return String(job.experienceLevel);
+  if (job.experience_level) return String(job.experience_level);
+  if (job.minExperience) return `${job.minExperience}+ yrs exp`;
+
+  const text = ((job.content || '') + ' ' + (job.cleanSnippet || '') + ' ' + (job.title || ''));
+  const expMatch = text.match(/(\d+\+?\s*(?:-\s*\d+)?\s*(?:years?|yrs?)(?:\s+of\s+experience|\s+exp)?)/i);
+  if (expMatch) {
+    return `${expMatch[1]} exp`;
+  }
+
+  return '';
+}
+
+function getJobEmploymentType(job: any): string {
+  if (!job) return '';
+  if (job.employmentType && typeof job.employmentType === 'string' && job.employmentType.trim()) {
+    return job.employmentType.trim();
+  }
+  const text = ((job.content || '') + ' ' + (job.cleanSnippet || '') + ' ' + (job.title || '')).toLowerCase();
+  if (text.includes('part-time') || text.includes('part time')) return 'Part Time';
+  if (text.includes('contract') || text.includes('freelance')) return 'Contract';
+  if (text.includes('internship') || text.includes('intern')) return 'Internship';
+  if (text.includes('full-time') || text.includes('full time')) return 'Full Time';
+
+  return '';
+}
+
+function getJobWorkModel(job: any): string {
+  if (!job) return '';
+  if (typeof job.remote === 'boolean') {
+    return job.remote ? 'Remote' : 'In Person';
+  }
+  const text = ((job.location?.name || '') + ' ' + (job.content || '') + ' ' + (job.cleanSnippet || '') + ' ' + (job.title || '')).toLowerCase();
+  if (text.includes('remote')) return 'Remote';
+  if (text.includes('hybrid')) return 'Hybrid';
+  if (text.includes('in person') || text.includes('on-site') || text.includes('onsite')) return 'In Person';
+
+  return '';
+}
+
+function getJobPostedTime(job: any): string {
+  if (!job) return '1 day ago';
+
+  const rawDate = job.postedAt || job.createdAt || job.updated_at || job.date || job.posted_at;
+
+  if (rawDate) {
+    if (typeof rawDate === 'number') {
+      const diffMs = Date.now() - rawDate;
+      if (diffMs >= 0) {
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        if (diffHours < 1) return 'Just now';
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        const diffDays = Math.floor(diffHours / 24);
+        return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+      }
+    }
+
+    if (typeof rawDate === 'string') {
+      const trimmed = rawDate.trim();
+      if (trimmed.toLowerCase() === 'just now') return 'Just now';
+
+      const matchRel = trimmed.match(/^(\d+)\s*(h|d|m|mo|w|hours?|days?|minutes?|weeks?|months?)\s*(ago)?$/i);
+      if (matchRel) {
+        const val = parseInt(matchRel[1], 10);
+        const unit = matchRel[2].toLowerCase();
+        if (unit.startsWith('m') && !unit.startsWith('mo')) {
+          return val < 1 ? 'Just now' : `${val} minute${val > 1 ? 's' : ''} ago`;
+        } else if (unit.startsWith('h')) {
+          return `${val} hour${val > 1 ? 's' : ''} ago`;
+        } else if (unit.startsWith('d')) {
+          return `${val} day${val > 1 ? 's' : ''} ago`;
+        } else if (unit.startsWith('w')) {
+          const days = val * 7;
+          return `${days} day${days > 1 ? 's' : ''} ago`;
+        } else if (unit.startsWith('mo')) {
+          const days = val * 30;
+          return `${days} day${days > 1 ? 's' : ''} ago`;
+        }
+      }
+
+      const dateObj = new Date(trimmed);
+      if (!isNaN(dateObj.getTime())) {
+        const diffMs = Date.now() - dateObj.getTime();
+        if (diffMs >= 0) {
+          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+          if (diffHours < 1) return 'Just now';
+          if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+          const diffDays = Math.floor(diffHours / 24);
+          return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        }
+      }
+    }
+  }
+
+  const num = typeof job.id === 'number'
+    ? job.id
+    : String(job.id || '1').split('').reduce((acc, c: string) => acc + c.charCodeAt(0), 0);
+  const hours = (num % 40) + 2;
+  if (hours < 24) {
+    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  }
+  const days = Math.floor(hours / 24) + 1;
+  return `${days} day${days > 1 ? 's' : ''} ago`;
+}
+
+function getJobDepartment(job: any): string {
+  if (!job) return 'Computer Software';
+  if (Array.isArray(job.departments) && job.departments.length > 0 && job.departments[0].name) {
+    return job.departments[0].name;
+  }
+  if (job.department && typeof job.department === 'string') return job.department;
+
+  const titleLower = (job.title || '').toLowerCase();
+  if (titleLower.includes('engineer') || titleLower.includes('developer') || titleLower.includes('architect')) return 'Software Engineering';
+  if (titleLower.includes('design') || titleLower.includes('ux') || titleLower.includes('ui')) return 'Product Design';
+  if (titleLower.includes('product') || titleLower.includes('manager')) return 'Product Management';
+  if (titleLower.includes('market') || titleLower.includes('growth')) return 'Marketing & Sales';
+  if (titleLower.includes('data') || titleLower.includes('analytic')) return 'Data Science';
+
+  return 'Computer Software';
+}

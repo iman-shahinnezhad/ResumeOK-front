@@ -107,7 +107,7 @@ function MainAppContent() {
             <div className="nav-brand-group">
               {/* Logo */}
               <Link to="/" className="resumeok-brand-logo" onClick={() => setMenuOpen(false)}>
-                ResumeOK
+                ApplyDesk
               </Link>
 
               {/* Desktop Left Nav Menu */}
@@ -240,7 +240,7 @@ function MainAppContent() {
       <footer className="resumeok-footer no-print">
         <div className="container footer-content">
           <p className="footer-text">
-            © {new Date().getFullYear()} ResumeOK. 100% Private.
+            © {new Date().getFullYear()} ApplyDesk. 100% Private.
           </p>
           <div className="footer-links">
             <Link to="/partnership">Partner Program</Link>

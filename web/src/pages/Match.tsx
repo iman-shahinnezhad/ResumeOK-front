@@ -30,7 +30,7 @@ interface AnalysisResult {
 
 export default function Match({ credits, deductCredits, refundCredits, apiUrl }: Props) {
   useSEO(
-    "Smart Resume Match & Job Fit Scanner - ResumeOK",
+    "Smart Resume Match & Job Fit Scanner - ApplyDesk",
     "Compare your resume against any job posting. Uncover missing hard skills, ATS gaps, and get 1-click tailored resume exports."
   );
 

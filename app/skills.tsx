@@ -136,7 +136,9 @@ export default function SkillsScreen() {
             <Text style={styles.badgeTextWhite}>Add {remainingNeeded}</Text>
           </View>
         ) : (
-          <View style={{ width: 44 }} />
+          <View style={styles.badgePillGreen}>
+            <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+          </View>
         )}
       </View>
 
@@ -282,6 +284,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
+  },
+  badgePillGreen: {
+    backgroundColor: '#16A34A',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   badgeTextWhite: {
     color: '#FFFFFF',

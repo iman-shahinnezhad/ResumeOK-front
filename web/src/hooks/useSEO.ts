@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 
 export default function useSEO(title: string, description: string) {
   useEffect(() => {
-    const fullTitle = `${title} | ResumeOK`;
+    const fullTitle = `${title} | ApplyDesk`;
     document.title = fullTitle;
 
     // Update meta description

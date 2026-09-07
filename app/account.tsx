@@ -60,38 +60,35 @@ export default function Account() {
       setResumesCount(count);
 
       let personalFilled = 0;
+      let personalMissing = 0;
       if (loadedProfile) {
-        if (loadedProfile.firstName?.trim()) personalFilled++;
-        if (loadedProfile.lastName?.trim()) personalFilled++;
-        if (loadedProfile.email?.trim()) personalFilled++;
-        if (loadedProfile.phone?.trim() || loadedProfile.phoneNumber?.trim() || loadedProfile.mobile?.trim()) personalFilled++;
-        if (loadedProfile.city?.trim() || loadedProfile.address?.trim()) personalFilled++;
-        if (loadedProfile.title?.trim() || loadedProfile.jobTitle?.trim() || loadedProfile.role?.trim()) personalFilled++;
-        if (loadedProfile.bio?.trim() || loadedProfile.summary?.trim()) personalFilled++;
-        if (loadedProfile.linkedin?.trim() || loadedProfile.linkedinUrl?.trim()) personalFilled++;
-        if (loadedProfile.github?.trim()) personalFilled++;
-        if (loadedProfile.portfolio?.trim() || loadedProfile.portfolioUrl?.trim()) personalFilled++;
-        if (loadedProfile.experience?.trim()) personalFilled++;
+        if (loadedProfile.firstName?.trim()) personalFilled++; else personalMissing++;
+        if (loadedProfile.lastName?.trim()) personalFilled++; else personalMissing++;
+        if (loadedProfile.email?.trim()) personalFilled++; else personalMissing++;
+        if (loadedProfile.phone?.trim() || loadedProfile.phoneNumber?.trim() || loadedProfile.mobile?.trim()) personalFilled++; else personalMissing++;
+        if (loadedProfile.city?.trim() || loadedProfile.address?.trim()) personalFilled++; else personalMissing++;
+        if (loadedProfile.salary?.trim() || (loadedProfile.expectedSalary && (loadedProfile.expectedSalary.min || loadedProfile.expectedSalary.max))) personalFilled++; else personalMissing++;
+      } else {
+        personalMissing = 6;
       }
-      setPersonalInfoMissing(11 - personalFilled);
+      setPersonalInfoMissing(personalMissing);
 
       let profFilled = 0;
       if (loadedProfile) {
-        const summaryFilled = Math.min(2, loadedProfile.summaries?.length || (loadedProfile.jobTitle ? 1 : 0));
+        const summaryFilled = Math.min(1, loadedProfile.summaries?.length || (loadedProfile.jobTitle || loadedProfile.summary ? 1 : 0));
         const expFilled = Math.min(2, loadedProfile.experiences?.length || 0);
-        const projectFilled = Math.min(3, loadedProfile.projects?.length || 0);
         const eduFilled = Math.min(1, loadedProfile.educations?.length || 0);
         const techCount = loadedProfile.skills?.length || 0;
         const softCount = loadedProfile.softSkills?.length || 0;
         const skillFilled = Math.min(3, techCount + softCount);
         const langFilled = Math.min(1, loadedProfile.languages?.length || 0);
 
-        profFilled = summaryFilled + expFilled + projectFilled + eduFilled + skillFilled + langFilled;
+        profFilled = summaryFilled + expFilled + eduFilled + skillFilled + langFilled;
       }
 
       let resumeFilled = count > 0 ? 1 : 0;
 
-      const totalTarget = 24;
+      const totalTarget = 15;
       const totalFilled = personalFilled + profFilled + resumeFilled;
 
       const rate = Math.min(100, Math.max(0, Math.round((totalFilled / totalTarget) * 100)));
@@ -286,14 +283,14 @@ export default function Account() {
             </View>
 
             <View style={styles.menuTextCol}>
-              <Text style={styles.menuTitle}>Professional Detial</Text>
+              <Text style={styles.menuTitle}>Professional Detail</Text>
               <Text style={styles.menuSubtitle}>Experiences, Skills, Education, and ...</Text>
             </View>
 
             {(() => {
-              const summaryRemaining = Math.max(0, 2 - (profileData?.summaries?.length || (profileData?.jobTitle ? 1 : 0)));
+              const summaryRemaining = Math.max(0, 1 - (profileData?.summaries?.length || (profileData?.jobTitle || profileData?.summary ? 1 : 0)));
               const expRemaining = Math.max(0, 2 - (profileData?.experiences?.length || 0));
-              const projectRemaining = Math.max(0, 3 - (profileData?.projects?.length || 0));
+              const projectRemaining = 0; // Optional
               const eduRemaining = Math.max(0, 1 - (profileData?.educations?.length || 0));
               const techCount = profileData?.skills?.length || 0;
               const softCount = profileData?.softSkills?.length || 0;
@@ -311,7 +308,7 @@ export default function Account() {
               }
               return (
                 <View style={styles.badgePillGreen}>
-                  <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                  <Ionicons name="checkmark" size={12} color="#FFFFFF" />
                 </View>
               );
             })()}

@@ -9,7 +9,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>ResumeOK</string>
+    <string>ApplyDesk</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -21,7 +21,7 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>2.0.9</string>
+    <string>2.1.1</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
@@ -29,8 +29,8 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>resumeok</string>
-          <string>com.pixflow.resumeok</string>
+          <string>applydesk</string>
+          <string>com.pixflow.applydesk</string>
         </array>
       </dict>
       <dict>
@@ -41,7 +41,7 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>45</string>
+    <string>52</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSMinimumSystemVersion</key>
@@ -54,11 +54,11 @@
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>The app needs to access your camera to let you take a photo for ResumeOK.</string>
+    <string>The app needs to access your camera to let you take a photo for ApplyDesk.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>The app accesses your photos or documents to let you choose files for ResumeOK.</string>
+    <string>The app accesses your photos or documents to let you choose files for ApplyDesk.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>

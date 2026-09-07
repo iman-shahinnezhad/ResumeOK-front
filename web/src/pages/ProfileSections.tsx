@@ -4,7 +4,7 @@ import useSEO from '../hooks/useSEO';
 
 export default function ProfileSections() {
   useSEO(
-    "Candidate Target Profile - ResumeOK",
+    "Candidate Target Profile - ApplyDesk",
     "Set your target job titles, preferred locations, target salary ranges, and core skill keywords for AI matching."
   );
 

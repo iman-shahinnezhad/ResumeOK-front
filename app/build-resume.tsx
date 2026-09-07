@@ -22,6 +22,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { API_URL, useAuth } from '../context/AuthContext';
+import { sortResumesWithDefaultFirst } from '../utils/resumeUtils';
 
 interface WorkExperience {
   id: string;
@@ -1499,7 +1500,7 @@ export default function BuildResumeScreen() {
           isBuilt: true
         };
 
-        const newList = [newResume, ...currentList];
+        const newList = sortResumesWithDefaultFirst([newResume, ...currentList]);
         await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(newList));
 
         // Sync built resume upload to MongoDB backend database

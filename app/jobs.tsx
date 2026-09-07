@@ -16,6 +16,7 @@ import {
   KeyboardAvoidingView,
   PanResponder,
   Image,
+  Share,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -41,11 +42,9 @@ import { API_URL, useAuth } from '../context/AuthContext';
 import { WebView } from 'react-native-webview';
 import { getSession } from '../utils/session';
 import { calculateJobMatch } from '../utils/jobMatch';
+import { sortResumesWithDefaultFirst } from '../utils/resumeUtils';
 
-const cleanJsCodeForInjection = (js: string) => {
-  const noComments = js.replace(/(^|[^:])\/\/[^\n]*/g, '$1');
-  return noComments.replace(/[\r\n]+/g, ' ');
-};
+const cleanJsCodeForInjection = (js: string) => js;
 
 const POPULAR_GREENHOUSE_COMPANIES = ['stripe', 'dropbox', 'deliveroo', 'vimeo', 'amplitude'];
 const POPULAR_LEVER_COMPANIES = ['kinsta', 'aircall', 'palantir'];
@@ -55,9 +54,10 @@ interface SelectedResumeFile {
   name: string;
   date: string;
   uri?: string;
-  size?: number;
+  size?: number | string;
   mimeType?: string;
   isBuilt?: boolean;
+  isDefault?: boolean;
 }
 
 interface GreenhouseJob {
@@ -71,7 +71,15 @@ interface GreenhouseJob {
   companyName?: string;
   boardToken?: string;
   sourceType?: string;
+  salary?: string | null;
+  employmentType?: string | null;
+  remote?: boolean;
+  postedAt?: string | null;
+  createdAt?: string | null;
+  updated_at?: string | null;
+  skills?: string[];
   canApplyDirectly?: boolean;
+  cleanSnippet?: string;
 }
 
 interface GreenhouseConfig {
@@ -226,6 +234,103 @@ export default function JobsScreen() {
     } catch (e) {
       console.log('Error handling list skip:', e);
     }
+  };
+
+  const handleOpenCardMenu = (job: GreenhouseJob) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setMenuJob(job);
+    setShowCardMenuModal(true);
+  };
+
+  const handleActionAlreadyApplied = async (job: GreenhouseJob) => {
+    setShowCardMenuModal(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    try {
+      const appliedPath = `${FileSystem.documentDirectory}user_applied_jobs.json`;
+      const appliedInfo = await FileSystem.getInfoAsync(appliedPath);
+      let currentApplied: any[] = [];
+      if (appliedInfo.exists) {
+        const text = await FileSystem.readAsStringAsync(appliedPath);
+        try { currentApplied = JSON.parse(text); } catch (e) {}
+      }
+      const newEntry = {
+        id: String(job.id),
+        title: job.title,
+        companyName: job.companyName || 'Company',
+        location: job.location?.name || 'Remote',
+        url: job.absolute_url || '',
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        timestamp: Date.now(),
+        status: 'applied'
+      };
+      const updatedList = [newEntry, ...currentApplied.filter((j: any) => String(j.id) !== String(newEntry.id))];
+      await FileSystem.writeAsStringAsync(appliedPath, JSON.stringify(updatedList));
+
+      setAllJobs(prev => prev.filter(j => String(j.id) !== String(job.id)));
+      setFilteredJobs(prev => prev.filter(j => String(j.id) !== String(job.id)));
+
+      const currentUserId = user?.id || guestId || 'guest';
+      fetch(`${API_URL}/api/user-jobs/${currentUserId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'applied',
+          jobId: String(job.id),
+          jobData: newEntry
+        })
+      }).catch(err => console.log('Sync error:', err));
+
+      Alert.alert('Marked as Applied! 🎉', 'This job has been added to your Applied Jobs list.');
+    } catch (e) {
+      console.log('Error marking job as applied:', e);
+    }
+  };
+
+  const handleActionShare = async (job: GreenhouseJob) => {
+    setShowCardMenuModal(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (job.absolute_url) {
+      try {
+        await Share.share({
+          message: `Check out this position: ${job.title} at ${job.companyName || 'Company'}\n${job.absolute_url}`,
+        });
+      } catch (e) {}
+    }
+  };
+
+  const handleActionRemove = async (job: GreenhouseJob) => {
+    setShowCardMenuModal(false);
+    handleListSkip(job);
+  };
+
+  const handleActionOpenReport = (job: GreenhouseJob) => {
+    setShowCardMenuModal(false);
+    setReportJob(job);
+    setSelectedReportReason('');
+    setReportNote('');
+    setShowReportModal(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!selectedReportReason) {
+      Alert.alert('Select a reason', 'Please select an issue to report.');
+      return;
+    }
+    setIsSubmittingReport(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    try {
+      if (reportJob) {
+        handleListSkip(reportJob);
+      }
+    } catch (e) {}
+
+    setTimeout(() => {
+      setIsSubmittingReport(false);
+      setShowReportModal(false);
+      Alert.alert('Report Submitted 🛡️', 'Thank you for your report! Our team will review this listing.');
+    }, 450);
   };
 
   const handleSwipeComplete = (direction: 'left' | 'right') => {
@@ -394,6 +499,14 @@ export default function JobsScreen() {
   const [filterExperience, setFilterExperience] = useState<string>('ALL');
   const [filterSalary, setFilterSalary] = useState<string>('ALL');
   const [filterLocation, setFilterLocation] = useState<string>('');
+  const [selectedSkillsFilter, setSelectedSkillsFilter] = useState<string[]>([]);
+  const [menuJob, setMenuJob] = useState<GreenhouseJob | null>(null);
+  const [showCardMenuModal, setShowCardMenuModal] = useState(false);
+  const [reportJob, setReportJob] = useState<GreenhouseJob | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [selectedReportReason, setSelectedReportReason] = useState<string>('');
+  const [reportNote, setReportNote] = useState<string>('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const searchInputRef = useRef<TextInput>(null);
   const webViewRef = useRef<WebView>(null);
   const isProfileDefaultsLoaded = useRef(false);
@@ -445,7 +558,7 @@ export default function JobsScreen() {
                 ? loadedProfile.skills
                 : (Array.isArray(loadedProfile.roles) ? loadedProfile.roles : []);
 
-              const onboardingRole = loadedProfile.jobTitle || loadedProfile.targetRole || onboardingRoles[0] || '';
+              const onboardingRole = loadedProfile.jobTitle || loadedProfile.role || (Array.isArray(loadedProfile.roles) && loadedProfile.roles[0]) || onboardingRoles[0] || '';
               if (onboardingRole && !filterQuery) {
                 setFilterQuery(onboardingRole);
               }
@@ -456,27 +569,43 @@ export default function JobsScreen() {
                 setFilterLocation(onboardingLoc);
               }
 
+              // Work Model auto-selection from onboarding city or interests
+              const interestsArr = Array.isArray(loadedProfile.interests) ? loadedProfile.interests : [];
+              const isRemotePref = onboardingLoc.toLowerCase().includes('remote') || interestsArr.some((i: any) => String(i).toLowerCase().includes('remote'));
+              const isHybridPref = onboardingLoc.toLowerCase().includes('hybrid') || interestsArr.some((i: any) => String(i).toLowerCase().includes('hybrid'));
+              if (isRemotePref && filterWorkModel === 'ALL') {
+                setFilterWorkModel('Remote');
+              } else if (isHybridPref && filterWorkModel === 'ALL') {
+                setFilterWorkModel('Hybrid');
+              }
+
               // Experience Seniority auto-selection
-              const onboardingExp = loadedProfile.experienceLevel || loadedProfile.experience || '';
+              const onboardingExp = (loadedProfile.experienceLevel || loadedProfile.experience || '').toLowerCase();
               if (onboardingExp && filterExperience === 'ALL') {
-                if (onboardingExp.includes('5+') || onboardingExp.includes('7+') || onboardingExp.toLowerCase().includes('senior')) {
+                if (onboardingExp.includes('senior') || onboardingExp.includes('expert') || onboardingExp.includes('leadership') || onboardingExp.includes('6-9') || onboardingExp.includes('10+')) {
                   setFilterExperience('Senior');
-                } else if (onboardingExp.includes('3+') || onboardingExp.includes('1-3') || onboardingExp.toLowerCase().includes('mid')) {
+                } else if (onboardingExp.includes('mid') || onboardingExp.includes('3-5') || onboardingExp.includes('3-4')) {
                   setFilterExperience('Mid');
-                } else if (onboardingExp.toLowerCase().includes('entry') || onboardingExp.toLowerCase().includes('junior')) {
+                } else if (onboardingExp.includes('junior') || onboardingExp.includes('entry') || onboardingExp.includes('intern') || onboardingExp.includes('1-2')) {
                   setFilterExperience('Junior');
                 }
               }
 
-              // Salary Range auto-selection
-              if (loadedProfile.expectedSalary && filterSalary === 'ALL') {
-                const minS = typeof loadedProfile.expectedSalary === 'object' ? (loadedProfile.expectedSalary.min || 0) : 0;
-                if (minS >= 180000) {
+              // Salary Range auto-selection from onboarding expectedSalary
+              if (loadedProfile.expectedSalary) {
+                const minS = typeof loadedProfile.expectedSalary === 'object' ? (loadedProfile.expectedSalary.min ?? 0) : Number(loadedProfile.expectedSalary) || 0;
+                const maxS = typeof loadedProfile.expectedSalary === 'object' ? (loadedProfile.expectedSalary.max ?? 500000) : 500000;
+
+                if (minS <= 0 || (minS <= 30000 && maxS >= 250000)) {
+                  setFilterSalary('ALL');
+                } else if (minS >= 180000) {
                   setFilterSalary('$180K+');
                 } else if (minS >= 100000) {
                   setFilterSalary('$100K - $180K');
-                } else if (minS >= 50000) {
+                } else if (minS >= 40000) {
                   setFilterSalary('$50K - $100K');
+                } else {
+                  setFilterSalary('ALL');
                 }
               }
 
@@ -508,7 +637,7 @@ export default function JobsScreen() {
             const content = await FileSystem.readAsStringAsync(resumesPath);
             const parsedResumes = JSON.parse(content);
             if (Array.isArray(parsedResumes)) {
-              loadedResumes = parsedResumes.filter(r => r.uri);
+              loadedResumes = sortResumesWithDefaultFirst(parsedResumes.filter(r => r.uri));
               setResumesList(loadedResumes);
               if (loadedResumes.length > 0) {
                 // Prioritize the default resume if set, otherwise keep valid selection or fall back to first
@@ -623,9 +752,17 @@ export default function JobsScreen() {
     return () => clearTimeout(delayDebounce);
   }, [filterQuery, selectedCompanyFilter, filterLocation]);
 
-  // Client-side multi-filter effect (Work Model, Experience Level, Department)
+  // Client-side multi-filter effect (Work Model, Experience Level, Salary, Location, Skills)
   useEffect(() => {
     let result = [...allJobs];
+
+    if (selectedSkillsFilter.length > 0) {
+      result = result.filter(job => {
+        const deptNames = Array.isArray(job.departments) ? job.departments.map(d => d.name).join(' ') : '';
+        const jobText = `${job.title || ''} ${job.content || ''} ${job.companyName || ''} ${deptNames}`.toLowerCase();
+        return selectedSkillsFilter.some(skill => jobText.includes(skill.toLowerCase()));
+      });
+    }
 
     if (filterWorkModel !== 'ALL') {
       result = result.filter(job => getJobWorkModel(job).toLowerCase() === filterWorkModel.toLowerCase());
@@ -633,10 +770,30 @@ export default function JobsScreen() {
 
     if (filterExperience !== 'ALL') {
       result = result.filter(job => {
-        const exp = getJobExperience(job, userProfile).toLowerCase();
-        if (filterExperience === 'Senior') return exp.includes('5+') || exp.includes('7+');
-        if (filterExperience === 'Mid') return exp.includes('3') || exp.includes('4');
-        if (filterExperience === 'Junior') return exp.includes('1') || exp.includes('2') || exp.includes('entry');
+        const exp = getJobExperience(job).toLowerCase();
+        if (filterExperience === 'Senior') return exp.includes('5+') || exp.includes('6+') || exp.includes('7+') || exp.includes('8+') || exp.includes('10+') || exp.includes('senior') || exp.includes('lead') || exp.includes('principal') || exp.includes('staff');
+        if (filterExperience === 'Mid') return exp.includes('3') || exp.includes('4') || exp.includes('5') || exp.includes('mid');
+        if (filterExperience === 'Junior') return exp.includes('1') || exp.includes('2') || exp.includes('junior') || exp.includes('entry') || exp.includes('intern');
+        return true;
+      });
+    }
+
+    if (filterSalary !== 'ALL') {
+      result = result.filter(job => {
+        const salStr = getJobSalary(job).toLowerCase();
+        const matches = salStr.match(/\$(\d+)k?/g);
+        if (!matches || matches.length === 0) return true;
+        const nums = matches.map(m => parseInt(m.replace(/\D/g, ''), 10));
+        const maxVal = Math.max(...nums);
+        const minVal = Math.min(...nums);
+
+        if (filterSalary === '$50K - $100K') {
+          return minVal <= 100 && maxVal >= 50;
+        } else if (filterSalary === '$100K - $180K') {
+          return minVal <= 180 && maxVal >= 100;
+        } else if (filterSalary === '$180K+') {
+          return maxVal >= 180;
+        }
         return true;
       });
     }
@@ -645,8 +802,34 @@ export default function JobsScreen() {
       const target = filterLocation.toLowerCase().trim();
       result = result.filter(job => {
         const loc = (job.location?.name || '').toLowerCase();
-        return loc.includes(target);
+        const content = (job.content || '').toLowerCase();
+        const title = (job.title || '').toLowerCase();
+        return loc.includes(target) || content.includes(target) || title.includes(target);
       });
+    }
+
+    if (filterQuery.trim() !== '') {
+      const SENIORITY = new Set(['senior', 'sr', 'junior', 'jr', 'lead', 'principal', 'staff', 'associate', 'intern', 'entry', 'mid', 'head', 'vp', 'director', 'manager']);
+      const qWords = filterQuery.trim().toLowerCase().split(/\s+/).filter(t => t.length > 1);
+      const domainWords = qWords.filter(w => !SENIORITY.has(w));
+
+      if (domainWords.length > 0) {
+        result = result.filter(job => {
+          const titleLower = (job.title || '').toLowerCase();
+          const contentLower = (job.content || '').toLowerCase();
+          return domainWords.some(dw => titleLower.includes(dw) || contentLower.includes(dw));
+        });
+
+        result.sort((a, b) => {
+          const aTitle = (a.title || '').toLowerCase();
+          const bTitle = (b.title || '').toLowerCase();
+
+          const aDomainScore = domainWords.filter(w => aTitle.includes(w)).length * 10 + qWords.filter(w => aTitle.includes(w)).length;
+          const bDomainScore = domainWords.filter(w => bTitle.includes(w)).length * 10 + qWords.filter(w => bTitle.includes(w)).length;
+
+          return bDomainScore - aDomainScore;
+        });
+      }
     }
 
     setFilteredJobs(result);
@@ -654,7 +837,7 @@ export default function JobsScreen() {
     if (!isFetchingMore) {
       setCurrentIndex(0);
     }
-  }, [allJobs, filterWorkModel, filterExperience, filterLocation, userProfile]);
+  }, [allJobs, filterQuery, filterWorkModel, filterExperience, filterSalary, filterLocation, selectedSkillsFilter, userProfile]);
 
   const viewJobDetails = async (job: GreenhouseJob) => {
     try {
@@ -1404,10 +1587,196 @@ export default function JobsScreen() {
     return jsCode;
   };
 
-  const injectAutofillScript = () => {
-    if (webViewRef.current) {
-      const triggerCmd = 'if(window.__runAutofill){ window.__runAutofill(); } else { ' + cleanJsCodeForInjection(getAutofillJS()) + ' } true;';
-      webViewRef.current.injectJavaScript(triggerCmd);
+  const getDirectAtsUrl = (url: string) => {
+    if (!url) return url;
+    const ghJidMatch = url.match(/gh_jid=([0-9]+)/i);
+    if (ghJidMatch && ghJidMatch[1]) {
+      return `https://boards.greenhouse.io/embed/job_app?token=${ghJidMatch[1]}`;
+    }
+    return url;
+  };
+
+  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://188.166.164.115:3030';
+
+  const injectAutofillScript = async () => {
+    if (webViewRef.current && userProfile) {
+      const experiences = userProfile.workExperiences || userProfile.experiences || [];
+      const currentExp = experiences.length > 0 ? experiences[0] : null;
+
+      const educations = userProfile.educations || userProfile.education || [];
+      const currentEdu = educations.length > 0 ? educations[0] : null;
+
+      const fn = (userProfile.firstName || '').trim();
+      const ln = (userProfile.lastName || '').trim();
+      const full = `${fn} ${ln}`.trim();
+      const em = (userProfile.email || userProfile.emailAddress || '').trim();
+      const ph = (userProfile.phone || userProfile.phoneNumber || '').trim();
+      const li = (userProfile.linkedinUrl || userProfile.linkedin || '').trim();
+      const po = (userProfile.portfolioUrl || userProfile.portfolio || '').trim();
+      const ci = (userProfile.city || userProfile.location || '').trim();
+
+      const sch = (currentEdu?.schoolName || userProfile.schoolName || '').trim();
+      const deg = (currentEdu?.degree || userProfile.degree || '').trim();
+      const dis = (currentEdu?.fieldOfStudy || currentEdu?.degree || userProfile.discipline || '').trim();
+      const edStart = (currentEdu?.startDate || '').trim();
+      const edEnd = (currentEdu?.endDate || '').trim();
+
+      const emp = (currentExp?.companyName || userProfile.companyName || '').trim();
+      const tit = (currentExp?.jobTitle || userProfile.jobTitle || userProfile.role || '').trim();
+      const wkStart = (currentExp?.startDate || '').trim();
+      const wkEnd = (currentExp?.endDate || '').trim();
+
+      const gen = (userProfile.gender || userProfile.sex || '').trim();
+      const race = (userProfile.race || userProfile.ethnicity || '').trim();
+      const vet = (userProfile.veteranStatus || userProfile.veteran || '').trim();
+      const disab = (userProfile.disabilityStatus || userProfile.disability || '').trim();
+
+      const resB64 = (userProfile.resumeBase64 || '').trim();
+
+      const purpleJs = `
+        (function() {
+          function setVal(el, v) {
+            if (!el || !v) return;
+            try {
+              const proto = Object.getPrototypeOf(el);
+              const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set || Object.getOwnPropertyDescriptor(el, 'value')?.set;
+              if (setter) setter.call(el, v); else el.value = v;
+            } catch(e) { el.value = v; }
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+
+          const docs = [document];
+          document.querySelectorAll('iframe').forEach(f => {
+            try { if (f.contentDocument) docs.push(f.contentDocument); } catch(e) {}
+          });
+
+          docs.forEach(doc => {
+            if ("${fn}") {
+              doc.querySelectorAll('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]').forEach(e => setVal(e, "${fn}"));
+            }
+            if ("${ln}") {
+              doc.querySelectorAll('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]').forEach(e => setVal(e, "${ln}"));
+            }
+            if ("${full}") {
+              doc.querySelectorAll('input[name="name" i], input[id="name" i]').forEach(e => setVal(e, "${full}"));
+            }
+            if ("${em}") {
+              doc.querySelectorAll('input[type="email" i], input[name*="email" i], input[id*="email" i]').forEach(e => setVal(e, "${em}"));
+            }
+            if ("${ph}") {
+              doc.querySelectorAll('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]').forEach(e => setVal(e, "${ph}"));
+            }
+            if ("${li}") {
+              doc.querySelectorAll('input[name*="linkedin" i], input[id*="linkedin" i]').forEach(e => setVal(e, "${li}"));
+            }
+            if ("${po}") {
+              doc.querySelectorAll('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i]').forEach(e => setVal(e, "${po}"));
+            }
+            if ("${ci}") {
+              doc.querySelectorAll('input[name*="city" i], input[id*="city" i], input[name*="location" i]').forEach(e => setVal(e, "${ci}"));
+            }
+            // School / University
+            if ("${sch}") {
+              doc.querySelectorAll('input[name*="school" i], input[name*="university" i], input[id*="school" i]').forEach(e => setVal(e, "${sch}"));
+            }
+            // Degree
+            if ("${deg}") {
+              doc.querySelectorAll('input[name*="degree" i], input[id*="degree" i]').forEach(e => setVal(e, "${deg}"));
+            }
+            // Discipline / Field of Study
+            if ("${dis}") {
+              doc.querySelectorAll('input[name*="discipline" i], input[name*="major" i], input[name*="field" i]').forEach(e => setVal(e, "${dis}"));
+            }
+            // Edu Start Date
+            if ("${edStart}") {
+              doc.querySelectorAll('input[name*="start" i][name*="school" i], input[name*="start" i][name*="edu" i]').forEach(e => setVal(e, "${edStart}"));
+            }
+            // Edu End Date
+            if ("${edEnd}") {
+              doc.querySelectorAll('input[name*="end" i][name*="school" i], input[name*="end" i][name*="edu" i], input[name*="grad" i]').forEach(e => setVal(e, "${edEnd}"));
+            }
+            // Current Employer
+            if ("${emp}") {
+              doc.querySelectorAll('input[name*="company" i], input[name*="employer" i], input[id*="company" i], input[name*="org" i]').forEach(e => setVal(e, "${emp}"));
+            }
+            // Current Job Title
+            if ("${tit}") {
+              doc.querySelectorAll('input[name*="title" i], input[id*="title" i], input[name*="position" i]').forEach(e => setVal(e, "${tit}"));
+            }
+            // Work Start Date
+            if ("${wkStart}") {
+              doc.querySelectorAll('input[name*="start" i][name*="work" i], input[name*="start" i][name*="job" i]').forEach(e => setVal(e, "${wkStart}"));
+            }
+            // Work End Date
+            if ("${wkEnd}") {
+              doc.querySelectorAll('input[name*="end" i][name*="work" i], input[name*="end" i][name*="job" i]').forEach(e => setVal(e, "${wkEnd}"));
+            }
+            // Gender
+            if ("${gen}") {
+              const gVal = "${gen}".toLowerCase();
+              doc.querySelectorAll('select[name*="gender" i], select[id*="gender" i], select[name*="sex" i]').forEach(s => {
+                const opts = Array.from(s.options || []);
+                const match = opts.find(o => (o.value || '').toLowerCase().includes(gVal) || (o.text || '').toLowerCase().includes(gVal));
+                if (match) { s.value = match.value; s.dispatchEvent(new Event('change', { bubbles: true })); }
+              });
+            }
+            // Race / Ethnicity
+            if ("${race}") {
+              const rVal = "${race}".toLowerCase();
+              doc.querySelectorAll('select[name*="race" i], select[name*="ethnicity" i], select[id*="race" i]').forEach(s => {
+                const opts = Array.from(s.options || []);
+                const match = opts.find(o => (o.value || '').toLowerCase().includes(rVal) || (o.text || '').toLowerCase().includes(rVal));
+                if (match) { s.value = match.value; s.dispatchEvent(new Event('change', { bubbles: true })); }
+              });
+            }
+            // Veteran Status
+            if ("${vet}") {
+              const vVal = "${vet}".toLowerCase();
+              doc.querySelectorAll('select[name*="veteran" i], select[id*="veteran" i]').forEach(s => {
+                const opts = Array.from(s.options || []);
+                const match = opts.find(o => (o.value || '').toLowerCase().includes(vVal) || (o.text || '').toLowerCase().includes(vVal));
+                if (match) { s.value = match.value; s.dispatchEvent(new Event('change', { bubbles: true })); }
+              });
+            }
+            // Disability Status
+            if ("${disab}") {
+              const dVal = "${disab}".toLowerCase();
+              doc.querySelectorAll('select[name*="disability" i], select[id*="disability" i]').forEach(s => {
+                const opts = Array.from(s.options || []);
+                const match = opts.find(o => (o.value || '').toLowerCase().includes(dVal) || (o.text || '').toLowerCase().includes(dVal));
+                if (match) { s.value = match.value; s.dispatchEvent(new Event('change', { bubbles: true })); }
+              });
+            }
+
+            // Instant PDF Resume Auto-Attachment via WebKit DOM Blob
+            if ("${resB64}") {
+              try {
+                fetch("data:application/pdf;base64," + "${resB64}")
+                  .then(r => r.blob())
+                  .then(blob => {
+                    if (blob) {
+                      const resFile = new File([blob], "Resume.pdf", { type: 'application/pdf' });
+                      const dt = new DataTransfer();
+                      dt.items.add(resFile);
+                      doc.querySelectorAll('input[type="file"]').forEach(inp => {
+                        const n = (inp.name || inp.id || '').toLowerCase();
+                        if (n.includes('resume') || n.includes('cv') || (!n.includes('cover') && !inp.files.length)) {
+                          inp.files = dt.files;
+                          inp.dispatchEvent(new Event('change', { bubbles: true }));
+                          inp.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                      });
+                    }
+                  }).catch(function(){});
+              } catch(e) {}
+            }
+          });
+        })();
+        true;
+      `;
+
+      webViewRef.current.injectJavaScript(cleanJsCodeForInjection(purpleJs));
     }
   };
 
@@ -1536,7 +1905,7 @@ export default function JobsScreen() {
         isBuilt: true
       };
 
-      const updatedList = [newResumeEntry, ...resumesList];
+      const updatedList = sortResumesWithDefaultFirst([newResumeEntry, ...resumesList]);
       const resumesJsonPath = `${FileSystem.documentDirectory}resumes.json`;
       await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(updatedList));
       setResumesList(updatedList);
@@ -1772,7 +2141,7 @@ export default function JobsScreen() {
         >
           <View style={{ flexShrink: 1, marginRight: 8 }}>
             <Text style={styles.roleFilterTitle} numberOfLines={1}>
-              {filterQuery ? filterQuery : 'Product Designer'}
+              {filterQuery ? filterQuery : (selectedSkillsFilter.length > 0 ? selectedSkillsFilter.join(', ') : 'All Jobs')}
             </Text>
             <Text style={styles.roleFilterSub} numberOfLines={1}>
               {filterLocation ? filterLocation : 'All Locations'}
@@ -1857,6 +2226,7 @@ export default function JobsScreen() {
                   userProfile={userProfile}
                   onViewDetails={(j) => viewJobDetails(j)}
                   onSkip={(j) => handleListSkip(j)}
+                  onOpenMenu={(j) => handleOpenCardMenu(j)}
                   isSkipped={sessionSkippedIds.has(String(jobItem.id))}
                 />
               ))}
@@ -1919,6 +2289,7 @@ export default function JobsScreen() {
                     item={filteredJobs[currentIndex + 1]}
                     isActive={false}
                     userProfile={userProfile}
+                    onOpenMenu={(j) => handleOpenCardMenu(j)}
                   />
                 </Animated.View>
               )}
@@ -1954,6 +2325,7 @@ export default function JobsScreen() {
                     userProfile={userProfile}
                     likeStyle={likeBadgeStyle}
                     nopeStyle={nopeBadgeStyle}
+                    onOpenMenu={(j) => handleOpenCardMenu(j)}
                   />
                 </TouchableOpacity>
               </Animated.View>
@@ -2286,7 +2658,7 @@ export default function JobsScreen() {
 
           <WebView
             ref={webViewRef}
-            source={{ uri: selectedJob?.absolute_url || '' }}
+            source={{ uri: getDirectAtsUrl(selectedJob?.absolute_url || '') }}
             onLoadEnd={injectAutofillScript}
             onMessage={handleWebViewMessage}
             style={{ flex: 1 }}
@@ -2496,6 +2868,217 @@ export default function JobsScreen() {
         </View>
       </Modal>
 
+      {/* 3-DOTS QUICK ACTIONS POPUP MODAL */}
+      <Modal
+        visible={showCardMenuModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowCardMenuModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdropOverlay}
+          activeOpacity={1}
+          onPress={() => setShowCardMenuModal(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.cardMenuModalCard}>
+            {/* Header */}
+            <View style={styles.cardMenuHeaderRow}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={styles.cardMenuTitleText} numberOfLines={1}>{menuJob?.title || 'Job Options'}</Text>
+                <Text style={styles.cardMenuCompanyText} numberOfLines={1}>{menuJob?.companyName || 'Company'}</Text>
+              </View>
+              <TouchableOpacity style={styles.cardMenuCloseBtn} onPress={() => setShowCardMenuModal(false)}>
+                <Ionicons name="close" size={18} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.cardMenuDividerLine} />
+
+            {/* Menu Option 1: Already Applied */}
+            <TouchableOpacity
+              style={styles.cardMenuItemRow}
+              activeOpacity={0.7}
+              onPress={() => menuJob && handleActionAlreadyApplied(menuJob)}
+            >
+              <View style={[styles.cardMenuIconCircle, { backgroundColor: '#DCFCE7' }]}>
+                <Ionicons name="checkmark-circle-outline" size={20} color="#166534" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.cardMenuItemTitle}>Already Applied</Text>
+                <Text style={styles.cardMenuItemSub}>Save to your applied jobs list</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Menu Option 2: Share Listing */}
+            <TouchableOpacity
+              style={styles.cardMenuItemRow}
+              activeOpacity={0.7}
+              onPress={() => menuJob && handleActionShare(menuJob)}
+            >
+              <View style={[styles.cardMenuIconCircle, { backgroundColor: '#DBEAFE' }]}>
+                <Ionicons name="paper-plane-outline" size={19} color="#1E40AF" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.cardMenuItemTitle}>Share Listing</Text>
+                <Text style={styles.cardMenuItemSub}>Share job details or direct link</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Menu Option 3: Remove / Skip */}
+            <TouchableOpacity
+              style={styles.cardMenuItemRow}
+              activeOpacity={0.7}
+              onPress={() => menuJob && handleActionRemove(menuJob)}
+            >
+              <View style={[styles.cardMenuIconCircle, { backgroundColor: '#F1F5F9' }]}>
+                <Ionicons name="eye-off-outline" size={19} color="#475569" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.cardMenuItemTitle}>Remove from List</Text>
+                <Text style={styles.cardMenuItemSub}>Hide listing from your job feed</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Menu Option 4: Report Issue */}
+            <TouchableOpacity
+              style={[styles.cardMenuItemRow, { borderBottomWidth: 0 }]}
+              activeOpacity={0.7}
+              onPress={() => menuJob && handleActionOpenReport(menuJob)}
+            >
+              <View style={[styles.cardMenuIconCircle, { backgroundColor: '#FFE4E6' }]}>
+                <Ionicons name="flag-outline" size={19} color="#E11D48" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.cardMenuItemTitle, { color: '#E11D48' }]}>Report Listing</Text>
+                <Text style={styles.cardMenuItemSub}>Report suspicious or inaccurate post</Text>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* CUSTOM REPORT ISSUE MODAL */}
+      <Modal
+        visible={showReportModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdropOverlay}
+            activeOpacity={1}
+            onPress={() => setShowReportModal(false)}
+          >
+            <TouchableOpacity activeOpacity={1} style={styles.reportModalCard}>
+              <View style={styles.reportHeaderRow}>
+                <View style={styles.reportShieldIconBox}>
+                  <Ionicons name="shield-checkmark" size={22} color="#7C3AED" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.reportModalTitle}>Report Listing</Text>
+                  <Text style={styles.reportModalSub} numberOfLines={1}>
+                    {reportJob ? `${reportJob.title} • ${reportJob.companyName || 'Company'}` : 'Tell us what is wrong'}
+                  </Text>
+                </View>
+                <TouchableOpacity style={styles.cardMenuCloseBtn} onPress={() => setShowReportModal(false)}>
+                  <Ionicons name="close" size={18} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.reportSectionLabel}>What issue did you spot?</Text>
+
+              {/* Reasons List */}
+              <ScrollView style={{ maxHeight: 280 }} showsVerticalScrollIndicator={false}>
+                {[
+                  {
+                    id: 'scam',
+                    label: 'Suspicious or Fraudulent Post',
+                    sub: 'Appears to be a scam, fake recruiter, or phishing'
+                  },
+                  {
+                    id: 'inaccurate',
+                    label: 'Inaccurate Details or Salary',
+                    sub: 'Incorrect job title, requirements, or pay'
+                  },
+                  {
+                    id: 'location',
+                    label: 'Incorrect Location or Remote Status',
+                    sub: 'Mislabeled city, country, or remote work model'
+                  },
+                  {
+                    id: 'expired',
+                    label: 'Broken Link or No Longer Available',
+                    sub: 'The application link is broken or role is filled'
+                  },
+                  {
+                    id: 'offensive',
+                    label: 'Inappropriate Content',
+                    sub: 'Contains discriminatory or offensive language'
+                  }
+                ].map((reason) => {
+                  const isSelected = selectedReportReason === reason.id;
+                  return (
+                    <TouchableOpacity
+                      key={`reason-${reason.id}`}
+                      style={[styles.reportReasonRow, isSelected && styles.reportReasonRowSelected]}
+                      activeOpacity={0.7}
+                      onPress={() => setSelectedReportReason(reason.id)}
+                    >
+                      <View style={[styles.radioCircle, isSelected && styles.radioCircleSelected]}>
+                        {isSelected && <View style={styles.radioDotInner} />}
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={[styles.reportReasonTitle, isSelected && styles.reportReasonTitleSelected]}>
+                          {reason.label}
+                        </Text>
+                        <Text style={styles.reportReasonSub}>{reason.sub}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Optional Text input */}
+              <TextInput
+                style={styles.reportNoteInput}
+                placeholder="Additional comments (optional)..."
+                placeholderTextColor="#94A3B8"
+                value={reportNote}
+                onChangeText={setReportNote}
+                multiline={true}
+                numberOfLines={2}
+              />
+
+              {/* Action Buttons */}
+              <View style={styles.reportFooterRow}>
+                <TouchableOpacity
+                  style={styles.reportCancelBtn}
+                  onPress={() => setShowReportModal(false)}
+                >
+                  <Text style={styles.reportCancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.reportSubmitBtn, !selectedReportReason && { opacity: 0.5 }]}
+                  disabled={!selectedReportReason || isSubmittingReport}
+                  onPress={handleSubmitReport}
+                >
+                  {isSubmittingReport ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.reportSubmitBtnText}>Submit Report</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* Search & Filter Role Modal */}
       <Modal
         visible={showSearchModal}
@@ -2527,6 +3110,7 @@ export default function JobsScreen() {
                       setFilterSalary('ALL');
                       setFilterLocation('');
                       setSelectedCompanyFilter('ALL');
+                      setSelectedSkillsFilter([]);
                     }}
                   >
                     <Text style={{ fontSize: 13, fontWeight: '600', color: '#64748B' }}>Reset All</Text>
@@ -2560,21 +3144,28 @@ export default function JobsScreen() {
                 </View>
 
                 {/* Onboarding Target Role Quick Chips */}
-                {userProfile && (Array.isArray(userProfile.skills) || Array.isArray(userProfile.roles)) && (
+                {userProfile && getUserSkillsList(userProfile).length > 0 && (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterChipRow, { marginTop: 8 }]}>
-                    {(Array.isArray(userProfile.skills) ? userProfile.skills : (Array.isArray(userProfile.roles) ? userProfile.roles : []))
-                      .slice(0, 5)
-                      .map((r: string, idx: number) => (
+                    {getUserSkillsList(userProfile).map((skill: string, idx: number) => {
+                      const isSelected = selectedSkillsFilter.includes(skill) || filterQuery.toLowerCase() === skill.toLowerCase();
+                      return (
                         <TouchableOpacity
-                          key={`onboard-role-${idx}`}
-                          style={[styles.filterChip, filterQuery.toLowerCase() === r.toLowerCase() && styles.filterChipActive]}
-                          onPress={() => setFilterQuery(r)}
+                          key={`onboard-quick-skill-${idx}`}
+                          style={[styles.filterChip, isSelected && styles.filterChipActive]}
+                          onPress={() => {
+                            if (selectedSkillsFilter.includes(skill)) {
+                              setSelectedSkillsFilter(prev => prev.filter(s => s !== skill));
+                            } else {
+                              setSelectedSkillsFilter(prev => [...prev, skill]);
+                            }
+                          }}
                         >
-                          <Text style={[styles.filterChipText, filterQuery.toLowerCase() === r.toLowerCase() && styles.filterChipTextActive]}>
-                            🎯 {r}
+                          <Text style={[styles.filterChipText, isSelected && styles.filterChipTextActive]}>
+                            🎯 {skill}
                           </Text>
                         </TouchableOpacity>
-                      ))}
+                      );
+                    })}
                   </ScrollView>
                 )}
               </View>
@@ -2586,6 +3177,47 @@ export default function JobsScreen() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
               >
+                {/* SECTION 0: YOUR SKILLS & TARGET ROLES */}
+                {userProfile && getUserSkillsList(userProfile).length > 0 && (
+                  <View style={{ marginTop: 4, marginBottom: 14 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <Text style={styles.searchLabel}>Skills & Target Roles (From Onboarding)</Text>
+                      {selectedSkillsFilter.length > 0 && (
+                        <TouchableOpacity onPress={() => setSelectedSkillsFilter([])}>
+                          <Text style={{ fontSize: 12, color: '#3B82F6', fontWeight: '600' }}>Clear ({selectedSkillsFilter.length})</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
+                      <TouchableOpacity
+                        style={[styles.filterChip, selectedSkillsFilter.length === 0 && styles.filterChipActive]}
+                        onPress={() => setSelectedSkillsFilter([])}
+                      >
+                        <Text style={[styles.filterChipText, selectedSkillsFilter.length === 0 && styles.filterChipTextActive]}>
+                          ✨ All Skills
+                        </Text>
+                      </TouchableOpacity>
+                      {getUserSkillsList(userProfile).map((skill: string, idx: number) => {
+                        const isSelected = selectedSkillsFilter.includes(skill);
+                        return (
+                          <TouchableOpacity
+                            key={`onboard-filter-skill-${idx}`}
+                            style={[styles.filterChip, isSelected && styles.filterChipActive]}
+                            onPress={() => {
+                              setSelectedSkillsFilter(prev =>
+                                isSelected ? prev.filter(s => s !== skill) : [...prev, skill]
+                              );
+                            }}
+                          >
+                            <Text style={[styles.filterChipText, isSelected && styles.filterChipTextActive]}>
+                              {isSelected ? '✓ ' : ''}{skill}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                )}
                 {/* SECTION 1: EXPECTED SALARY RANGE */}
                 <View style={{ marginTop: 4 }}>
                   <Text style={styles.searchLabel}>Expected Salary Range</Text>
@@ -3150,6 +3782,213 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+
+  // 3-Dots Menu Modal Styles
+  modalBackdropOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  cardMenuModalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  cardMenuHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardMenuTitleText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  cardMenuCompanyText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  cardMenuCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardMenuDividerLine: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 14,
+  },
+  cardMenuItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  cardMenuIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardMenuItemTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  cardMenuItemSub: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#64748B',
+    marginTop: 1,
+  },
+
+  // Custom Report Issue Modal Styles
+  reportModalCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  reportHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  reportShieldIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#F3E8FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportModalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  reportModalSub: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  reportSectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#334155',
+    marginBottom: 10,
+  },
+  reportReasonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#F1F5F9',
+    marginBottom: 8,
+  },
+  reportReasonRowSelected: {
+    backgroundColor: '#F3E8FF',
+    borderColor: '#7C3AED',
+  },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#94A3B8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioCircleSelected: {
+    borderColor: '#7C3AED',
+  },
+  radioDotInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#7C3AED',
+  },
+  reportReasonTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  reportReasonTitleSelected: {
+    color: '#6D28D9',
+  },
+  reportReasonSub: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  reportNoteInput: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    fontSize: 13,
+    color: '#0F172A',
+    height: 60,
+    textAlignVertical: 'top',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  reportFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  reportCancelBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+  },
+  reportCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  reportSubmitBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    borderRadius: 12,
+    backgroundColor: '#7C3AED',
+  },
+  reportSubmitBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -4169,93 +5008,205 @@ function getJobQualifications(job: GreenhouseJob): string[] {
   ];
 }
 
-// Helper to format raw numbers like 120000 into clean $120K Salary strings
+function extractSalaryFromText(text: string | null | undefined): string | null {
+  if (!text || typeof text !== 'string') return null;
+
+  const labelMatch = text.match(/(?:salary|compensation|base pay|pay range|remuneration|rate)\s*(?:range|rate)?\s*[:\-\=]?\s*([\$€£¥]\s*\d[\d,\.]*\s*(?:[kK]|thousand)?\s*(?:[\-\–\—]|to)\s*[\$€£¥]?\s*\d[\d,\.]*\s*(?:[kK]|thousand)?(?:\s*\/(?:yr|year|hr|hour|mo|month))?|[\$€£¥]\s*\d[\d,\.]*\s*(?:[kK]|thousand)?(?:\s*\/(?:yr|year|hr|hour|mo|month))?)/i);
+  if (labelMatch && labelMatch[1]) {
+    return labelMatch[1].trim();
+  }
+
+  const rangeMatch = text.match(/([\$€£¥]\s*\d{2,3}(?:,\d{3})*(?:\.\d{2})?\s*(?:[kK])?\s*(?:[\-\–\—]|to)\s*[\$€£¥]?\s*\d{2,3}(?:,\d{3})*(?:\.\d{2})?\s*(?:[kK])?(?:\s*(?:USD|EUR|GBP|CAD|AUD))?(?:\s*\/(?:yr|year|hr|hour|mo|month|annum))?)/i);
+  if (rangeMatch && rangeMatch[1]) {
+    return rangeMatch[1].trim();
+  }
+
+  const shortRangeMatch = text.match(/([\$€£¥]?\s*\d{2,3}\s*k\s*(?:[\-\–\—]|to)\s*[\$€£¥]?\s*\d{2,3}\s*k(?:\s*(?:USD|EUR|GBP))?)/i);
+  if (shortRangeMatch && shortRangeMatch[1]) {
+    return shortRangeMatch[1].trim();
+  }
+
+  return null;
+}
+
+// Helper to format raw numbers like 120000 into clean $120K strings
 function formatSalaryText(raw: string): string {
   if (!raw) return '';
-  let formatted = raw
-    .replace(/\$(\d{1,3}),?000\b/g, '$$$1K')
-    .replace(/\b(\d{2,3}),?000\b/g, '$$$1K')
-    .replace(/\$(\d{2,3})k\b/gi, '$$$1K')
-    .replace(/\b(\d{2,3})k\b/gi, '$$$1K');
+  let formatted = raw.trim();
 
-  if (!formatted.startsWith('$') && /^\d/.test(formatted)) {
+  // Remove word 'Salary'
+  formatted = formatted.replace(/\bsalary\b/gi, '').trim();
+
+  // Convert numbers with thousands like 140,000 or 140000 into 140K
+  formatted = formatted
+    .replace(/([\$€£¥]?\d{1,3}),000\b/g, '$1K')
+    .replace(/([\$€£¥]?\d{2,3})000\b/g, '$1K')
+    .replace(/([\$€£¥]?\d{1,3}(?:\.\d+)?)\s*k\b/gi, '$1K');
+
+  // Fix spaces around hyphens e.g. $140K-$180K -> $140K - $180K
+  formatted = formatted.replace(/([\$€£¥]?\d+[Kk]?)\s*[\-\–\—]\s*([\$€£¥]?\d+[Kk]?)/g, '$1 - $2');
+
+  formatted = formatted.replace(/\s+/g, ' ').trim();
+
+  if (!formatted.startsWith('$') && !formatted.startsWith('€') && !formatted.startsWith('£') && /^\d/.test(formatted)) {
     formatted = `$${formatted}`;
   }
-  if (!formatted.toLowerCase().includes('salary')) {
-    formatted = `${formatted} Salary`;
-  }
+
   return formatted;
 }
 
 // Helper to determine real/realistic salary
-function getJobSalary(job: GreenhouseJob, profile: any): string {
-  const content = job.content || "";
-  // Check if salary pattern is in content (e.g. $100k-$140k or $120,000)
-  const salaryMatch = content.match(/\$\d+[\d,]*\s*(?:-\s*\$\d+[\d,]*|k|\s*k|\,\d{3})?/i);
-  if (salaryMatch && salaryMatch[0] && salaryMatch[0].length > 2 && /\d/.test(salaryMatch[0])) {
-    return formatSalaryText(salaryMatch[0]);
+// Helper to extract real salary from API job data (returns empty string if not in API)
+function getJobSalary(job: any): string {
+  if (!job) return '';
+
+  if (job.salary && typeof job.salary === 'string' && job.salary.trim()) {
+    return formatSalaryText(job.salary.trim());
   }
 
-  if (profile?.expectedSalary?.min && profile?.expectedSalary?.max) {
-    const min = profile.expectedSalary.min;
-    const max = profile.expectedSalary.max;
-    return `$${min}K-$${max}K Salary`;
+  const extracted = extractSalaryFromText(job.content || job.cleanSnippet || '');
+  if (extracted) {
+    return formatSalaryText(extracted);
   }
 
-  // Calculate realistic salary based on job title & company seed
-  const num = typeof job.id === 'number' ? job.id : String(job.id).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const baseSalary = 80 + (num % 55); // $80K - $135K base
-  const titleLower = (job.title || '').toLowerCase();
-
-  if (titleLower.includes('senior') || titleLower.includes('lead') || titleLower.includes('principal') || titleLower.includes('staff')) {
-    return `$${baseSalary + 30}K-$${baseSalary + 70}K Salary`;
-  } else if (titleLower.includes('manager') || titleLower.includes('director') || titleLower.includes('head')) {
-    return `$${baseSalary + 50}K-$${baseSalary + 90}K Salary`;
-  } else if (titleLower.includes('engineer') || titleLower.includes('developer') || titleLower.includes('architect')) {
-    return `$${baseSalary + 20}K-$${baseSalary + 55}K Salary`;
-  } else if (titleLower.includes('designer') || titleLower.includes('ux') || titleLower.includes('ui')) {
-    return `$${baseSalary + 10}K-$${baseSalary + 45}K Salary`;
-  } else if (titleLower.includes('junior') || titleLower.includes('intern') || titleLower.includes('associate')) {
-    return `$${Math.max(50, baseSalary - 25)}K-$${baseSalary + 10}K Salary`;
-  }
-
-  return `$${baseSalary}K-$${baseSalary + 35}K Salary`;
+  return '';
 }
 
-// Helper to determine experience level required
-function getJobExperience(job: GreenhouseJob, profile: any): string {
-  const content = (job.content || "") + " " + (job.title || "");
-  const expMatch = content.match(/(\d+\+?\s*(?:-\s*\d+)?\s*(?:years?|yrs?))/i);
+function getUserSkillsList(profile: any): string[] {
+  if (!profile) return [];
+  const list: string[] = [];
+
+  const addVal = (val: any) => {
+    if (typeof val === 'string' && val.trim()) {
+      const cleaned = val.trim();
+      if (!list.includes(cleaned)) list.push(cleaned);
+    } else if (val && typeof val === 'object') {
+      const name = val.name || val.title || val.label || val.skill;
+      if (typeof name === 'string' && name.trim()) {
+        const cleaned = name.trim();
+        if (!list.includes(cleaned)) list.push(cleaned);
+      }
+    }
+  };
+
+  if (Array.isArray(profile.skills)) profile.skills.forEach(addVal);
+  if (Array.isArray(profile.roles)) profile.roles.forEach(addVal);
+  if (Array.isArray(profile.interests)) profile.interests.forEach(addVal);
+  if (profile.jobTitle) addVal(profile.jobTitle);
+  if (profile.role) addVal(profile.role);
+  if (profile.targetRole) addVal(profile.targetRole);
+
+  return list;
+}
+
+// Helper to extract experience required from API job data (returns empty string if not in API)
+function getJobExperience(job: any): string {
+  if (!job) return '';
+
+  if (job.experience) return String(job.experience);
+  if (job.experienceLevel) return String(job.experienceLevel);
+  if (job.experience_level) return String(job.experience_level);
+  if (job.minExperience) return `${job.minExperience}+ yrs exp`;
+
+  const text = ((job.content || '') + ' ' + (job.cleanSnippet || '') + ' ' + (job.title || ''));
+  const expMatch = text.match(/(\d+\+?\s*(?:-\s*\d+)?\s*(?:years?|yrs?)(?:\s+of\s+experience|\s+exp)?)/i);
   if (expMatch) {
     return `${expMatch[1]} exp`;
   }
 
-  if (profile?.experience) {
-    return `${profile.experience} exp`;
-  }
-
-  const titleLower = (job.title || '').toLowerCase();
-  if (titleLower.includes('senior') || titleLower.includes('lead')) return '5+ years exp';
-  if (titleLower.includes('principal') || titleLower.includes('staff') || titleLower.includes('director')) return '8+ years exp';
-  if (titleLower.includes('junior') || titleLower.includes('intern')) return '1-2 years exp';
-
-  return '3+ years exp';
+  return '';
 }
 
-// Helper to determine work model (In Person, Remote, Hybrid)
-function getJobWorkModel(job: GreenhouseJob): string {
-  const text = ((job.location?.name || '') + ' ' + (job.content || '') + ' ' + (job.title || '')).toLowerCase();
+// Helper to determine employment type from API job data
+function getJobEmploymentType(job: any): string {
+  if (!job) return '';
+  if (job.employmentType && typeof job.employmentType === 'string' && job.employmentType.trim()) {
+    return job.employmentType.trim();
+  }
+  const text = ((job.content || '') + ' ' + (job.cleanSnippet || '') + ' ' + (job.title || '')).toLowerCase();
+  if (text.includes('part-time') || text.includes('part time')) return 'Part Time';
+  if (text.includes('contract') || text.includes('freelance')) return 'Contract';
+  if (text.includes('internship') || text.includes('intern')) return 'Internship';
+  if (text.includes('full-time') || text.includes('full time')) return 'Full Time';
+
+  return '';
+}
+
+// Helper to determine work model from API job data
+function getJobWorkModel(job: any): string {
+  if (!job) return '';
+  if (typeof job.remote === 'boolean') {
+    return job.remote ? 'Remote' : 'In Person';
+  }
+  const text = ((job.location?.name || '') + ' ' + (job.content || '') + ' ' + (job.cleanSnippet || '') + ' ' + (job.title || '')).toLowerCase();
   if (text.includes('remote')) return 'Remote';
   if (text.includes('hybrid')) return 'Hybrid';
-  return 'In Person';
+  if (text.includes('in person') || text.includes('on-site') || text.includes('onsite')) return 'In Person';
+
+  return '';
 }
 
 // Helper to determine posted time relative to job id / date
-function getJobPostedTime(job: GreenhouseJob): string {
-  const num = typeof job.id === 'number' ? job.id : String(job.id).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const hours = (num % 48) + 1;
+function getJobPostedTime(job: any): string {
+  if (!job) return '1 day ago';
+
+  const rawDate = job.postedAt || job.createdAt || job.updated_at || job.date || job.posted_at;
+
+  if (rawDate) {
+    if (typeof rawDate === 'number') {
+      const diffMs = Date.now() - rawDate;
+      if (diffMs >= 0) {
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        if (diffHours < 1) return 'Just now';
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        const diffDays = Math.floor(diffHours / 24);
+        return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+      }
+    }
+
+    if (typeof rawDate === 'string') {
+      const trimmed = rawDate.trim();
+      if (trimmed.toLowerCase() === 'just now') return 'Just now';
+
+      const matchRel = trimmed.match(/^(\d+)\s*(h|d|m|mo|w|hours?|days?|minutes?|weeks?|months?)\s*(ago)?$/i);
+      if (matchRel) {
+        const val = parseInt(matchRel[1], 10);
+        const unit = matchRel[2].toLowerCase();
+        if (unit.startsWith('m') && !unit.startsWith('mo')) {
+          return val < 1 ? 'Just now' : `${val} minute${val > 1 ? 's' : ''} ago`;
+        } else if (unit.startsWith('h')) {
+          return `${val} hour${val > 1 ? 's' : ''} ago`;
+        } else if (unit.startsWith('d')) {
+          return `${val} day${val > 1 ? 's' : ''} ago`;
+        } else if (unit.startsWith('w')) {
+          const days = val * 7;
+          return `${days} day${days > 1 ? 's' : ''} ago`;
+        } else if (unit.startsWith('mo')) {
+          const days = val * 30;
+          return `${days} day${days > 1 ? 's' : ''} ago`;
+        }
+      }
+
+      const dateObj = new Date(trimmed);
+      if (!isNaN(dateObj.getTime())) {
+        const diffMs = Date.now() - dateObj.getTime();
+        if (diffMs >= 0) {
+          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+          if (diffHours < 1) return 'Just now';
+          if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+          const diffDays = Math.floor(diffHours / 24);
+          return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        }
+      }
+    }
+  }
+
+  const num = typeof job.id === 'number'
+    ? job.id
+    : String(job.id || '1').split('').reduce((acc, c: string) => acc + c.charCodeAt(0), 0);
+  const hours = (num % 40) + 2;
   if (hours < 24) {
-    return `${hours} hours ago`;
+    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
   }
   const days = Math.floor(hours / 24) + 1;
   return `${days} day${days > 1 ? 's' : ''} ago`;
@@ -4266,10 +5217,13 @@ function calculateJobMatchScores(job: GreenhouseJob, profile: any) {
   const matchResult = calculateJobMatch(job.content || '', job.title || '', profile);
 
   return {
-    expMatch: `${matchResult.expLevelScore}%`,
-    excellentMatch: `${matchResult.overallScore}%`,
-    fairMatch: `${matchResult.skillsScore}%`,
-    perfectMatch: `${matchResult.industryScore}%`
+    jobMatch: `${matchResult.jobMatch}%`,
+    resume: `${matchResult.resume}%`,
+    keywords: `${matchResult.keywords}%`,
+    expMatch: `${matchResult.resume}%`,
+    excellentMatch: `${matchResult.jobMatch}%`,
+    fairMatch: `${matchResult.keywords}%`,
+    perfectMatch: `${matchResult.jobMatch}%`
   };
 }
 
@@ -4316,10 +5270,11 @@ interface JobListItemCardProps {
   onViewDetails: (item: GreenhouseJob) => void;
   onLike?: (item: GreenhouseJob) => void;
   onSkip?: (item: GreenhouseJob) => void;
+  onOpenMenu?: (item: GreenhouseJob) => void;
   isSkipped?: boolean;
 }
 
-const JobListItemCard = React.memo(({ item, userProfile, onViewDetails, onLike, onSkip, isSkipped }: JobListItemCardProps) => {
+const JobListItemCard = React.memo(({ item, userProfile, onViewDetails, onLike, onSkip, onOpenMenu, isSkipped }: JobListItemCardProps) => {
   const dept = item.departments?.[0]?.name || "Computer Software";
   const office = item.location?.name || "United States";
   const companyName = item.companyName || "Company";
@@ -4328,9 +5283,10 @@ const JobListItemCard = React.memo(({ item, userProfile, onViewDetails, onLike, 
   const companySlug = item.boardToken || companyName.toLowerCase().replace(/[^a-z0-9]/g, '');
   const logoUrl = companySlug ? `https://logo.clearbit.com/${companySlug}.com` : '';
 
-  const salary = getJobSalary(item, userProfile);
-  const exp = getJobExperience(item, userProfile);
+  const salary = getJobSalary(item);
+  const exp = getJobExperience(item);
   const workModel = getJobWorkModel(item);
+  const employmentType = getJobEmploymentType(item);
   const postedTime = getJobPostedTime(item);
   const scores = calculateJobMatchScores(item, userProfile);
   const matchColors = getMatchPillColors(scores.excellentMatch);
@@ -4364,35 +5320,54 @@ const JobListItemCard = React.memo(({ item, userProfile, onViewDetails, onLike, 
             {scores.excellentMatch}
           </Text>
         </View>
+
+        <TouchableOpacity
+          style={{ padding: 6, marginLeft: 4 }}
+          onPress={() => onOpenMenu && onOpenMenu(item)}
+        >
+          <Ionicons name="ellipsis-vertical" size={18} color="#64748B" />
+        </TouchableOpacity>
       </View>
 
-      {/* 6 Meta Grid Items */}
+      {/* Meta Grid Items */}
       <View style={styles.listItemMetaGrid}>
-        <View style={styles.metaGridItem}>
-          <Ionicons name="location-outline" size={13} color="#64748B" />
-          <Text style={styles.metaGridText} numberOfLines={1}>{office.split(',')[0]}</Text>
-        </View>
-        <View style={styles.metaGridItem}>
-          <Ionicons name="cash-outline" size={13} color="#64748B" />
-          <Text style={styles.metaGridText} numberOfLines={1}>{salary.replace(' Salary', '')}</Text>
-        </View>
-        <View style={styles.metaGridItem}>
-          <Ionicons name="home-outline" size={13} color="#64748B" />
-          <Text style={styles.metaGridText} numberOfLines={1}>{exp}</Text>
-        </View>
+        {office ? (
+          <View style={styles.metaGridItem}>
+            <Ionicons name="location-outline" size={13} color="#64748B" />
+            <Text style={styles.metaGridText} numberOfLines={1}>{office.split(',')[0]}</Text>
+          </View>
+        ) : null}
+        {salary ? (
+          <View style={styles.metaGridItem}>
+            <Ionicons name="cash-outline" size={13} color="#64748B" />
+            <Text style={styles.metaGridText} numberOfLines={1}>{salary.replace(' Salary', '')}</Text>
+          </View>
+        ) : null}
+        {exp ? (
+          <View style={styles.metaGridItem}>
+            <Ionicons name="home-outline" size={13} color="#64748B" />
+            <Text style={styles.metaGridText} numberOfLines={1}>{exp}</Text>
+          </View>
+        ) : null}
 
-        <View style={styles.metaGridItem}>
-          <Ionicons name="laptop-outline" size={13} color="#64748B" />
-          <Text style={styles.metaGridText} numberOfLines={1}>{workModel}</Text>
-        </View>
-        <View style={styles.metaGridItem}>
-          <Ionicons name="time-outline" size={13} color="#64748B" />
-          <Text style={styles.metaGridText} numberOfLines={1}>Full Time</Text>
-        </View>
-        <View style={styles.metaGridItem}>
-          <Ionicons name="time-outline" size={13} color="#64748B" />
-          <Text style={styles.metaGridText} numberOfLines={1}>{postedTime}</Text>
-        </View>
+        {workModel ? (
+          <View style={styles.metaGridItem}>
+            <Ionicons name="laptop-outline" size={13} color="#64748B" />
+            <Text style={styles.metaGridText} numberOfLines={1}>{workModel}</Text>
+          </View>
+        ) : null}
+        {employmentType ? (
+          <View style={styles.metaGridItem}>
+            <Ionicons name="time-outline" size={13} color="#64748B" />
+            <Text style={styles.metaGridText} numberOfLines={1}>{employmentType}</Text>
+          </View>
+        ) : null}
+        {postedTime ? (
+          <View style={styles.metaGridItem}>
+            <Ionicons name="time-outline" size={13} color="#64748B" />
+            <Text style={styles.metaGridText} numberOfLines={1}>{postedTime}</Text>
+          </View>
+        ) : null}
       </View>
 
       {/* Divider */}
@@ -4437,9 +5412,10 @@ interface JobCardContentProps {
   userProfile?: any;
   likeStyle?: any;
   nopeStyle?: any;
+  onOpenMenu?: (item: GreenhouseJob) => void;
 }
 
-const JobCardContent = React.memo(({ item, isActive, userProfile, likeStyle, nopeStyle }: JobCardContentProps) => {
+const JobCardContent = React.memo(({ item, isActive, userProfile, likeStyle, nopeStyle, onOpenMenu }: JobCardContentProps) => {
 
   const dept = item.departments?.[0]?.name || "Computer Software";
   const office = item.location?.name || "United States";
@@ -4454,9 +5430,10 @@ const JobCardContent = React.memo(({ item, isActive, userProfile, likeStyle, nop
   const companySlug = item.boardToken || companyName.toLowerCase().replace(/[^a-z0-9]/g, '');
   const logoUrl = companySlug ? `https://logo.clearbit.com/${companySlug}.com` : '';
 
-  const salary = getJobSalary(item, userProfile);
-  const exp = getJobExperience(item, userProfile);
+  const salary = getJobSalary(item);
+  const exp = getJobExperience(item);
   const workModel = getJobWorkModel(item);
+  const employmentType = getJobEmploymentType(item);
   const postedTime = getJobPostedTime(item);
   const scores = calculateJobMatchScores(item, userProfile);
   const qualifications = getJobQualifications(item);
@@ -4466,7 +5443,10 @@ const JobCardContent = React.memo(({ item, isActive, userProfile, likeStyle, nop
       <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled={true} contentContainerStyle={{ paddingBottom: 16 }}>
         {/* Top 3 dots */}
         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', width: '100%', marginBottom: -8 }}>
-          <TouchableOpacity style={{ padding: 4 }}>
+          <TouchableOpacity 
+            style={{ padding: 8 }}
+            onPress={() => onOpenMenu && onOpenMenu(item)}
+          >
             <Ionicons name="ellipsis-vertical" size={20} color="#64748B" />
           </TouchableOpacity>
         </View>
@@ -4491,58 +5471,65 @@ const JobCardContent = React.memo(({ item, isActive, userProfile, likeStyle, nop
           <Text style={styles.cardCompanySub}>{companyName} • {dept}</Text>
         </View>
 
-        {/* 6 Meta Grid Items */}
+        {/* Meta Grid Items */}
         <View style={styles.metaGridContainer}>
-          <View style={styles.metaGridItem}>
-            <Ionicons name="location-outline" size={14} color="#64748B" />
-            <Text style={styles.metaGridText} numberOfLines={1}>{office}</Text>
-          </View>
-          <View style={styles.metaGridItem}>
-            <Ionicons name="cash-outline" size={14} color="#64748B" />
-            <Text style={styles.metaGridText} numberOfLines={1}>{salary}</Text>
-          </View>
-          <View style={styles.metaGridItem}>
-            <Ionicons name="home-outline" size={14} color="#64748B" />
-            <Text style={styles.metaGridText} numberOfLines={1}>{exp}</Text>
-          </View>
+          {office ? (
+            <View style={styles.metaGridItem}>
+              <Ionicons name="location-outline" size={14} color="#64748B" />
+              <Text style={styles.metaGridText} numberOfLines={1}>{office}</Text>
+            </View>
+          ) : null}
+          {salary ? (
+            <View style={styles.metaGridItem}>
+              <Ionicons name="cash-outline" size={14} color="#64748B" />
+              <Text style={styles.metaGridText} numberOfLines={1}>{salary}</Text>
+            </View>
+          ) : null}
+          {exp ? (
+            <View style={styles.metaGridItem}>
+              <Ionicons name="home-outline" size={14} color="#64748B" />
+              <Text style={styles.metaGridText} numberOfLines={1}>{exp}</Text>
+            </View>
+          ) : null}
 
-          <View style={styles.metaGridItem}>
-            <Ionicons name="time-outline" size={14} color="#64748B" />
-            <Text style={styles.metaGridText} numberOfLines={1}>Full Time</Text>
-          </View>
-          <View style={styles.metaGridItem}>
-            <Ionicons name="laptop-outline" size={14} color="#64748B" />
-            <Text style={styles.metaGridText} numberOfLines={1}>{workModel}</Text>
-          </View>
-          <View style={styles.metaGridItem}>
-            <Ionicons name="time-outline" size={14} color="#64748B" />
-            <Text style={styles.metaGridText} numberOfLines={1}>{postedTime}</Text>
-          </View>
+          {workModel ? (
+            <View style={styles.metaGridItem}>
+              <Ionicons name="laptop-outline" size={14} color="#64748B" />
+              <Text style={styles.metaGridText} numberOfLines={1}>{workModel}</Text>
+            </View>
+          ) : null}
+          {employmentType ? (
+            <View style={styles.metaGridItem}>
+              <Ionicons name="time-outline" size={14} color="#64748B" />
+              <Text style={styles.metaGridText} numberOfLines={1}>{employmentType}</Text>
+            </View>
+          ) : null}
+          {postedTime ? (
+            <View style={styles.metaGridItem}>
+              <Ionicons name="time-outline" size={14} color="#64748B" />
+              <Text style={styles.metaGridText} numberOfLines={1}>{postedTime}</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Divider */}
         <View style={styles.cardDividerLine} />
 
-        {/* 4 Match Cards styled exactly like the details screen */}
+        {/* 3 Match Cards (JOB MATCH, RESUME, KEYWORDS) */}
         <View style={styles.matchPillsRow}>
-          <View style={[styles.metricCard, styles.metricCardOrange]}>
-            <Text style={styles.metricCardValueWhite}>{scores.excellentMatch}</Text>
-            <Text style={styles.metricCardLabelWhite}>OVERALL</Text>
-          </View>
-
           <View style={[styles.metricCard, styles.metricCardGreen]}>
-            <Text style={styles.metricCardValueGreen}>{scores.perfectMatch}</Text>
+            <Text style={styles.metricCardValueGreen}>{scores.jobMatch}</Text>
             <Text style={styles.metricCardLabelGreen}>JOB MATCH</Text>
           </View>
 
           <View style={[styles.metricCard, styles.metricCardGray]}>
-            <Text style={styles.metricCardValueGray}>{scores.fairMatch}</Text>
-            <Text style={styles.metricCardLabelGray}>SKILLS</Text>
+            <Text style={styles.metricCardValueGray}>{scores.resume}</Text>
+            <Text style={styles.metricCardLabelGray}>RESUME</Text>
           </View>
 
           <View style={[styles.metricCard, styles.metricCardGray]}>
-            <Text style={styles.metricCardValueGray}>{scores.expMatch}</Text>
-            <Text style={styles.metricCardLabelGray}>RESUME</Text>
+            <Text style={styles.metricCardValueGray}>{scores.keywords}</Text>
+            <Text style={styles.metricCardLabelGray}>KEYWORDS</Text>
           </View>
         </View>
 

@@ -181,8 +181,8 @@ export default function TitleSummaryScreen() {
 
   const isFormValid = professionalTitle.trim().length > 0 && summaryText.trim().length > 0;
 
-  // Remaining needed count (target = 2)
-  const remainingNeeded = Math.max(0, 2 - items.length);
+  // Remaining needed count (target = 1)
+  const remainingNeeded = Math.max(0, 1 - items.length);
 
   // Floating Input Box renderer
   const renderFloatingInput = (
@@ -245,7 +245,9 @@ export default function TitleSummaryScreen() {
             <Text style={styles.badgeTextWhite}>Add {remainingNeeded}</Text>
           </View>
         ) : (
-          <View style={{ width: 44 }} />
+          <View style={styles.badgePillGreen}>
+            <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+          </View>
         )}
       </View>
 
@@ -398,6 +400,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
+  },
+  badgePillGreen: {
+    backgroundColor: '#16A34A',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   badgeTextWhite: {
     color: '#FFFFFF',

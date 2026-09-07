@@ -4,7 +4,7 @@ import useSEO from '../hooks/useSEO';
 
 export default function Settings() {
   useSEO(
-    "Account Settings & Privacy Preferences - ResumeOK",
+    "Account Settings & Privacy Preferences - ApplyDesk",
     "Manage your notification preferences, auto-apply security settings, and data privacy options."
   );
 

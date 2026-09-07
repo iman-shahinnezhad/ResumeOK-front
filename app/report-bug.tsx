@@ -97,7 +97,7 @@ export default function ReportBug() {
 
         {/* Info Card */}
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>ResumeOK App Feedback</Text>
+          <Text style={styles.formTitle}>ApplyDesk App Feedback</Text>
           <Text style={styles.formSubtitle}>
             Your email will only be used for follow-up purposes and will never be shared with anyone.
           </Text>

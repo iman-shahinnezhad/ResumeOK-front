@@ -1,4 +1,4 @@
-package com.pixflow.resumeok
+package com.pixflow.applydesk
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

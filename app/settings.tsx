@@ -153,7 +153,7 @@ export default function Settings() {
       if (Platform.OS === 'ios' || Platform.OS === 'android') {
         const { Share } = require('react-native');
         await Share.share({
-          message: `Join ResumeOK with my invite code ${referralCode} and get free credits! https://resumeok.app/invite?code=${referralCode}`,
+          message: `Join ApplyDesk with my invite code ${referralCode} and get free credits!`,
         });
       } else {
         handleCopyLink();
@@ -297,36 +297,11 @@ export default function Settings() {
             <Ionicons name="chevron-back" size={20} color="#0F172A" />
           )}
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.creditsPill}
-          activeOpacity={0.8}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push('/pricing' as any);
-          }}
-        >
-          {Platform.OS === 'ios' ? (
-            <SymbolView name="sparkles" size={15} tintColor="#F59E0B" resizeMode="scaleAspectFit" />
-          ) : (
-            <Ionicons name="sparkles" size={16} color="#F59E0B" />
-          )}
-          <Text style={[styles.creditsText, { marginLeft: 6 }]}>{currentData.credit} Credits</Text>
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Settings</Text>
+        <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}>
-
-        {/* Profile Card / Top Section */}
-        <View style={styles.profileSection}>
-          <View style={styles.profileInfo}>
-            <Image source={typeof currentData.avatar === 'string' ? { uri: currentData.avatar } : currentData.avatar} style={styles.avatarImage} />
-            <View>
-              <Text style={styles.profileTitle}>{currentData.title}</Text>
-              {currentData.subtitle ? <Text style={styles.profileSubtitle}>{currentData.subtitle}</Text> : null}
-            </View>
-          </View>
-        </View>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40, paddingTop: 10 }]}>
 
 
         {/* Referral Code Card */}

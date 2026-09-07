@@ -25,9 +25,11 @@ export interface ParsedProfile {
   linkedinUrl?: string;
   portfolioUrl?: string;
   targetRole?: string;
+  summary?: string;
   experienceYears?: number;
   experienceLevel?: string;
   skills: string[];
+  tools?: string[];
   softSkills?: string[];
   languages?: (string | { id?: string; name?: string; proficiency?: string })[];
   projects?: any[];
@@ -48,6 +50,12 @@ const DOMAIN_SKILLS = [
   'Customer Service', 'Sales', 'Management', 'Strategy', 'Communication', 'Problem Solving', 'Leadership',
   'React', 'React Native', 'TypeScript', 'JavaScript', 'Node.js', 'Express', 'Python', 'Java', 'C++',
   'SQL', 'MongoDB', 'PostgreSQL', 'Docker', 'AWS', 'Git', 'Figma', 'UI/UX', 'HTML', 'CSS', 'Redux'
+];
+
+const DOMAIN_TOOLS = [
+  'VS Code', 'Git', 'GitHub', 'GitLab', 'Docker', 'Kubernetes', 'Jira', 'Confluence', 'Figma',
+  'Postman', 'Jenkins', 'Nginx', 'Redis', 'AWS', 'GCP', 'Azure', 'Webpack', 'Babel', 'Vite',
+  'Photoshop', 'Illustrator', 'Slack', 'Trello', 'Notion', 'Excel', 'Word', 'PowerPoint', 'Salesforce'
 ];
 
 const B64_MAP = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
@@ -272,7 +280,7 @@ export function validateAndRepairParsedProfile(parsed: ParsedProfile): ParsedPro
     }
   }
 
-  // 6. Deduplicate Skills
+  // 6. Deduplicate Skills & Tools
   if (Array.isArray(repaired.skills)) {
     const uniqueSkills = new Set<string>();
     for (const skill of repaired.skills) {
@@ -283,6 +291,18 @@ export function validateAndRepairParsedProfile(parsed: ParsedProfile): ParsedPro
     repaired.skills = Array.from(uniqueSkills);
   } else {
     repaired.skills = [];
+  }
+
+  if (Array.isArray(repaired.tools)) {
+    const uniqueTools = new Set<string>();
+    for (const tool of repaired.tools) {
+      if (typeof tool === 'string' && tool.trim().length > 1) {
+        uniqueTools.add(tool.trim());
+      }
+    }
+    repaired.tools = Array.from(uniqueTools);
+  } else {
+    repaired.tools = [];
   }
 
   if (!Array.isArray(repaired.workExperiences)) repaired.workExperiences = [];
@@ -319,9 +339,11 @@ export async function parsePdfResumeText(rawInput: string, fileName = 'resume.pd
   "linkedinUrl": null,
   "portfolioUrl": null,
   "targetRole": "Candidate Title or Primary Role",
+  "summary": "Candidate professional summary or bio",
   "experienceYears": 5,
   "experienceLevel": "Entry-level | 1-3 years | 3+ years | 5+ years | 7+ years",
   "skills": ["Skill 1", "Skill 2"],
+  "tools": ["Git", "VS Code", "Figma", "Docker"],
   "softSkills": ["Communication", "Problem Solving"],
   "languages": ["English", "Spanish"],
   "projects": [
@@ -575,6 +597,24 @@ ${cleanText}
     }
   }
 
+  const foundTools = new Set<string>();
+  for (const tool of DOMAIN_TOOLS) {
+    const esc = tool.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`(?:^|[^a-zA-Z0-9])${esc}(?:$|[^a-zA-Z0-9])`, 'i');
+    if (regex.test(cleanText)) {
+      foundTools.add(tool);
+    }
+  }
+
+  let extractedSummary: string | undefined = undefined;
+  const summaryMatch = cleanText.match(/(?:summary|profile|about\s+me|objective)([\s\S]*?)(?:experience|education|skills|projects|languages|tools|$)/i);
+  if (summaryMatch) {
+    const smText = summaryMatch[1].replace(/[\r\n]+/g, ' ').trim();
+    if (smText.length > 20 && smText.length < 1000) {
+      extractedSummary = smText;
+    }
+  }
+
   const workExperiences: WorkExperienceItem[] = [];
   const expMatch = cleanText.match(/(?:employment\s+history|work\s+experience|experience)([\s\S]*?)(?:education|skills|certifications|courses|achievements|$)/i);
   if (expMatch) {
@@ -621,7 +661,9 @@ ${cleanText}
     linkedinUrl,
     portfolioUrl,
     targetRole,
+    summary: extractedSummary,
     skills: Array.from(foundSkills),
+    tools: Array.from(foundTools),
     workExperiences,
     education: educationList
   };

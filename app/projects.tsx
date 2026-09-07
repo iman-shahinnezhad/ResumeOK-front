@@ -100,7 +100,7 @@ export default function ProjectsScreen() {
         } else if (data.role || data.company) {
           const initialProject: ProjectItem = {
             id: '1',
-            projectName: 'ResumeOK AI Platform',
+            projectName: 'ApplyDesk AI Platform',
             role: data.role || 'Lead Mobile Engineer',
             description: 'AI-powered resume builder and job optimization mobile application.',
             technologies: ['React Native', 'Expo', 'TypeScript'],
@@ -319,7 +319,7 @@ export default function ProjectsScreen() {
   };
 
   const isFormValid = projectName.trim().length > 0;
-  const remainingNeeded = Math.max(0, 3 - projects.length);
+  const remainingNeeded = 0; // Optional
 
   // Floating Input Box renderer
   const renderFloatingInput = (
@@ -377,13 +377,9 @@ export default function ProjectsScreen() {
 
         <Text style={styles.headerTitle}>Projects</Text>
 
-        {remainingNeeded > 0 ? (
-          <View style={styles.badgePillRed}>
-            <Text style={styles.badgeTextWhite}>Add {remainingNeeded}</Text>
-          </View>
-        ) : (
-          <View style={{ width: 44 }} />
-        )}
+        <View style={styles.badgePillGreen}>
+          <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+        </View>
       </View>
 
       <ScrollView
@@ -741,6 +737,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
+  },
+  badgePillGreen: {
+    backgroundColor: '#16A34A',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   badgeTextWhite: {
     color: '#FFFFFF',

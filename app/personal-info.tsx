@@ -309,7 +309,7 @@ export default function PersonalInfo() {
     }
   };
 
-  // Calculate missing fields count for Add X red badge across all 11 fields
+  // Calculate missing fields count for Add X red badge across primary personal info fields
   const checkMissingCount = () => {
     let missing = 0;
     if (!firstName.trim()) missing++;
@@ -318,11 +318,6 @@ export default function PersonalInfo() {
     if (!phone.trim()) missing++;
     if (!address.trim()) missing++;
     if (!salary.trim()) missing++;
-    if (!dob.trim()) missing++;
-    if (!gender.trim()) missing++;
-    if (!ethnicity.trim()) missing++;
-    if (!disability.trim()) missing++;
-    if (!citizenship.trim()) missing++;
     return missing;
   };
 

@@ -368,8 +368,8 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = com.pixflow.resumeok;
-				PRODUCT_NAME = "ResumeOK";
+				PRODUCT_BUNDLE_IDENTIFIER = com.pixflow.applydesk;
+				PRODUCT_NAME = "ApplyDesk";
 				SWIFT_OBJC_BRIDGING_HEADER = "ResumeOKTailorResumeCV/ResumeOKTailorResumeCV-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -401,8 +401,8 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = com.pixflow.resumeok;
-				PRODUCT_NAME = "ResumeOK";
+				PRODUCT_BUNDLE_IDENTIFIER = com.pixflow.applydesk;
+				PRODUCT_NAME = "ApplyDesk";
 				SWIFT_OBJC_BRIDGING_HEADER = "ResumeOKTailorResumeCV/ResumeOKTailorResumeCV-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

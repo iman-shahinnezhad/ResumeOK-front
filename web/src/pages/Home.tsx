@@ -27,7 +27,7 @@ export default function Home() {
   const [activeTab2, setActiveTab2] = useState(0);
 
   useSEO(
-    "ResumeOK - Land Interviews 6x Faster",
+    "ApplyDesk - Land Interviews 6x Faster",
     "AI that reads job posts like a recruiter — matches your real skills, tailors every resume, and auto-applies only where you're a genuine fit."
   );
 
@@ -130,11 +130,11 @@ export default function Home() {
           </p>
           <div className="resumeok-ceo-author">
             <div className="resumeok-ceo-name">Saman Kazempour</div>
-            <div className="resumeok-ceo-title">CEO of ResumeOK</div>
+            <div className="resumeok-ceo-title">CEO of ApplyDesk</div>
           </div>
         </div>
         <div className="resumeok-ceo-col-image">
-          <img src={webHome2} alt="Saman Kazempour - CEO of ResumeOK" className="resumeok-ceo-img" />
+          <img src={webHome2} alt="Saman Kazempour - CEO of ApplyDesk" className="resumeok-ceo-img" />
         </div>
       </section>
 

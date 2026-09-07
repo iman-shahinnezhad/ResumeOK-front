@@ -64,7 +64,7 @@ export default function ReferralBottomSheet({ visible, onClose }: Props) {
   const shareCode = async () => {
     if (stats.referralCode) {
       try {
-        await Share.share({ message: `Join me on ResumeOK! Use my referral code: ${stats.referralCode}` });
+        await Share.share({ message: `Join me on ApplyDesk! Use my referral code: ${stats.referralCode}` });
       } catch (error) {
         console.error(error);
       }

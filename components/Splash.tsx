@@ -31,7 +31,7 @@ export default function Splash({ onContinue }: SplashProps) {
         }
       ]}>
         <Image
-          source={require('../assets/images/RESUME-OK.png')}
+          source={require('../assets/images/icon.png')}
           style={styles.logoImage}
           resizeMode="contain"
         />
@@ -49,14 +49,14 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   logoContainer: {
-    width: '80%',
-    maxWidth: 320,
-    aspectRatio: 3,
+    width: 160,
+    height: 160,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoImage: {
-    width: '70%',
-    height: '70%',
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
   },
 });

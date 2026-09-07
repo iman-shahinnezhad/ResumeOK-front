@@ -1,4 +1,4 @@
-package com.pixflow.resumeok
+package com.pixflow.applydesk
 
 import android.app.Application
 import android.content.res.Configuration

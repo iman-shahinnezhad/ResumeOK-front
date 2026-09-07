@@ -16,6 +16,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as DocumentPicker from 'expo-document-picker';
 
 import { API_URL, useAuth } from '../context/AuthContext';
+import { sortResumesWithDefaultFirst } from '../utils/resumeUtils';
+import { parsePdfResumeText } from '../utils/pdfParser';
 
 interface ResumeItem {
   id: string;
@@ -46,15 +48,8 @@ export default function ResumesScreen() {
         const text = await FileSystem.readAsStringAsync(path);
         const data = JSON.parse(text);
         if (Array.isArray(data) && data.length > 0) {
-          // Ensure at least one resume is marked as default
-          let hasDefault = data.some((r: ResumeItem) => r.isDefault);
-          let validated = data.map((r: ResumeItem, idx: number) => {
-            if (!hasDefault && idx === 0) {
-              return { ...r, isDefault: true };
-            }
-            return r;
-          });
-          setResumes(validated);
+          const sorted = sortResumesWithDefaultFirst(data);
+          setResumes(sorted);
           return;
         }
       }
@@ -89,12 +84,13 @@ export default function ResumesScreen() {
 
   const saveResumesList = async (list: ResumeItem[]) => {
     try {
+      const sorted = sortResumesWithDefaultFirst(list);
       const path = `${FileSystem.documentDirectory}resumes.json`;
-      await FileSystem.writeAsStringAsync(path, JSON.stringify(list));
-      setResumes(list);
+      await FileSystem.writeAsStringAsync(path, JSON.stringify(sorted));
+      setResumes(sorted);
 
       // Sync default resume with profile
-      const defaultItem = list.find((r) => r.isDefault);
+      const defaultItem = sorted.find((r) => r.isDefault);
       if (defaultItem) {
         const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
         const profileInfo = await FileSystem.getInfoAsync(profilePath);
@@ -149,12 +145,103 @@ export default function ResumesScreen() {
         const updated = [newResume, ...resumes];
         await saveResumesList(updated);
 
-        // Sync resume upload to backend Mongo database
+        // Parse PDF resume and update 14 profile fields in local storage & sync to backend Mongo
         if (asset.uri) {
           (async () => {
             try {
               const fileBase64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
               const targetUserId = user?.id || guestId;
+
+              // Parse and extract all 14 profile fields from uploaded resume
+              const parsed = await parsePdfResumeText(fileBase64, asset.name || 'resume.pdf');
+              if (parsed) {
+                const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+                let currentProfile: any = {};
+                const pInfo = await FileSystem.getInfoAsync(profilePath);
+                if (pInfo.exists) {
+                  try {
+                    const pText = await FileSystem.readAsStringAsync(profilePath);
+                    currentProfile = JSON.parse(pText);
+                  } catch(e) {}
+                }
+
+                const formattedExperiences = (parsed.workExperiences || []).map((exp: any, idx: number) => ({
+                  id: String(idx + 1),
+                  jobTitle: exp.title || exp.jobTitle || 'Professional Role',
+                  companyName: exp.company || exp.companyName || 'Company',
+                  city: exp.location || exp.city || currentProfile.city || 'City',
+                  startDate: exp.dates?.split('—')[0]?.trim() || exp.dates?.split('-')[0]?.trim() || '2021',
+                  endDate: exp.dates?.split('—')[1]?.trim() || exp.dates?.split('-')[1]?.trim() || 'Present',
+                  jobDescription: exp.description || '',
+                  description: exp.description || ''
+                }));
+
+                const formattedEducations = (parsed.education || []).map((edu: any, idx: number) => ({
+                  id: String(idx + 1),
+                  schoolName: edu.school || edu.schoolName || 'University',
+                  degree: edu.degree || 'Degree',
+                  fieldOfStudy: edu.degree || 'Field of Study',
+                  city: edu.location || edu.city || currentProfile.city || 'City',
+                  startDate: edu.year?.split('—')[0]?.trim() || edu.year?.split('-')[0]?.trim() || '2019',
+                  endDate: edu.year?.split('—')[1]?.trim() || edu.year?.split('-')[1]?.trim() || '2022',
+                  description: '',
+                  gpa: ''
+                }));
+
+                const formattedLanguages = (parsed.languages || []).map((lang: any, idx: number) => {
+                  if (typeof lang === 'string') {
+                    return { id: String(idx + 1), name: lang, proficiency: 'Professional' };
+                  }
+                  return { id: String(idx + 1), name: lang.name || 'English', proficiency: lang.proficiency || 'Professional' };
+                });
+
+                const formattedProjects = (parsed.projects || []).map((proj: any, idx: number) => ({
+                  id: String(idx + 1),
+                  projectName: proj.name || proj.projectName || proj.title || `Project ${idx + 1}`,
+                  role: proj.role || parsed.targetRole || 'Contributor',
+                  description: proj.description || '',
+                  technologies: Array.isArray(proj.technologies) ? proj.technologies : (parsed.skills?.slice(0, 3) || []),
+                  projectType: 'Company / Individual',
+                  startDate: '2022',
+                  endDate: 'Present',
+                  currentlyWorking: true,
+                  projectUrl: proj.link || proj.projectUrl || '',
+                  repository: proj.link || ''
+                }));
+
+                const mergedProfile = {
+                  ...currentProfile,
+                  firstName: parsed.firstName || currentProfile.firstName || (parsed.fullName ? parsed.fullName.split(' ')[0] : ''),
+                  lastName: parsed.lastName || currentProfile.lastName || (parsed.fullName ? parsed.fullName.split(' ').slice(1).join(' ') : ''),
+                  fullName: parsed.fullName || currentProfile.fullName || '',
+                  jobTitle: parsed.targetRole || currentProfile.jobTitle || '',
+                  role: parsed.targetRole || currentProfile.role || '',
+                  email: parsed.email || currentProfile.email || '',
+                  phone: parsed.phone || currentProfile.phone || '',
+                  phoneNumber: parsed.phone || currentProfile.phoneNumber || '',
+                  mobile: parsed.phone || currentProfile.mobile || '',
+                  city: parsed.location || currentProfile.city || '',
+                  location: parsed.location || currentProfile.location || '',
+                  website: parsed.portfolioUrl || currentProfile.website || '',
+                  linkedinUrl: parsed.linkedinUrl || currentProfile.linkedinUrl || '',
+                  portfolioUrl: parsed.portfolioUrl || currentProfile.portfolioUrl || '',
+                  summary: parsed.summary || currentProfile.summary || '',
+                  skills: parsed.skills && parsed.skills.length > 0 ? parsed.skills : (currentProfile.skills || []),
+                  tools: parsed.tools && parsed.tools.length > 0 ? parsed.tools : (currentProfile.tools || []),
+                  languages: formattedLanguages.length > 0 ? formattedLanguages : (currentProfile.languages || []),
+                  projects: formattedProjects.length > 0 ? formattedProjects : (currentProfile.projects || []),
+                  experiences: formattedExperiences.length > 0 ? formattedExperiences : (currentProfile.experiences || []),
+                  workExperiences: formattedExperiences.length > 0 ? formattedExperiences : (currentProfile.workExperiences || []),
+                  educations: formattedEducations.length > 0 ? formattedEducations : (currentProfile.educations || []),
+                  education: formattedEducations.length > 0 ? formattedEducations : (currentProfile.education || []),
+                };
+
+                await FileSystem.writeAsStringAsync(profilePath, JSON.stringify(mergedProfile, null, 2));
+
+                const builderPath = `${FileSystem.documentDirectory}resume_builder_form_data.json`;
+                await FileSystem.writeAsStringAsync(builderPath, JSON.stringify(mergedProfile, null, 2));
+              }
+
               await fetch(`${API_URL}/api/upload-pdf`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

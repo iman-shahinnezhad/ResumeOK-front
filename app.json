@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "ResumeOK",
+    "name": "ApplyDesk",
     "slug": "resumeok",
-    "version": "2.0.9",
+    "version": "2.1.1",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
-    "scheme": "resumeok",
+    "scheme": "applydesk",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pixflow.resumeok",
-      "buildNumber": "45",
+      "bundleIdentifier": "com.pixflow.applydesk",
+      "buildNumber": "52",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "This app requires access to your photo library to select a profile photo to be embedded directly into your generated resume templates.",
@@ -29,7 +29,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "versionCode": 7,
+      "versionCode": 8,
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -37,7 +37,7 @@
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.pixflow.resumeok"
+      "package": "com.pixflow.applydesk"
     },
     "web": {
       "output": "static",
@@ -62,19 +62,19 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#FFFFFF",
-          "image": "./assets/images/RESUME-OK.png",
+          "image": "./assets/images/icon.png",
           "resizeMode": "contain",
           "dark": {
             "backgroundColor": "#FFFFFF",
-            "image": "./assets/images/RESUME-OK.png"
+            "image": "./assets/images/icon.png"
           }
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "The app accesses your photos or documents to let you choose files for ResumeOK.",
-          "cameraPermission": "The app needs to access your camera to let you take a photo for ResumeOK."
+          "photosPermission": "The app accesses your photos or documents to let you choose files for ApplyDesk.",
+          "cameraPermission": "The app needs to access your camera to let you take a photo for ApplyDesk."
         }
       ],
       "expo-web-browser",

@@ -29,7 +29,7 @@ interface JobApp {
 
 export default function Jobs() {
   useSEO(
-    "Jobs Dashboard & AI Auto-Apply - ResumeOK",
+    "Jobs Dashboard & AI Auto-Apply - ApplyDesk",
     "Discover verified jobs, track applications, view match scores, and enable 1-click AI autofill apply."
   );
 
@@ -111,7 +111,7 @@ export default function Jobs() {
       applicantsCount: 'Less than 15 applicants',
       h1bStatus: '• Visa Sponsorship Available',
       tags: ['Be an early applicant', 'TypeScript'],
-      notes: 'Applied with tailored resume & cover letter generated via ResumeOK AI.',
+      notes: 'Applied with tailored resume & cover letter generated via ApplyDesk AI.',
       liked: false,
       autoApplied: true,
       isHidden: false
