@@ -837,9 +837,16 @@ export default function JobsScreen() {
           const aDomainScore = domainWords.filter(w => aTitle.includes(w)).length * 10 + qWords.filter(w => aTitle.includes(w)).length;
           const bDomainScore = domainWords.filter(w => bTitle.includes(w)).length * 10 + qWords.filter(w => bTitle.includes(w)).length;
 
-          return bDomainScore - aDomainScore;
+          if (aDomainScore !== bDomainScore) {
+            return bDomainScore - aDomainScore;
+          }
+          return getJobTimestamp(b) - getJobTimestamp(a);
         });
+      } else {
+        result.sort((a, b) => getJobTimestamp(b) - getJobTimestamp(a));
       }
+    } else {
+      result.sort((a, b) => getJobTimestamp(b) - getJobTimestamp(a));
     }
 
     setFilteredJobs(result);
@@ -5150,6 +5157,51 @@ function getJobWorkModel(job: any): string {
   if (text.includes('in person') || text.includes('on-site') || text.includes('onsite')) return 'In Person';
 
   return '';
+}
+
+// Helper to compute numeric timestamp for date sorting
+function getJobTimestamp(job: any): number {
+  if (!job) return 0;
+
+  const rawDate = job.postedAt || job.createdAt || job.updated_at || job.date || job.posted_at;
+
+  if (rawDate) {
+    if (typeof rawDate === 'number') return rawDate;
+
+    if (typeof rawDate === 'string') {
+      const trimmed = rawDate.trim();
+      const matchRel = trimmed.match(/^(\d+)\s*(h|d|m|mo|w|hours?|days?|minutes?|weeks?|months?)\s*(ago)?$/i);
+      if (matchRel) {
+        const val = parseInt(matchRel[1], 10);
+        const unit = matchRel[2].toLowerCase();
+        let msAgo = 0;
+        if (unit.startsWith('m') && !unit.startsWith('mo')) {
+          msAgo = val * 60 * 1000;
+        } else if (unit.startsWith('h')) {
+          msAgo = val * 60 * 60 * 1000;
+        } else if (unit.startsWith('d')) {
+          msAgo = val * 24 * 60 * 60 * 1000;
+        } else if (unit.startsWith('w')) {
+          msAgo = val * 7 * 24 * 60 * 60 * 1000;
+        } else if (unit.startsWith('mo')) {
+          msAgo = val * 30 * 24 * 60 * 60 * 1000;
+        }
+        return Date.now() - msAgo;
+      }
+
+      const dateObj = new Date(trimmed);
+      if (!isNaN(dateObj.getTime())) {
+        return dateObj.getTime();
+      }
+    }
+  }
+
+  const numericId = parseInt(String(job.id || ''), 10);
+  if (!isNaN(numericId) && numericId > 1000000) {
+    return numericId;
+  }
+
+  return 0;
 }
 
 // Helper to determine posted time relative to job id / date
