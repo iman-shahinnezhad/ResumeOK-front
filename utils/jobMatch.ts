@@ -180,19 +180,13 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
     }
   }
 
-  // 2. KEYWORDS SCORE (Weighted coverage, clamped 10% - 60%)
-  let sumOfMatchedKeywordWeights = 0;
-  let sumOfAllRequiredKeywordWeights = 0;
   const matchedSkillsSet = new Set<string>();
   const missingSkillsSet = new Set<string>();
   let numberOfCriticalMissingRequirements = 0;
 
   requiredKeywords.forEach(req => {
-    sumOfAllRequiredKeywordWeights += req.weight;
     const isMatched = allCandidateKeywords.some(uSkill => matchesKeyword(uSkill, req.name));
-
     if (isMatched) {
-      sumOfMatchedKeywordWeights += req.weight;
       matchedSkillsSet.add(req.name);
     } else {
       missingSkillsSet.add(req.name);
@@ -202,11 +196,15 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
     }
   });
 
-  const rawKeywordsCoverage = sumOfAllRequiredKeywordWeights > 0
-    ? (sumOfMatchedKeywordWeights / sumOfAllRequiredKeywordWeights) * 100
+  const matchedSkills = Array.from(matchedSkillsSet);
+  const missingSkills = Array.from(missingSkillsSet).slice(0, 8);
+
+  const totalSkillsCount = matchedSkills.length + missingSkills.length;
+  const rawKeywordsCoverage = totalSkillsCount > 0
+    ? (matchedSkills.length / totalSkillsCount) * 100
     : 0;
 
-  // Clamped between 0% and 98%
+  // Clamped between 0% and 98% based directly on matched skills ratio
   const keywordsScore = Math.max(0, Math.min(98, Math.round(rawKeywordsCoverage)));
 
   // 3. EXPERIENCE SCORE (0 - 100%)
@@ -267,15 +265,13 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
     }
   }
 
-  // 5. FORMULA 1: JOB MATCH SCORE (Clamped 10% - 98%)
-  // jobMatchScore = keywordsScore * 0.30 + experienceScore * 0.10 + roleScore * 0.60;
+  // 5. FORMULA 1: JOB MATCH SCORE (Clamped 0% - 98%)
   const rawJobMatch = (keywordsScore * 0.30) + (experienceScore * 0.10) + (roleScore * 0.60);
   const jobMatch = Math.max(0, Math.min(98, Math.round(rawJobMatch)));
 
   // 6. FORMULA 2: RESUME SCORE (Strict scoring, 0% - 98%)
-  // resumeScore = requiredExperienceEvidence * 0.30 + requiredSkillsCoverage * 0.25 + industryRelevance * 0.20 + roleTitleAlignment * 0.15 + resumeContentQuality * 0.10;
   const requiredExperienceEvidence = (experienceScore * 0.40) + ((roleScore > 70 ? 90 : 50) * 0.60);
-  const requiredSkillsCoverage = rawKeywordsCoverage; // 0 - 100 scale before keywords clamp
+  const requiredSkillsCoverage = rawKeywordsCoverage;
   const industryRelevance = (userIsDev && jobIsDev) || (userIsDesign && jobIsDesign) ? 90 : 40;
   const roleTitleAlignment = roleScore;
   const resumeContentQuality = userProfile?.resumeFile || userSkills.length > 5 ? 85 : 55;
@@ -296,9 +292,6 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
   // Clamped between 0% and 98% per spec
   const resumeScore = Math.max(0, Math.min(98, Math.round(rawResumeScore)));
 
-  const matchedSkills = Array.from(matchedSkillsSet);
-  const missingSkills = Array.from(missingSkillsSet).slice(0, 6);
-
   const result: JobMatchResult = {
     jobMatch,
     resume: resumeScore,
@@ -310,7 +303,7 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
     skillsScore: keywordsScore,
     industryScore: resumeScore,
 
-    matchedSkills: matchedSkills.length > 0 ? matchedSkills : (userSkills.length > 0 ? userSkills : ['UI/UX Design', 'Design Systems', 'Figma']),
+    matchedSkills,
     missingSkills,
   };
 
