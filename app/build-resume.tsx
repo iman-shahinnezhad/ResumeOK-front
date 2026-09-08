@@ -18,6 +18,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { parseDateString as parseDateStringUtil } from '../utils/dateUtils';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -229,42 +230,10 @@ export default function BuildResumeScreen() {
     }
   };
 
-  // Parse string format to Date object
+  // Parse string format to Date object using robust dateUtils helper
   const parseDateString = (str: string, mode: 'dob' | 'startDate' | 'endDate' | 'eduStartDate' | 'eduEndDate'): Date => {
-    if (!str) {
-      if (mode === 'dob') {
-        const defaultDate = new Date();
-        defaultDate.setFullYear(defaultDate.getFullYear() - 25); // default to 25 years ago for birth date
-        return defaultDate;
-      }
-      return new Date();
-    }
-    
-    try {
-      if (mode === 'dob') {
-        const parts = str.split('/');
-        if (parts.length === 3) {
-          const day = parseInt(parts[0], 10);
-          const month = parseInt(parts[1], 10) - 1;
-          const year = parseInt(parts[2], 10);
-          if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-            return new Date(year, month, day);
-          }
-        }
-      } else {
-        const parts = str.split('/');
-        if (parts.length === 2) {
-          const month = parseInt(parts[0], 10) - 1;
-          const year = parseInt(`20${parts[1]}`, 10);
-          if (!isNaN(month) && !isNaN(year)) {
-            return new Date(year, month, 1);
-          }
-        }
-      }
-    } catch (e) {
-      console.log('Error parsing date string:', e);
-    }
-    return new Date();
+    const fallback = mode === 'dob' ? new Date(1998, 10, 3) : new Date();
+    return parseDateStringUtil(str, fallback);
   };
 
   const openDatePicker = (mode: 'dob' | 'startDate' | 'endDate' | 'eduStartDate' | 'eduEndDate') => {
@@ -367,6 +336,8 @@ export default function BuildResumeScreen() {
                   mode="date"
                   display="spinner"
                   onChange={onDateChange}
+                  minimumDate={new Date(1940, 0, 1)}
+                  maximumDate={new Date(2035, 11, 31)}
                   textColor="#000000"
                 />
               </View>
@@ -379,6 +350,8 @@ export default function BuildResumeScreen() {
           mode="date"
           display="default"
           onChange={onDateChange}
+          minimumDate={new Date(1940, 0, 1)}
+          maximumDate={new Date(2035, 11, 31)}
         />
       )
     );

@@ -15,6 +15,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { parseDateString } from '../utils/dateUtils';
 import * as FileSystem from 'expo-file-system/legacy';
 
 interface RecognitionItem {
@@ -87,7 +88,9 @@ export default function RecognitionsScreen() {
     setEditingId(null);
     setRecognitionTitle('');
     setRecognizedBy('');
-    setDate('May 2024');
+    const dStr = 'May 2024';
+    setDate(dStr);
+    setDateObj(parseDateString(dStr));
     setDescription('');
     setRecognitionUrl('');
     setIsModalOpen(true);
@@ -97,7 +100,9 @@ export default function RecognitionsScreen() {
     setEditingId(item.id);
     setRecognitionTitle(item.recognitionTitle || '');
     setRecognizedBy(item.recognizedBy || '');
-    setDate(item.date || 'May 2024');
+    const dStr = item.date || 'May 2024';
+    setDate(dStr);
+    setDateObj(parseDateString(dStr));
     setDescription(item.description || '');
     setRecognitionUrl(item.recognitionUrl || '');
     setIsModalOpen(true);
@@ -342,7 +347,8 @@ export default function RecognitionsScreen() {
                   mode="date"
                   display="compact"
                   onChange={handleDateChange}
-                  maximumDate={new Date()}
+                  minimumDate={new Date(1960, 0, 1)}
+                  maximumDate={new Date(2035, 11, 31)}
                   style={styles.hiddenNativePicker}
                 />
               )}

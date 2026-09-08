@@ -15,6 +15,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { parseDateString } from '../utils/dateUtils';
 import * as FileSystem from 'expo-file-system/legacy';
 
 interface CertificateItem {
@@ -94,8 +95,12 @@ export default function CertificatesScreen() {
     setEditingId(null);
     setCertificateName('');
     setIssuingOrganization('');
-    setIssueDate('Jan 2024');
-    setExpirationDate('Jan 2027');
+    const iStr = 'Jan 2024';
+    const eStr = 'Jan 2027';
+    setIssueDate(iStr);
+    setIssueDateObj(parseDateString(iStr));
+    setExpirationDate(eStr);
+    setExpirationDateObj(parseDateString(eStr));
     setNoExpiration(false);
     setCredentialId('');
     setCredentialUrl('');
@@ -107,8 +112,12 @@ export default function CertificatesScreen() {
     setEditingId(item.id);
     setCertificateName(item.certificateName || '');
     setIssuingOrganization(item.issuingOrganization || '');
-    setIssueDate(item.issueDate || 'Jan 2024');
-    setExpirationDate(item.expirationDate || 'Jan 2027');
+    const iStr = item.issueDate || 'Jan 2024';
+    const eStr = item.expirationDate || 'Jan 2027';
+    setIssueDate(iStr);
+    setIssueDateObj(parseDateString(iStr));
+    setExpirationDate(eStr);
+    setExpirationDateObj(parseDateString(eStr));
     setNoExpiration(!!item.noExpiration);
     setCredentialId(item.credentialId || '');
     setCredentialUrl(item.credentialUrl || '');
@@ -379,7 +388,8 @@ export default function CertificatesScreen() {
                       mode="date"
                       display="compact"
                       onChange={handleIssueDateChange}
-                      maximumDate={new Date()}
+                      minimumDate={new Date(1960, 0, 1)}
+                      maximumDate={new Date(2035, 11, 31)}
                       style={styles.hiddenNativePicker}
                     />
                   )}
@@ -397,6 +407,8 @@ export default function CertificatesScreen() {
                       mode="date"
                       display="compact"
                       onChange={handleExpirationDateChange}
+                      minimumDate={new Date(1960, 0, 1)}
+                      maximumDate={new Date(2035, 11, 31)}
                       style={styles.hiddenNativePicker}
                     />
                   )}

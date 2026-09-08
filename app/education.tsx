@@ -15,6 +15,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { parseDateString } from '../utils/dateUtils';
 import * as FileSystem from 'expo-file-system/legacy';
 
 interface EducationItem {
@@ -120,8 +121,12 @@ export default function EducationScreen() {
     setDegree("Bachelor's Degree");
     setFieldOfStudy('');
     setCity('');
-    setStartDate('Sep 2018');
-    setEndDate('May 2022');
+    const sStr = 'Sep 2018';
+    const eStr = 'May 2022';
+    setStartDate(sStr);
+    setStartDateObj(parseDateString(sStr));
+    setEndDate(eStr);
+    setEndDateObj(parseDateString(eStr));
     setCurrentlyEnrolled(false);
     setGpa('');
     setDescription('');
@@ -134,8 +139,12 @@ export default function EducationScreen() {
     setDegree(item.degree || "Bachelor's Degree");
     setFieldOfStudy(item.fieldOfStudy || '');
     setCity(item.city || '');
-    setStartDate(item.startDate || 'Sep 2018');
-    setEndDate(item.endDate || 'May 2022');
+    const sStr = item.startDate || 'Sep 2018';
+    const eStr = item.endDate || 'May 2022';
+    setStartDate(sStr);
+    setStartDateObj(parseDateString(sStr));
+    setEndDate(eStr);
+    setEndDateObj(parseDateString(eStr));
     setCurrentlyEnrolled(!!item.currentlyEnrolled);
     setGpa(item.gpa || '');
     setDescription(item.description || '');
@@ -427,7 +436,8 @@ export default function EducationScreen() {
                       mode="date"
                       display="compact"
                       onChange={handleStartDateChange}
-                      maximumDate={new Date()}
+                      minimumDate={new Date(1960, 0, 1)}
+                      maximumDate={new Date(2035, 11, 31)}
                       style={styles.hiddenNativePicker}
                     />
                   )}
@@ -445,6 +455,8 @@ export default function EducationScreen() {
                       mode="date"
                       display="compact"
                       onChange={handleEndDateChange}
+                      minimumDate={new Date(1960, 0, 1)}
+                      maximumDate={new Date(2035, 11, 31)}
                       style={styles.hiddenNativePicker}
                     />
                   )}

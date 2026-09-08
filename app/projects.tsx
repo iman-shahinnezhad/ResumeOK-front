@@ -16,6 +16,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { parseDateString } from '../utils/dateUtils';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 
@@ -141,8 +142,12 @@ export default function ProjectsScreen() {
     setTechnologies([]);
     setNewTechInput('');
     setProjectType('Company');
-    setStartDate('02 May 2020');
-    setEndDate('02 May 2025');
+    const sStr = '02 May 2020';
+    const eStr = '02 May 2025';
+    setStartDate(sStr);
+    setStartDateObj(parseDateString(sStr));
+    setEndDate(eStr);
+    setEndDateObj(parseDateString(eStr));
     setCurrentlyWorking(false);
     setProjectUrl('');
     setRepository('');
@@ -160,8 +165,12 @@ export default function ProjectsScreen() {
     setTechnologies(item.technologies || []);
     setNewTechInput('');
     setProjectType(item.projectType || 'Company');
-    setStartDate(item.startDate || '02 May 2020');
-    setEndDate(item.endDate || '02 May 2025');
+    const sStr = item.startDate || '02 May 2020';
+    const eStr = item.endDate || '02 May 2025';
+    setStartDate(sStr);
+    setStartDateObj(parseDateString(sStr));
+    setEndDate(eStr);
+    setEndDateObj(parseDateString(eStr));
     setCurrentlyWorking(!!item.currentlyWorking);
     setProjectUrl(item.projectUrl || '');
     setRepository(item.repository || '');
@@ -563,7 +572,8 @@ export default function ProjectsScreen() {
                       mode="date"
                       display="compact"
                       onChange={handleStartDateChange}
-                      maximumDate={new Date()}
+                      minimumDate={new Date(1960, 0, 1)}
+                      maximumDate={new Date(2035, 11, 31)}
                       style={styles.hiddenNativePicker}
                     />
                   )}
@@ -581,6 +591,8 @@ export default function ProjectsScreen() {
                       mode="date"
                       display="compact"
                       onChange={handleEndDateChange}
+                      minimumDate={new Date(1960, 0, 1)}
+                      maximumDate={new Date(2035, 11, 31)}
                       style={styles.hiddenNativePicker}
                     />
                   )}

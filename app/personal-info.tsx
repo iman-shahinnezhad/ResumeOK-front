@@ -20,6 +20,7 @@ import Slider from '@react-native-community/slider';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { City, Country } from 'country-state-city';
 import { useAuth } from '../context/AuthContext';
+import { parseDateString } from '../utils/dateUtils';
 
 const GENDER_OPTIONS = [
   'Male',
@@ -108,7 +109,10 @@ export default function PersonalInfo() {
         if (data.email) setEmail(data.email);
         if (data.phone) setPhone(data.phone);
         if (data.city || data.address) setAddress(data.city || data.address);
-        if (data.dob) setDob(data.dob);
+        if (data.dob) {
+          setDob(data.dob);
+          setSelectedDate(parseDateString(data.dob, new Date(1998, 10, 3)));
+        }
         if (data.gender) setGender(data.gender);
         if (data.ethnicity) setEthnicity(data.ethnicity);
         if (data.disability) setDisability(data.disability);
@@ -483,7 +487,10 @@ export default function PersonalInfo() {
           <TouchableOpacity
             style={styles.fieldBoxRow}
             activeOpacity={0.7}
-            onPress={() => setActiveModal('dob')}
+            onPress={() => {
+              setSelectedDate(parseDateString(dob, new Date(1998, 10, 3)));
+              setActiveModal('dob');
+            }}
           >
             <View style={{ flex: 1 }}>
               <Text style={styles.fieldLabel}>Date of Birth</Text>
@@ -731,6 +738,7 @@ export default function PersonalInfo() {
               mode="date"
               display="inline"
               onChange={handleDateChange}
+              minimumDate={new Date(1940, 0, 1)}
               maximumDate={new Date()}
               accentColor="#0A84FF"
               themeVariant="dark"

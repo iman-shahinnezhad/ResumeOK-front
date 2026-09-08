@@ -15,6 +15,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { parseDateString } from '../utils/dateUtils';
 import * as FileSystem from 'expo-file-system/legacy';
 
 interface VolunteerItem {
@@ -112,8 +113,12 @@ export default function VolunteerScreen() {
     setOrganization('');
     setRole('');
     setCause('Education');
-    setStartDate('Jan 2025');
-    setEndDate('Present');
+    const sStr = 'Jan 2025';
+    const eStr = 'Present';
+    setStartDate(sStr);
+    setStartDateObj(parseDateString(sStr));
+    setEndDate(eStr);
+    setEndDateObj(parseDateString(eStr));
     setCurrentlyVolunteering(true);
     setDescription('');
     setSkillsUsed([]);
@@ -126,8 +131,12 @@ export default function VolunteerScreen() {
     setOrganization(item.organization || '');
     setRole(item.role || '');
     setCause(item.cause || 'Education');
-    setStartDate(item.startDate || 'Jan 2025');
-    setEndDate(item.endDate || 'Present');
+    const sStr = item.startDate || 'Jan 2025';
+    const eStr = item.endDate || 'Present';
+    setStartDate(sStr);
+    setStartDateObj(parseDateString(sStr));
+    setEndDate(eStr);
+    setEndDateObj(parseDateString(eStr));
     setCurrentlyVolunteering(!!item.currentlyVolunteering);
     setDescription(item.description || '');
     setSkillsUsed(item.skillsUsed || []);
@@ -443,7 +452,8 @@ export default function VolunteerScreen() {
                       mode="date"
                       display="compact"
                       onChange={handleStartDateChange}
-                      maximumDate={new Date()}
+                      minimumDate={new Date(1960, 0, 1)}
+                      maximumDate={new Date(2035, 11, 31)}
                       style={styles.hiddenNativePicker}
                     />
                   )}
@@ -461,6 +471,8 @@ export default function VolunteerScreen() {
                       mode="date"
                       display="compact"
                       onChange={handleEndDateChange}
+                      minimumDate={new Date(1960, 0, 1)}
+                      maximumDate={new Date(2035, 11, 31)}
                       style={styles.hiddenNativePicker}
                     />
                   )}
