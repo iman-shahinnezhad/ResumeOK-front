@@ -231,6 +231,8 @@ export default function JobsScreen() {
         next.add(String(job.id));
         return next;
       });
+      setAllJobs(prev => prev.filter(j => String(j.id) !== String(job.id)));
+      setFilteredJobs(prev => prev.filter(j => String(j.id) !== String(job.id)));
       await saveSkippedJob(job, false);
     } catch (e) {
       console.log('Error handling list skip:', e);
@@ -291,12 +293,16 @@ export default function JobsScreen() {
   const handleActionShare = async (job: GreenhouseJob) => {
     setShowCardMenuModal(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (job.absolute_url) {
-      try {
-        await Share.share({
-          message: `Check out this position: ${job.title} at ${job.companyName || 'Company'}\n${job.absolute_url}`,
-        });
-      } catch (e) {}
+    try {
+      const shareUrl = job.absolute_url || 'https://resumeok.ai';
+      const company = job.companyName || 'Company';
+      await Share.share({
+        title: `${job.title} at ${company}`,
+        message: `Check out this job opening: ${job.title} at ${company}\n${shareUrl}`,
+        url: shareUrl,
+      });
+    } catch (e) {
+      console.log('Error sharing job:', e);
     }
   };
 
@@ -2965,7 +2971,7 @@ export default function JobsScreen() {
                 <Ionicons name="paper-plane-outline" size={19} color="#1E40AF" />
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.cardMenuItemTitle}>Share Listing</Text>
+                <Text style={styles.cardMenuItemTitle}>Share Job</Text>
                 <Text style={styles.cardMenuItemSub}>Share job details or direct link</Text>
               </View>
             </TouchableOpacity>
