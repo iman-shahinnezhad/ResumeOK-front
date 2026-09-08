@@ -139,7 +139,20 @@ export default function JobDetailsScreen() {
 
   const handleStartAiTailoring = async () => {
     if (!selectedResume || !selectedResume.uri) {
-      Alert.alert("Resume Required", "Please select or upload a resume first.");
+      Alert.alert(
+        "Resume Required",
+        "Please select or upload a resume first.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Upload Resume",
+            onPress: () => {
+              setShowTailorModal(false);
+              router.push('/resumes' as any);
+            }
+          }
+        ]
+      );
       return;
     }
 

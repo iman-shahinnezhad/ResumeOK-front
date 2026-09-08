@@ -247,7 +247,17 @@ export default function CoverLetterScreen() {
 
   const handleGenerateCoverLetter = async () => {
     if (!selectedResume) {
-      Alert.alert("Resume Required", "Please choose or upload a resume first.");
+      Alert.alert(
+        "Resume Required",
+        "Please choose or upload a resume first.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Upload Resume",
+            onPress: () => router.push('/resumes' as any)
+          }
+        ]
+      );
       return;
     }
 

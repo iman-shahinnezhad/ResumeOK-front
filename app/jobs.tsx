@@ -1818,7 +1818,20 @@ export default function JobsScreen() {
       return;
     }
     if (!selectedResumeId) {
-      Alert.alert("Resume Required", "Please select a resume first.");
+      Alert.alert(
+        "Resume Required",
+        "Please select or upload a resume first.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Upload Resume",
+            onPress: () => {
+              setShowMatchPreviewModal(false);
+              router.push('/resumes' as any);
+            }
+          }
+        ]
+      );
       return;
     }
     const baseResume = resumesList.find(r => r.id === selectedResumeId);
@@ -1966,7 +1979,20 @@ export default function JobsScreen() {
       return;
     }
     if (resumesList.length === 0) {
-      Alert.alert("No Resumes", "Please upload or generate a resume in the app first.");
+      Alert.alert(
+        "No Resumes",
+        "Please upload or generate a resume in the app first.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Upload Resume",
+            onPress: () => {
+              setShowMatchPreviewModal(false);
+              router.push('/resumes' as any);
+            }
+          }
+        ]
+      );
       return;
     }
 
