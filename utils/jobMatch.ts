@@ -132,12 +132,12 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
 
   if (!userProfile || !hasProfileData) {
     return {
-      jobMatch: 10,
+      jobMatch: 0,
       resume: 0,
-      keywords: 10,
-      overallScore: 10,
+      keywords: 0,
+      overallScore: 0,
       expLevelScore: 0,
-      skillsScore: 10,
+      skillsScore: 0,
       industryScore: 0,
       matchedSkills: [],
       missingSkills: [],
@@ -204,10 +204,10 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
 
   const rawKeywordsCoverage = sumOfAllRequiredKeywordWeights > 0
     ? (sumOfMatchedKeywordWeights / sumOfAllRequiredKeywordWeights) * 100
-    : 30;
+    : 0;
 
-  // Clamped between 10% and 60% per developer spec
-  const keywordsScore = Math.max(10, Math.min(60, Math.round(rawKeywordsCoverage)));
+  // Clamped between 0% and 98%
+  const keywordsScore = Math.max(0, Math.min(98, Math.round(rawKeywordsCoverage)));
 
   // 3. EXPERIENCE SCORE (0 - 100%)
   let experienceScore = 65;
@@ -270,7 +270,7 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
   // 5. FORMULA 1: JOB MATCH SCORE (Clamped 10% - 98%)
   // jobMatchScore = keywordsScore * 0.30 + experienceScore * 0.10 + roleScore * 0.60;
   const rawJobMatch = (keywordsScore * 0.30) + (experienceScore * 0.10) + (roleScore * 0.60);
-  const jobMatch = Math.max(10, Math.min(98, Math.round(rawJobMatch)));
+  const jobMatch = Math.max(0, Math.min(98, Math.round(rawJobMatch)));
 
   // 6. FORMULA 2: RESUME SCORE (Strict scoring, 0% - 98%)
   // resumeScore = requiredExperienceEvidence * 0.30 + requiredSkillsCoverage * 0.25 + industryRelevance * 0.20 + roleTitleAlignment * 0.15 + resumeContentQuality * 0.10;
