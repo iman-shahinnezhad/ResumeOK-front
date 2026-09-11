@@ -409,9 +409,9 @@ export default function OnboardingScreen() {
     }
 
     const STEP_ORDER = [
-      'intro', 'welcome', 'referral', 'engineered', 'name', 'email', 'interests', 'jobs',
+      'intro', 'welcome', 'engineered', 'upload', 'name', 'email', 'interests', 'jobs',
       'experience', 'location', 'salary', 'challenge', 'hearAbout', 'rateUs',
-      'notifications', 'referral', 'upload'
+      'notifications', 'referral'
     ];
 
     const currentIndex = STEP_ORDER.indexOf(step);
@@ -447,16 +447,20 @@ export default function OnboardingScreen() {
   // Focus input fields after step transition completes to prevent keyboard layout animation stutter
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (step === 'name') {
-        nameInputRef.current?.focus();
-      } else if (step === 'email') {
-        emailInputRef.current?.focus();
-      } else if (step === 'location') {
-        cityInputRef.current?.focus();
-      } else if (step === 'referral') {
-        referralInputRef.current?.focus();
+      try {
+        if (step === 'name' && nameInputRef.current) {
+          nameInputRef.current.focus();
+        } else if (step === 'email' && emailInputRef.current) {
+          emailInputRef.current.focus();
+        } else if (step === 'location' && cityInputRef.current) {
+          cityInputRef.current.focus();
+        } else if (step === 'referral' && referralInputRef.current) {
+          referralInputRef.current.focus();
+        }
+      } catch (e) {
+        console.log('Focus error notice:', e);
       }
-    }, 350);
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [step]);
@@ -778,9 +782,9 @@ export default function OnboardingScreen() {
                 }
                 console.log('===============================================================\n');
 
-                if (parsed.firstName) setFirstName(parsed.firstName);
-                if (parsed.lastName) setLastName(parsed.lastName);
-                if (parsed.email) setEmail(parsed.email);
+                if (parsed.firstName && typeof parsed.firstName === 'string') setFirstName(String(parsed.firstName));
+                if (parsed.lastName && typeof parsed.lastName === 'string') setLastName(String(parsed.lastName));
+                if (parsed.email && typeof parsed.email === 'string') setEmail(String(parsed.email));
                 if (parsed.targetRole) setSelectedRoles([parsed.targetRole]);
                 if (parsed.experienceLevel) setSelectedExperience(parsed.experienceLevel);
                 if (parsed.skills && parsed.skills.length > 0) {
@@ -1683,7 +1687,7 @@ export default function OnboardingScreen() {
                     style={styles.nameTextInput}
                     placeholder="First Name"
                     placeholderTextColor="rgba(0,0,0,0.25)"
-                    value={firstName}
+                    value={typeof firstName === 'string' ? firstName : ''}
                     onChangeText={setFirstName}
                     autoCapitalize="words"
                     autoCorrect={false}
@@ -1692,7 +1696,7 @@ export default function OnboardingScreen() {
                     style={[styles.nameTextInput, { marginTop: 25 }]}
                     placeholder="Last Name"
                     placeholderTextColor="rgba(0,0,0,0.25)"
-                    value={lastName}
+                    value={typeof lastName === 'string' ? lastName : ''}
                     onChangeText={setLastName}
                     autoCapitalize="words"
                     autoCorrect={false}
