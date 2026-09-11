@@ -313,9 +313,6 @@ function AppleNativeButton({
       <TouchableOpacity
         onPress={() => {
           if (!disabled && onPress) {
-            if (Platform.OS === 'ios' || Platform.OS === 'android') {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-            }
             onPress();
           }
         }}
