@@ -290,9 +290,6 @@ function AppleNativeButton({
 
   const handlePressIn = () => {
     if (!disabled) {
-      if (Platform.OS === 'ios' || Platform.OS === 'android') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
-      }
       Animated.spring(scaleAnim, {
         toValue: 0.96,
         useNativeDriver: true,
@@ -312,16 +309,24 @@ function AppleNativeButton({
   };
 
   return (
-    <TouchableWithoutFeedback
-      onPress={onPress}
+    <TouchableOpacity
+      onPress={() => {
+        if (!disabled && onPress) {
+          if (Platform.OS === 'ios' || Platform.OS === 'android') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          }
+          onPress();
+        }
+      }}
       disabled={disabled}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      activeOpacity={0.8}
     >
       <Animated.View style={[style, { transform: [{ scale: scaleAnim }] }]}>
         {children}
       </Animated.View>
-    </TouchableWithoutFeedback>
+    </TouchableOpacity>
   );
 }
 
@@ -444,26 +449,7 @@ export default function OnboardingScreen() {
   const emailInputRef = useRef<TextInput>(null);
   const cityInputRef = useRef<TextInput>(null);
 
-  // Focus input fields after step transition completes to prevent keyboard layout animation stutter
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        if (step === 'name' && nameInputRef.current) {
-          nameInputRef.current.focus();
-        } else if (step === 'email' && emailInputRef.current) {
-          emailInputRef.current.focus();
-        } else if (step === 'location' && cityInputRef.current) {
-          cityInputRef.current.focus();
-        } else if (step === 'referral' && referralInputRef.current) {
-          referralInputRef.current.focus();
-        }
-      } catch (e) {
-        console.log('Focus error notice:', e);
-      }
-    }, 400);
 
-    return () => clearTimeout(timer);
-  }, [step]);
 
   // Profile data states
   const [firstName, setFirstName] = useState('');
