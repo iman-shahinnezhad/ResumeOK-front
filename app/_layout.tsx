@@ -1,3 +1,5 @@
+process.env.EXPO_ROUTER_DISABLE_RN_NAVIGATION_CHECK = '1';
+
 import * as FileSystem from 'expo-file-system/legacy';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -6,12 +8,8 @@ import React, { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Appearance, Alert, Linking } from 'react-native';
 import * as Application from 'expo-application';
-import { ThemeProvider, DefaultTheme } from '@react-navigation/native';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { AuthProvider } from '../context/AuthContext';
-
-// Force the app's JS layer to always run in light mode
-Appearance.setColorScheme('light');
 
 // Keep the native splash screen visible until we explicitly hide it in RootLayout
 SplashScreen.preventAutoHideAsync().catch(() => { });
@@ -19,6 +17,14 @@ SplashScreen.preventAutoHideAsync().catch(() => { });
 export default function RootLayout() {
   const [checkingStorage, setCheckingStorage] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (typeof Appearance?.setColorScheme === 'function') {
+      try {
+        Appearance.setColorScheme('light');
+      } catch (e) { }
+    }
+  }, []);
 
   useEffect(() => {
     const checkOnboardingStates = async () => {
@@ -37,6 +43,7 @@ export default function RootLayout() {
         setShowOnboarding(true);
       } finally {
         setCheckingStorage(false);
+        SplashScreen.hideAsync().catch(() => {});
       }
     };
 
@@ -120,74 +127,71 @@ export default function RootLayout() {
   }
 
   return (
-    <ErrorBoundary>
-      <SafeAreaProvider>
+    <SafeAreaProvider>
+      <ErrorBoundary>
         <AuthProvider>
           <StatusBar style="dark" />
 
-          <ThemeProvider value={DefaultTheme}>
-            <Stack
-              initialRouteName={showOnboarding ? 'onboarding' : '(tabs)'}
-              screenOptions={{
-                headerShown: false,
-                animation: 'default',
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              animation: 'default',
+            }}
+          >
+            <Stack.Screen name="onboarding" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="audit" />
+            <Stack.Screen
+              name="pricing"
+              options={{
+                presentation: 'formSheet',
+                sheetAllowedDetents: [0.95, 1.0],
+                sheetGrabberVisible: true,
+                sheetCornerRadius: 28,
               }}
-            >
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="audit" />
-              <Stack.Screen
-                name="pricing"
-                options={{
-                  presentation: 'formSheet',
-                  sheetAllowedDetents: [0.95, 1.0],
-                  sheetGrabberVisible: true,
-                  sheetCornerRadius: 28,
-                }}
-              />
-              <Stack.Screen name="account" />
-              <Stack.Screen
-                name="report-bug"
-                options={{
-                  presentation: 'formSheet',
-                  sheetAllowedDetents: [0.8, 1.0],
-                  sheetGrabberVisible: true,
-                  sheetCornerRadius: 28,
-                }}
-              />
-              <Stack.Screen
-                name="apply-job"
-                options={{
-                  presentation: 'pageSheet',
-                  sheetAllowedDetents: [0.92, 1.0],
-                  sheetGrabberVisible: true,
-                  sheetCornerRadius: 28,
-                }}
-              />
-              <Stack.Screen name="referral-onboarding" />
-              <Stack.Screen name="jobs" />
-              <Stack.Screen name="job-details" />
-              <Stack.Screen name="build-resume" />
-              <Stack.Screen name="resumes" />
-              <Stack.Screen name="personal-info" />
-              <Stack.Screen name="work-experience" />
-              <Stack.Screen name="education" />
-              <Stack.Screen name="skills" />
-              <Stack.Screen name="projects" />
-              <Stack.Screen name="certificates" />
-              <Stack.Screen name="awards" />
-              <Stack.Screen name="languages" />
-              <Stack.Screen name="volunteer" />
-              <Stack.Screen name="recognitions" />
-              <Stack.Screen name="title-summary" />
-              <Stack.Screen name="links" />
-              <Stack.Screen name="tasks" />
-              <Stack.Screen name="settings" />
-              <Stack.Screen name="professional-detail" />
-            </Stack>
-          </ThemeProvider>
+            />
+            <Stack.Screen name="account" />
+            <Stack.Screen
+              name="report-bug"
+              options={{
+                presentation: 'formSheet',
+                sheetAllowedDetents: [0.8, 1.0],
+                sheetGrabberVisible: true,
+                sheetCornerRadius: 28,
+              }}
+            />
+            <Stack.Screen
+              name="apply-job"
+              options={{
+                presentation: 'pageSheet',
+                sheetAllowedDetents: [0.92, 1.0],
+                sheetGrabberVisible: true,
+                sheetCornerRadius: 28,
+              }}
+            />
+            <Stack.Screen name="referral-onboarding" />
+            <Stack.Screen name="jobs" />
+            <Stack.Screen name="job-details" />
+            <Stack.Screen name="build-resume" />
+            <Stack.Screen name="resumes" />
+            <Stack.Screen name="personal-info" />
+            <Stack.Screen name="work-experience" />
+            <Stack.Screen name="education" />
+            <Stack.Screen name="skills" />
+            <Stack.Screen name="projects" />
+            <Stack.Screen name="certificates" />
+            <Stack.Screen name="awards" />
+            <Stack.Screen name="languages" />
+            <Stack.Screen name="volunteer" />
+            <Stack.Screen name="recognitions" />
+            <Stack.Screen name="title-summary" />
+            <Stack.Screen name="links" />
+            <Stack.Screen name="tasks" />
+            <Stack.Screen name="settings" />
+            <Stack.Screen name="professional-detail" />
+          </Stack>
         </AuthProvider>
-      </SafeAreaProvider>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }

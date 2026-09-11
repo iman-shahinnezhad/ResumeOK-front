@@ -113,7 +113,7 @@ export default function ReferralBottomSheet({ visible, onClose }: Props) {
   if (!visible) return null;
 
   return (
-    <GestureHandlerRootView style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+    <GestureHandlerRootView style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <BottomSheet
         ref={bottomSheetRef}
         index={0}

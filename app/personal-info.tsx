@@ -129,11 +129,16 @@ export default function PersonalInfo() {
         }
       } else if (user) {
         if (user.name) {
-          const parts = user.name.split(' ');
+          const nameStr = typeof user.name === 'string'
+            ? user.name
+            : (typeof user.name === 'object' && user.name !== null)
+              ? ((user.name as any).name || `${(user.name as any).firstName || ''} ${(user.name as any).lastName || ''}`)
+              : String(user.name);
+          const parts = nameStr.split(' ');
           setFirstName(parts[0] || '');
           setLastName(parts.slice(1).join(' ') || '');
         }
-        if (user.email) setEmail(user.email);
+        if (user.email && typeof user.email === 'string') setEmail(user.email);
       }
     } catch (e) {
       console.log('Error reading personal info:', e);

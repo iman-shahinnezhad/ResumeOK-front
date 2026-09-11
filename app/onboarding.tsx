@@ -370,12 +370,18 @@ export default function OnboardingScreen() {
   // Autofill user profile data if available from Google / Apple / session (ignoring generic fallback strings)
   useEffect(() => {
     if (user) {
-      if (user.email && !user.email.includes('user@gmail.com') && !user.email.includes('user@apple.com') && !email) {
+      if (user.email && typeof user.email === 'string' && !user.email.includes('user@gmail.com') && !user.email.includes('user@apple.com') && !email) {
         setEmail(user.email);
       }
       if (user.name && user.name !== 'Google User' && user.name !== 'Apple User') {
-        const parts = user.name.trim().split(' ');
-        if (parts.length > 0 && !firstName) setFirstName(parts[0]);
+        const nameStr = typeof user.name === 'string'
+          ? user.name
+          : (typeof user.name === 'object' && user.name !== null)
+            ? ((user.name as any).name || `${(user.name as any).firstName || ''} ${(user.name as any).lastName || ''}`)
+            : String(user.name);
+
+        const parts = nameStr.trim().split(' ');
+        if (parts.length > 0 && parts[0] && !firstName) setFirstName(parts[0]);
         if (parts.length > 1 && !lastName) setLastName(parts.slice(1).join(' '));
       }
     }
@@ -788,8 +794,8 @@ export default function OnboardingScreen() {
                     jobTitle: exp.title || exp.jobTitle || 'Professional Role',
                     companyName: exp.company || exp.companyName || 'Company',
                     city: exp.location || exp.city || 'City',
-                    startDate: exp.dates?.split('—')[0]?.trim() || exp.dates?.split('-')[0]?.trim() || '2021',
-                    endDate: exp.dates?.split('—')[1]?.trim() || exp.dates?.split('-')[1]?.trim() || 'Present',
+                    startDate: typeof exp.dates === 'string' ? (exp.dates.split('—')[0]?.trim() || exp.dates.split('-')[0]?.trim() || '2021') : '2021',
+                    endDate: typeof exp.dates === 'string' ? (exp.dates.split('—')[1]?.trim() || exp.dates.split('-')[1]?.trim() || 'Present') : 'Present',
                     jobDescription: exp.description || '',
                     description: exp.description || ''
                   }));
@@ -800,8 +806,8 @@ export default function OnboardingScreen() {
                     degree: edu.degree || 'Degree',
                     fieldOfStudy: edu.degree || 'Field of Study',
                     city: edu.location || edu.city || 'City',
-                    startDate: edu.year?.split('—')[0]?.trim() || edu.year?.split('-')[0]?.trim() || '2019',
-                    endDate: edu.year?.split('—')[1]?.trim() || edu.year?.split('-')[1]?.trim() || '2022',
+                    startDate: typeof edu.year === 'string' ? (edu.year.split('—')[0]?.trim() || edu.year.split('-')[0]?.trim() || '2019') : '2019',
+                    endDate: typeof edu.year === 'string' ? (edu.year.split('—')[1]?.trim() || edu.year.split('-')[1]?.trim() || '2022') : '2022',
                     description: '',
                     gpa: ''
                   }));
@@ -818,7 +824,7 @@ export default function OnboardingScreen() {
                     projectName: proj.name || proj.projectName || proj.title || `Project ${idx + 1}`,
                     role: proj.role || parsed.targetRole || 'Contributor',
                     description: proj.description || '',
-                    technologies: Array.isArray(proj.technologies) ? proj.technologies : (parsed.skills?.slice(0, 3) || []),
+                    technologies: Array.isArray(proj.technologies) ? proj.technologies : (Array.isArray(parsed.skills) ? parsed.skills.slice(0, 3) : []),
                     projectType: 'Company / Individual',
                     startDate: '2022',
                     endDate: 'Present',
@@ -827,9 +833,11 @@ export default function OnboardingScreen() {
                     repository: proj.link || ''
                   }));
 
+                  const parsedFullNameStr = typeof parsed.fullName === 'string' ? parsed.fullName : '';
+
                   const autoProfile = {
-                    firstName: parsed.firstName || (parsed.fullName ? parsed.fullName.split(' ')[0] : 'User'),
-                    lastName: parsed.lastName || (parsed.fullName ? parsed.fullName.split(' ').slice(1).join(' ') : ''),
+                    firstName: parsed.firstName || (parsedFullNameStr ? parsedFullNameStr.split(' ')[0] : 'User'),
+                    lastName: parsed.lastName || (parsedFullNameStr ? parsedFullNameStr.split(' ').slice(1).join(' ') : ''),
                     jobTitle: parsed.targetRole || '',
                     role: parsed.targetRole || '',
                     email: parsed.email || email || 'user@example.com',
@@ -841,14 +849,14 @@ export default function OnboardingScreen() {
                     linkedinUrl: parsed.linkedinUrl || '',
                     portfolioUrl: parsed.portfolioUrl || '',
                     roles: [parsed.targetRole || 'Professional'],
-                    interests: parsed.skills && parsed.skills.length > 0 ? parsed.skills.slice(0, 5) : ['Career growth', 'High salary', 'Remote work'],
+                    interests: Array.isArray(parsed.skills) && parsed.skills.length > 0 ? parsed.skills.slice(0, 5) : ['Career growth', 'High salary', 'Remote work'],
                     challenges: 'Finding relevant positions',
                     experience: parsed.experienceLevel || '3+ years',
                     expectedSalary: { min: 100000, max: 180000 },
                     hearAbout: 'Google Search',
-                    skills: parsed.skills && parsed.skills.length > 0 ? parsed.skills : [],
-                    tools: parsed.tools && parsed.tools.length > 0 ? parsed.tools : [],
-                    softSkills: parsed.softSkills || ['Communication', 'Problem Solving', 'Leadership'],
+                    skills: Array.isArray(parsed.skills) ? parsed.skills : [],
+                    tools: Array.isArray(parsed.tools) ? parsed.tools : [],
+                    softSkills: Array.isArray(parsed.softSkills) ? parsed.softSkills : ['Communication', 'Problem Solving', 'Leadership'],
                     languages: formattedLanguages.length > 0 ? formattedLanguages : [
                       { id: '1', name: 'English', proficiency: 'Fluent' }
                     ],
@@ -857,7 +865,7 @@ export default function OnboardingScreen() {
                     workExperiences: formattedExperiences,
                     educations: formattedEducations,
                     education: formattedEducations,
-                    summary: parsed.summary || `${parsed.targetRole || 'Professional'} with ${parsed.experienceYears || 5}+ years of experience in ${parsed.skills?.slice(0, 3).join(', ') || 'field'}.`
+                    summary: parsed.summary || `${parsed.targetRole || 'Professional'} with ${parsed.experienceYears || 5}+ years of experience in ${(Array.isArray(parsed.skills) ? parsed.skills.slice(0, 3).join(', ') : 'field')}.`
                   };
 
                   const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
@@ -1393,9 +1401,9 @@ export default function OnboardingScreen() {
                               : 14;
   const progressPercentage = (currentProgressStep / totalSteps) * 100;
 
-  const isNameValid = firstName.trim().length > 0 && lastName.trim().length > 0;
-  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const isReferralValid = referralCode.trim().length === 6;
+  const isNameValid = (typeof firstName === 'string' ? firstName : '').trim().length > 0 && (typeof lastName === 'string' ? lastName : '').trim().length > 0;
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((typeof email === 'string' ? email : '').trim());
+  const isReferralValid = (typeof referralCode === 'string' ? referralCode : '').trim().length === 6;
   const allPredefinedRoles = CATEGORIES_DATA.flatMap(c => c.roles);
   const customSelectedRoles = selectedRoles.filter(role => !allPredefinedRoles.includes(role));
 
@@ -1418,7 +1426,7 @@ export default function OnboardingScreen() {
           <View style={styles.overlay} />
         </>
       ) : (
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#FFFFFF' }]} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: '#FFFFFF' }]} />
       )}
 
       {/* Dynamic Header Progress Bar */}
@@ -2455,7 +2463,7 @@ const styles = StyleSheet.create({
     color: '#1D4ED8',
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   inner: {

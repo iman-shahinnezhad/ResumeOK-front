@@ -239,6 +239,7 @@
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -485,37 +486,38 @@
 }
 
 .resumeok-hero-headline {
-  font-family: Georgia, serif;
-  font-size: 62px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 64px;
   font-weight: 400;
-  line-height: 1.08;
-  letter-spacing: -0.02em;
-  color: #141414;
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+  color: #0f0f0f;
 }
 
 .resumeok-hero-desc {
-  font-family: Georgia, serif;
-  font-size: 15.5px;
-  line-height: 1.55;
-  color: #444444;
-  margin-bottom: 24px;
-  max-width: 380px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #333333;
+  margin-bottom: 20px;
+  max-width: 360px;
 }
 
 .resumeok-btn-hero-cta {
-  background-color: #141414;
+  background-color: #0f0f0f;
   color: #ffffff;
-  padding: 14px 28px;
-  border-radius: 30px;
-  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 4px;
+  font-size: 13.5px;
   font-weight: 700;
   border: none;
   cursor: pointer;
-  transition: transform 0.15s ease;
+  letter-spacing: 0.01em;
+  transition: background-color 0.15s ease, transform 0.15s ease;
 }
 
 .resumeok-btn-hero-cta:hover {
-  background-color: #2c2c2c;
+  background-color: #2a2a2a;
   transform: translateY(-1px);
 }
 
@@ -539,8 +541,8 @@
   right: 50%;
   margin-left: -50vw;
   margin-right: -50vw;
-  margin-top: 70px;
-  margin-bottom: 90px;
+  margin-top: 60px;
+  margin-bottom: 80px;
   text-align: center;
 }
 
@@ -569,71 +571,72 @@
 /* 3. Note From Our CEO Section (3 Columns, Pure White, Sharp Corners) */
 .resumeok-ceo-section {
   display: grid;
-  grid-template-columns: 220px 1fr 280px;
-  gap: 40px;
+  grid-template-columns: 200px 1fr 260px;
+  gap: 48px;
   align-items: flex-start;
-  padding: 60px 0;
-  margin-bottom: 90px;
+  padding: 80px 0;
+  margin-bottom: 0px;
   background-color: transparent;
 }
 
 @media (max-width: 992px) {
   .resumeok-ceo-section {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 32px;
   }
 }
 
 .resumeok-ceo-col-label {
-  padding-top: 4px;
+  padding-top: 2px;
 }
 
 .resumeok-ceo-label {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 500;
-  color: #141414;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #111111;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .resumeok-ceo-quote {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 16px;
-  line-height: 1.6;
-  color: #141414;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.55;
+  color: #111111;
   font-weight: 400;
-  margin-bottom: 40px;
-  max-width: 560px;
+  margin-bottom: 56px;
+  max-width: 580px;
+  letter-spacing: -0.005em;
 }
 
 .quote-highlight-orange {
-  background-color: #ff5424;
+  background-color: #ff3a00;
   color: #ffffff;
   padding: 3px 6px;
-  border-radius: 2px;
+  border-radius: 0px;
   font-weight: 500;
   display: inline;
 }
 
 .resumeok-ceo-author {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .resumeok-ceo-name {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #141414;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555555;
   margin-bottom: 3px;
 }
 
 .resumeok-ceo-title {
   font-size: 12px;
-  color: #777777;
+  color: #999999;
   font-weight: 400;
 }
 
 .resumeok-ceo-col-image {
-  width: 280px;
-  height: 340px;
+  width: 260px;
+  height: 325px;
 }
 
 .resumeok-ceo-img {
@@ -652,17 +655,17 @@
   right: 50%;
   margin-left: -50vw;
   margin-right: -50vw;
-  background-color: #faf9f6;
-  padding: 64px 0 40px;
+  background-color: #f7f6f2;
+  padding: 80px 0;
   border-radius: 0px !important;
-  margin-top: 20px;
+  margin-top: 0px;
   margin-bottom: 0px;
 }
 
 .resumeok-fullwidth-banner-inner {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 40px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -670,18 +673,21 @@
 }
 
 .resumeok-fullwidth-title {
-  font-family: Georgia, serif;
-  font-size: 38px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 34px;
   font-weight: 400;
-  line-height: 1.25;
+  line-height: 1.28;
   color: #141414;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
 .resumeok-fullwidth-graphic {
-  width: 120px;
-  height: 120px;
+  width: 208px;
+  height: 220px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .resumeok-glass-sphere-img {
@@ -691,7 +697,7 @@
   display: block;
 }
 
-/* 5. AI Reads Job Post Feature Section */
+/* 5. Personalized AI Job Matches Section */
 .resumeok-ai-read-section {
   width: 100vw;
   position: relative;
@@ -699,8 +705,8 @@
   right: 50%;
   margin-left: -50vw;
   margin-right: -50vw;
-  background-color: #faf9f6;
-  padding: 40px 0 60px;
+  background-color: #f7f6f2;
+  padding: 80px 0;
   border-radius: 0px !important;
   margin-bottom: 0px;
 }
@@ -708,11 +714,11 @@
 .resumeok-ai-read-inner {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 40px;
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
+  grid-template-columns: 1fr 1.15fr;
   gap: 60px;
-  align-items: center;
+  align-items: stretch;
 }
 
 @media (max-width: 992px) {
@@ -726,35 +732,36 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 48px;
 }
 
 .resumeok-ai-read-title {
-  font-family: Georgia, serif;
-  font-size: 32px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 26px;
   font-weight: 400;
-  line-height: 1.2;
+  line-height: 1.25;
   color: #141414;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
 }
 
 .resumeok-ai-read-desc {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14.5px;
-  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
   color: #555555;
-  max-width: 440px;
+  max-width: 360px;
 }
 
 .resumeok-ai-read-small-card {
-  width: 260px;
+  width: 250px;
+  margin-top: 40px;
 }
 
 .resumeok-ai-read-small-img {
   width: 100%;
   height: auto;
   display: block;
-  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
 }
 
 .resumeok-ai-read-right {
@@ -768,6 +775,252 @@
   border-radius: 0px !important;
 }
 
+/* 5.5 Interactive Calculator Section */
+.resumeok-calc-section {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  background-color: #f7f6f2;
+  padding: 80px 0;
+  border-radius: 0px !important;
+}
+
+.resumeok-calc-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+.resumeok-calc-header {
+  margin-bottom: 48px;
+}
+
+.resumeok-calc-headline {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: #141414;
+  margin-bottom: 10px;
+  letter-spacing: -0.015em;
+}
+
+.resumeok-calc-subheadline {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  color: #666666;
+}
+
+.resumeok-calc-card {
+  background-color: #e5e4df;
+  border-radius: 0px;
+  display: grid;
+  grid-template-columns: 1fr 1px 360px;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+@media (max-width: 992px) {
+  .resumeok-calc-card {
+    grid-template-columns: 1fr;
+  }
+
+  .resumeok-calc-divider {
+    display: none;
+  }
+}
+
+.resumeok-calc-card-left {
+  padding: 48px 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 56px;
+}
+
+.resumeok-calc-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 26px;
+  font-weight: 400;
+  color: #141414;
+  margin-bottom: 8px;
+}
+
+.resumeok-calc-subtitle {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  color: #666666;
+  margin-bottom: 44px;
+}
+
+/* Custom Interactive Slider Box */
+.resumeok-calc-slider-box {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.resumeok-calc-slider-track {
+  position: relative;
+  width: 100%;
+  height: 24px;
+  background-color: #cccccc;
+  border-radius: 0px;
+  overflow: visible;
+  cursor: pointer;
+}
+
+.resumeok-calc-slider-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-color: #ff3a00;
+  transition: width 0.15s ease-out;
+}
+
+.resumeok-calc-slider-handle {
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 100%;
+  background-color: #141414;
+  transform: translateX(-50%);
+  transition: left 0.15s ease-out;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.resumeok-calc-range-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 3;
+  margin: 0;
+}
+
+.resumeok-calc-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.resumeok-calc-tick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.resumeok-calc-tick-line {
+  width: 1px;
+  height: 8px;
+  background-color: #888888;
+  margin-bottom: 6px;
+}
+
+.resumeok-calc-tick span {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666666;
+  letter-spacing: 0.02em;
+  transition: color 0.15s ease;
+}
+
+.resumeok-calc-tick.active span {
+  color: #141414;
+}
+
+.resumeok-calc-features {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resumeok-calc-feature-item {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #333333;
+}
+
+.resumeok-calc-divider {
+  width: 1px;
+  background-color: #d0cfc9;
+  align-self: stretch;
+}
+
+.resumeok-calc-card-right {
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background-color: #deddd8;
+}
+
+.resumeok-calc-right-header {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+  line-height: 1.3;
+  color: #141414;
+  margin-bottom: 40px;
+}
+
+.resumeok-calc-stat-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.resumeok-calc-stat-group.top {
+  margin-bottom: 36px;
+}
+
+.resumeok-calc-stat-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.resumeok-calc-stat-label.orange {
+  color: #ff3a00;
+}
+
+.resumeok-calc-stat-label.dark {
+  color: #555555;
+  text-transform: uppercase;
+}
+
+.resumeok-calc-stat-num {
+  font-family: Georgia, 'Times New Roman', serif;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.resumeok-calc-stat-num.orange {
+  font-size: 58px;
+  color: #ff3a00;
+  font-weight: 400;
+}
+
+.resumeok-calc-stat-num.dark {
+  font-size: 44px;
+  color: #141414;
+  font-weight: 400;
+}
+
 /* 6. Dual Feature Cards Section */
 .resumeok-dual-features-section {
   width: 100vw;
@@ -776,19 +1029,19 @@
   right: 50%;
   margin-left: -50vw;
   margin-right: -50vw;
-  background-color: #faf9f6;
-  padding: 40px 0 90px;
+  background-color: #f7f6f2;
+  padding: 80px 0;
   border-radius: 0px !important;
-  margin-bottom: 80px;
+  margin-bottom: 0px;
 }
 
 .resumeok-dual-features-inner {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 40px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 40px;
+  gap: 36px;
 }
 
 @media (max-width: 992px) {
@@ -805,7 +1058,9 @@
 
 .resumeok-feature-box-media {
   width: 100%;
+  background-color: #e5e4df;
   margin-bottom: 24px;
+  overflow: hidden;
 }
 
 .resumeok-feature-box-img {
@@ -822,36 +1077,212 @@
 }
 
 .resumeok-feature-box-title {
-  font-family: Georgia, serif;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 22px;
   font-weight: 400;
   line-height: 1.25;
   color: #141414;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
 }
 
 .resumeok-feature-box-desc {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-size: 13.5px;
-  line-height: 1.6;
+  line-height: 1.5;
   color: #555555;
   margin-bottom: 20px;
+  max-width: 520px;
 }
 
 .resumeok-btn-feature-box {
-  background-color: #141414;
+  background-color: #0f0f0f;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
-  padding: 10px 20px;
-  border-radius: 30px;
+  padding: 10px 18px;
+  border-radius: 4px;
   border: none;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  letter-spacing: 0.01em;
+  transition: background-color 0.15s ease, transform 0.15s ease;
 }
 
 .resumeok-btn-feature-box:hover {
-  background-color: #2c2c2c;
+  background-color: #2a2a2a;
+  transform: translateY(-1px);
+}
+
+/* 6.5 Jobs Database & Stats Section */
+.resumeok-db-section {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  background-color: #ffffff;
+  padding: 80px 0;
+  border-radius: 0px !important;
+  margin-bottom: 0px;
+}
+
+.resumeok-db-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+.resumeok-db-headline {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: #141414;
+  text-align: center;
+  margin-bottom: 60px;
+  letter-spacing: -0.015em;
+}
+
+/* Central Diagram Container */
+.resumeok-db-diagram {
+  position: relative;
+  width: 100%;
+  max-width: 1050px;
+  margin: 0 auto 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+}
+
+/* Left Box (web7.png) */
+.resumeok-db-left-box {
+  flex: 1;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Center Orange Box */
+.resumeok-db-center-box {
+  background-color: #ff3a00;
+  color: #ffffff;
+  width: 250px;
+  height: 250px;
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  border-radius: 0px !important;
+  z-index: 2;
+}
+
+.resumeok-db-center-logo {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 20px 0;
+  letter-spacing: -0.02em;
+}
+
+.resumeok-db-center-text p {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #ffffff;
+  margin: 4px 0;
+  opacity: 0.95;
+}
+
+/* Right Box (web8.png) */
+.resumeok-db-right-box {
+  flex: 1;
+  max-width: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.resumeok-db-side-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Bottom 3-Column Stats Card */
+.resumeok-db-stats-card {
+  background-color: #ededeb;
+  padding: 40px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr 1px 1fr;
+  align-items: center;
+  text-align: center;
+}
+
+.resumeok-db-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.resumeok-db-stat-number {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 42px;
+  font-weight: 400;
+  color: #141414;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.resumeok-db-stat-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #666666;
+}
+
+.resumeok-db-stat-divider {
+  width: 1px;
+  height: 48px;
+  background-color: #d0cfc9;
+}
+
+/* 6.6 Sticky Notes Testimonials Banner Section */
+.resumeok-sticky-banner-section {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  background-color: #ffffff;
+  padding: 80px 0;
+  border-radius: 0px !important;
+  margin-bottom: 0px;
+}
+
+.resumeok-sticky-banner-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.resumeok-sticky-banner-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 0px !important;
 }
 
 /* 7. AI Career Copilot Section */
@@ -1206,7 +1637,8 @@
 /* 12. Honest Pricing Section */
 .resumeok-pricing-container-section {
   max-width: 1240px;
-  margin: 0 auto 90px;
+  margin: 80px auto 100px;
+  padding: 0 40px;
 }
 
 .resumeok-pricing-pattern-bg {
@@ -1914,39 +2346,190 @@ body {
     font-size: 38px;
   }
 
-  .resumeok-partner-section {
-    margin-bottom: 60px;
-    padding: 0;
+  .footer-content {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+}
+
+/* Comprehensive Responsive Adjustments for Tablet & Mobile */
+@media (max-width: 992px) {
+  .resumeok-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
   }
 
-  .resumeok-partner-grid {
+  .resumeok-hero-headline {
+    font-size: 48px;
+    line-height: 1.1;
+  }
+
+  .resumeok-ceo-section {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .resumeok-ceo-col-image {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    aspect-ratio: 4 / 5;
+  }
+
+  .resumeok-fullwidth-banner-inner {
+    flex-direction: column;
+    text-align: center;
+    gap: 28px;
+  }
+
+  .resumeok-fullwidth-title {
+    font-size: 28px;
+    text-align: center;
+  }
+
+  .resumeok-ai-read-inner {
     grid-template-columns: 1fr;
     gap: 36px;
   }
 
-  .resumeok-partner-box-media {
-    width: 100% !important;
-    height: auto !important;
-    aspect-ratio: 16 / 10;
+  .resumeok-calc-card {
+    grid-template-columns: 1fr;
+  }
+
+  .resumeok-calc-card-left {
+    padding: 36px 28px;
+    gap: 36px;
+  }
+
+  .resumeok-calc-divider {
+    display: none;
+  }
+
+  .resumeok-dual-features-inner {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .resumeok-db-diagram {
+    flex-direction: column;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  .resumeok-db-left-box,
+  .resumeok-db-right-box {
+    width: 100%;
+    max-width: 320px;
+    justify-content: center;
+  }
+
+  .resumeok-db-center-box {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    min-height: 200px;
+    padding: 28px 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Mobile padding container override */
+  .resumeok-hero-grid,
+  .resumeok-hero-banner-container,
+  .resumeok-logos-section,
+  .resumeok-ceo-section,
+  .resumeok-fullwidth-banner-inner,
+  .resumeok-ai-read-inner,
+  .resumeok-calc-inner,
+  .resumeok-dual-features-inner,
+  .resumeok-db-inner,
+  .resumeok-sticky-banner-inner,
+  .resumeok-pricing-container-section {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  /* Vertical Section Padding on Mobile */
+  .resumeok-fullwidth-banner,
+  .resumeok-ai-read-section,
+  .resumeok-calc-section,
+  .resumeok-dual-features-section,
+  .resumeok-db-section,
+  .resumeok-sticky-banner-section {
+    padding: 50px 0;
+  }
+
+  .resumeok-hero-headline {
+    font-size: 38px;
+    line-height: 1.12;
+  }
+
+  .resumeok-fullwidth-title {
+    font-size: 24px;
+    line-height: 1.3;
+  }
+
+  .resumeok-ai-read-title {
+    font-size: 24px;
+  }
+
+  .resumeok-calc-headline {
+    font-size: 26px;
+  }
+
+  .resumeok-calc-ticks {
+    gap: 2px;
+  }
+
+  .resumeok-calc-tick span {
+    font-size: 9.5px;
+  }
+
+  .resumeok-db-headline {
+    font-size: 26px;
+    margin-bottom: 36px;
+  }
+
+  .resumeok-db-stats-card {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 28px 20px;
+  }
+
+  .resumeok-db-stat-divider {
+    width: 100%;
+    height: 1px;
+    background-color: #d0cfc9;
+  }
+
+  .resumeok-db-stat-number {
+    font-size: 34px;
+  }
+
+  .resumeok-pricing-pattern-bg {
+    padding: 40px 20px;
+  }
+
+  .resumeok-pricing-main-title {
+    font-size: 26px;
+  }
+
+  .resumeok-pricing-solid-box {
+    padding: 32px 20px;
+    max-width: 100%;
   }
 
   /* Force all images inside cards to fit neatly on phone screens */
   .resumeok-hero-banner-img,
   .resumeok-ai-read-large-img,
   .resumeok-feature-box-img,
-  .resumeok-copilot-art-img,
-  .resumeok-tabs-img,
-  .resumeok-partner-box-img {
+  .resumeok-db-side-img,
+  .resumeok-sticky-banner-img {
     width: 100% !important;
     height: auto !important;
     max-width: 100% !important;
     object-fit: contain;
-  }
-
-  .footer-content {
-    flex-direction: column;
-    gap: 12px;
-    text-align: center;
   }
 }
 
@@ -1956,11 +2539,19 @@ body {
     line-height: 1.18;
   }
 
+  .resumeok-hero-desc {
+    font-size: 14px;
+  }
+
   .resumeok-fullwidth-title {
     font-size: 20px;
   }
 
   .resumeok-ai-read-title {
+    font-size: 20px;
+  }
+
+  .resumeok-calc-headline {
     font-size: 22px;
   }
 
@@ -1968,11 +2559,15 @@ body {
     font-size: 19px;
   }
 
-  .resumeok-toolkit-title {
+  .resumeok-db-headline {
     font-size: 22px;
   }
 
   .resumeok-pricing-main-title {
     font-size: 22px;
+  }
+
+  .resumeok-pricing-amount {
+    font-size: 38px;
   }
 }

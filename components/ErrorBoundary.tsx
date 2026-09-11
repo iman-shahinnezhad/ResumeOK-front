@@ -78,11 +78,15 @@ function ErrorFallbackView({
   onCopy: () => void;
   onReset: () => void;
 }) {
-  const insets = useSafeAreaInsets();
+  let insets = { top: 40, bottom: 20, left: 0, right: 0 };
+  try {
+    const safeInsets = useSafeAreaInsets();
+    if (safeInsets) insets = safeInsets;
+  } catch (e) {}
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#0f172a', '#0a0e1a', '#030712']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#0f172a', '#0a0e1a', '#030712']} style={StyleSheet.absoluteFill} />
 
       <View style={[styles.content, { paddingTop: Math.max(insets.top, 40), paddingBottom: Math.max(insets.bottom, 20) }]}>
         <View style={styles.header}>

@@ -178,8 +178,8 @@ export default function ResumesScreen() {
                   jobTitle: exp.title || exp.jobTitle || 'Professional Role',
                   companyName: exp.company || exp.companyName || 'Company',
                   city: exp.location || exp.city || currentProfile.city || 'City',
-                  startDate: exp.dates?.split('—')[0]?.trim() || exp.dates?.split('-')[0]?.trim() || '2021',
-                  endDate: exp.dates?.split('—')[1]?.trim() || exp.dates?.split('-')[1]?.trim() || 'Present',
+                  startDate: typeof exp.dates === 'string' ? (exp.dates.split('—')[0]?.trim() || exp.dates.split('-')[0]?.trim() || '2021') : '2021',
+                  endDate: typeof exp.dates === 'string' ? (exp.dates.split('—')[1]?.trim() || exp.dates.split('-')[1]?.trim() || 'Present') : 'Present',
                   jobDescription: exp.description || '',
                   description: exp.description || ''
                 }));
@@ -190,8 +190,8 @@ export default function ResumesScreen() {
                   degree: edu.degree || 'Degree',
                   fieldOfStudy: edu.degree || 'Field of Study',
                   city: edu.location || edu.city || currentProfile.city || 'City',
-                  startDate: edu.year?.split('—')[0]?.trim() || edu.year?.split('-')[0]?.trim() || '2019',
-                  endDate: edu.year?.split('—')[1]?.trim() || edu.year?.split('-')[1]?.trim() || '2022',
+                  startDate: typeof edu.year === 'string' ? (edu.year.split('—')[0]?.trim() || edu.year.split('-')[0]?.trim() || '2019') : '2019',
+                  endDate: typeof edu.year === 'string' ? (edu.year.split('—')[1]?.trim() || edu.year.split('-')[1]?.trim() || '2022') : '2022',
                   description: '',
                   gpa: ''
                 }));
@@ -208,7 +208,7 @@ export default function ResumesScreen() {
                   projectName: proj.name || proj.projectName || proj.title || `Project ${idx + 1}`,
                   role: proj.role || parsed.targetRole || 'Contributor',
                   description: proj.description || '',
-                  technologies: Array.isArray(proj.technologies) ? proj.technologies : (parsed.skills?.slice(0, 3) || []),
+                  technologies: Array.isArray(proj.technologies) ? proj.technologies : (Array.isArray(parsed.skills) ? parsed.skills.slice(0, 3) : []),
                   projectType: 'Company / Individual',
                   startDate: '2022',
                   endDate: 'Present',
@@ -217,11 +217,13 @@ export default function ResumesScreen() {
                   repository: proj.link || ''
                 }));
 
+                const parsedFullNameStr = typeof parsed.fullName === 'string' ? parsed.fullName : '';
+
                 const mergedProfile = {
                   ...currentProfile,
-                  firstName: parsed.firstName || currentProfile.firstName || (parsed.fullName ? parsed.fullName.split(' ')[0] : ''),
-                  lastName: parsed.lastName || currentProfile.lastName || (parsed.fullName ? parsed.fullName.split(' ').slice(1).join(' ') : ''),
-                  fullName: parsed.fullName || currentProfile.fullName || '',
+                  firstName: parsed.firstName || currentProfile.firstName || (parsedFullNameStr ? parsedFullNameStr.split(' ')[0] : ''),
+                  lastName: parsed.lastName || currentProfile.lastName || (parsedFullNameStr ? parsedFullNameStr.split(' ').slice(1).join(' ') : ''),
+                  fullName: parsedFullNameStr || currentProfile.fullName || '',
                   jobTitle: parsed.targetRole || currentProfile.jobTitle || '',
                   role: parsed.targetRole || currentProfile.role || '',
                   email: parsed.email || currentProfile.email || '',
@@ -234,8 +236,8 @@ export default function ResumesScreen() {
                   linkedinUrl: parsed.linkedinUrl || currentProfile.linkedinUrl || '',
                   portfolioUrl: parsed.portfolioUrl || currentProfile.portfolioUrl || '',
                   summary: parsed.summary || currentProfile.summary || '',
-                  skills: parsed.skills && parsed.skills.length > 0 ? parsed.skills : (currentProfile.skills || []),
-                  tools: parsed.tools && parsed.tools.length > 0 ? parsed.tools : (currentProfile.tools || []),
+                  skills: Array.isArray(parsed.skills) && parsed.skills.length > 0 ? parsed.skills : (currentProfile.skills || []),
+                  tools: Array.isArray(parsed.tools) && parsed.tools.length > 0 ? parsed.tools : (currentProfile.tools || []),
                   languages: formattedLanguages.length > 0 ? formattedLanguages : (currentProfile.languages || []),
                   projects: formattedProjects.length > 0 ? formattedProjects : (currentProfile.projects || []),
                   experiences: formattedExperiences.length > 0 ? formattedExperiences : (currentProfile.experiences || []),

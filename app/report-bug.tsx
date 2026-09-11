@@ -43,7 +43,7 @@ export default function ReportBug() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <LinearGradient colors={['#0f1d43', '#080d1e', '#050608']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#0f1d43', '#080d1e', '#050608']} style={StyleSheet.absoluteFill} />
 
       {/* Glass Header */}
       <View style={[styles.header, { marginTop: insets.top }]}>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   bannerOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(15, 29, 67, 0.2)',
   },
   formCard: {

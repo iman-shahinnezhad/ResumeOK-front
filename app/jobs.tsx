@@ -574,13 +574,15 @@ export default function JobsScreen() {
                 ? loadedProfile.roles
                 : (Array.isArray(loadedProfile.skills) ? loadedProfile.skills : []);
 
-              const onboardingRole = (Array.isArray(loadedProfile.roles) && loadedProfile.roles[0]) || loadedProfile.jobTitle || loadedProfile.role || onboardingRoles[0] || '';
+              const rawRole = (Array.isArray(loadedProfile.roles) && loadedProfile.roles[0]) || loadedProfile.jobTitle || loadedProfile.role || onboardingRoles[0] || '';
+              const onboardingRole = typeof rawRole === 'string' ? rawRole : '';
               if (onboardingRole && !filterQuery) {
                 setFilterQuery(onboardingRole);
               }
 
               // Location auto-selection from onboarding profile
-              const onboardingLoc = loadedProfile.city || loadedProfile.location || '';
+              const rawLoc = loadedProfile.city || loadedProfile.location || '';
+              const onboardingLoc = typeof rawLoc === 'string' ? rawLoc : '';
               if (onboardingLoc && !filterLocation) {
                 setFilterLocation(onboardingLoc);
               }
@@ -596,7 +598,8 @@ export default function JobsScreen() {
               }
 
               // Experience Seniority auto-selection
-              const onboardingExp = (loadedProfile.experienceLevel || loadedProfile.experience || '').toLowerCase();
+              const rawExp = loadedProfile.experienceLevel || loadedProfile.experience || '';
+              const onboardingExp = typeof rawExp === 'string' ? rawExp.toLowerCase() : '';
               if (onboardingExp && filterExperience === 'ALL') {
                 if (onboardingExp.includes('senior') || onboardingExp.includes('expert') || onboardingExp.includes('leadership') || onboardingExp.includes('6-9') || onboardingExp.includes('10+')) {
                   setFilterExperience('Senior');
@@ -2174,7 +2177,7 @@ export default function JobsScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#F3F4F6', '#FFFFFF']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#F3F4F6', '#FFFFFF']} style={StyleSheet.absoluteFill} />
 
       {/* HEADER MATCHING DESIGN MOCKUP */}
       <View style={[styles.newHeader, { marginTop: insets.top + 4 }]}>
@@ -2730,7 +2733,7 @@ export default function JobsScreen() {
               <ActivityIndicator
                 size="large"
                 color="#000000"
-                style={StyleSheet.absoluteFillObject}
+                style={StyleSheet.absoluteFill}
               />
             )}
           />
@@ -3190,7 +3193,7 @@ export default function JobsScreen() {
                       const queryVal = filterQuery.trim();
                       if (queryVal.length > 0) {
                         if (!selectedSkillsFilter.some(s => s.toLowerCase() === queryVal.toLowerCase())) {
-                          setSelectedSkillsFilter(prev => [...prev, queryVal]);
+                          setSelectedSkillsFilter(prev => [queryVal, ...prev]);
                         }
                         setFilterQuery('');
                       }
@@ -3216,7 +3219,7 @@ export default function JobsScreen() {
                 {/* SECTION 0: YOUR SKILLS & TARGET ROLES */}
                 {(() => {
                   const onboardSkills = userProfile ? getUserSkillsList(userProfile) : [];
-                  const allDisplaySkills = Array.from(new Set([...onboardSkills, ...selectedSkillsFilter]));
+                  const allDisplaySkills = Array.from(new Set([...selectedSkillsFilter, ...onboardSkills]));
                   if (allDisplaySkills.length === 0) return null;
 
                   return (
@@ -3246,7 +3249,7 @@ export default function JobsScreen() {
                               style={[styles.filterChip, isSelected && styles.filterChipActive]}
                               onPress={() => {
                                 setSelectedSkillsFilter(prev =>
-                                  isSelected ? prev.filter(s => s !== skill) : [...prev, skill]
+                                  isSelected ? prev.filter(s => s !== skill) : [skill, ...prev]
                                 );
                               }}
                             >

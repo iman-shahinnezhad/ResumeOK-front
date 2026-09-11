@@ -1,87 +1,51 @@
-import { Tabs } from 'expo-router';
-import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import React from 'react';
 import { Platform } from 'react-native';
 
+const jobIcon = require('../../assets/images/bottom-nav/job.png');
+const appIcon = require('../../assets/images/bottom-nav/application.png');
+const resumeIcon = require('../../assets/images/bottom-nav/resume.png');
+const profileIcon = require('../../assets/images/bottom-nav/profile.png');
+
 export default function TabLayout() {
-    const isPad = Platform.OS === 'ios' && Platform.isPad;
+  const isPad = Platform.OS === 'ios' && Platform.isPad;
 
-    if (isPad) {
-        return (
-            <Tabs
-                screenOptions={{
-                    headerShown: false,
-                    tabBarStyle: { display: 'none' },
-                }}
-            />
-        );
-    }
+  if (isPad) {
+    return <NativeTabs hidden />;
+  }
 
-    // Static background for all tabs
-    const tabBg = '#F8F9FA';
-    const tint = '#007AFF';
+  return (
+    <NativeTabs
+      tintColor="#000000"
+      iconColor={{ default: '#000000', selected: '#000000' }}
+      backgroundColor="#FFFFFF"
+      indicatorColor="#EAEAEA"
+      rippleColor="#EAEAEA"
+    >
+      <NativeTabs.Trigger name="jobs">
+        <NativeTabs.Trigger.Label>Job Board</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon src={jobIcon} />
+      </NativeTabs.Trigger>
 
-    return (
-        <NativeTabs
-            backgroundColor={tabBg}
-            tintColor={tint}
-            disableTransparentOnScrollEdge={true}
-            labelStyle={{
-                default: {
-                    color: '#64748B',
-                    fontSize: 11,
-                    fontWeight: '600',
-                },
-                selected: {
-                    color: tint,
-                    fontSize: 11,
-                    fontWeight: '700',
-                }
-            }}
-        >
-            {/* 1. Jobs Tab */}
-            <NativeTabs.Trigger name="jobs" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
-                <Icon
-                    src={{
-                        default: require('../../assets/images/bottom-nav/job.png'),
-                        selected: require('../../assets/images/bottom-nav/job.png')
-                    }}
-                />
-                <Label>Jobs</Label>
-            </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="applications">
+        <NativeTabs.Trigger.Label>Status</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon src={appIcon} />
+      </NativeTabs.Trigger>
 
-            {/* 2. Applications Tab */}
-            <NativeTabs.Trigger name="applications" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
-                <Icon
-                    src={{
-                        default: require('../../assets/images/bottom-nav/Application.png'),
-                        selected: require('../../assets/images/bottom-nav/Application.png')
-                    }}
-                />
-                <Label>Applications</Label>
-            </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger.Label>Inbox</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon src={resumeIcon} />
+      </NativeTabs.Trigger>
 
-            {/* 3. Resume Tab */}
-            <NativeTabs.Trigger name="index" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
-                <Icon
-                    src={{
-                        default: require('../../assets/images/bottom-nav/resume.png'),
-                        selected: require('../../assets/images/bottom-nav/resume.png')
-                    }}
-                />
-                <Label>Resume</Label>
-            </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="account">
+        <NativeTabs.Trigger.Label>My Profile</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon src={profileIcon} />
+      </NativeTabs.Trigger>
 
-            {/* 4. Profile Tab */}
-            <NativeTabs.Trigger name="account" options={{ backgroundColor: tabBg, disableTransparentOnScrollEdge: true }}>
-                <Icon
-                    src={{
-                        default: require('../../assets/images/bottom-nav/profile.png'),
-                        selected: require('../../assets/images/bottom-nav/profile.png')
-                    }}
-                />
-                <Label>Profile</Label>
-            </NativeTabs.Trigger>
-        </NativeTabs>
-    );
+      <NativeTabs.Trigger name="cover-letter" hidden />
+      <NativeTabs.Trigger name="library" hidden />
+    </NativeTabs>
+  );
 }
+
+

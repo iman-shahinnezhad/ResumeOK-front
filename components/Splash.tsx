@@ -42,7 +42,7 @@ export default function Splash({ onContinue }: SplashProps) {
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',

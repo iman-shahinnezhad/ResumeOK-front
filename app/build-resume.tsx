@@ -22,6 +22,7 @@ import { parseDateString as parseDateStringUtil } from '../utils/dateUtils';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as Haptics from 'expo-haptics';
 import { API_URL, useAuth } from '../context/AuthContext';
 import { sortResumesWithDefaultFirst } from '../utils/resumeUtils';
 
@@ -205,7 +206,7 @@ export default function BuildResumeScreen() {
   const [isFinalizing, setIsFinalizing] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [showTemplateSelection, setShowTemplateSelection] = useState<boolean>(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('modern_slate');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('executive_classic');
 
   // UI state for Step 1
   const [showOptional, setShowOptional] = useState<boolean>(false);
@@ -518,13 +519,13 @@ export default function BuildResumeScreen() {
   const handleFinalize = async () => {
     try {
       setIsFinalizing(true);
-      // Simulated compile delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 400));
     } catch (error) {
       console.log('Error during finalization:', error);
     } finally {
       setIsFinalizing(false);
-      setShowTemplateSelection(true);
+      setSelectedTemplate('executive_classic');
+      setShowPreview(true);
     }
   };
 
@@ -1463,18 +1464,47 @@ export default function BuildResumeScreen() {
           to: localPath
         });
 
+        const isFirst = !Array.isArray(currentList) || currentList.length === 0;
         const newResume = {
           id: String(Date.now()),
           name: resumeName,
           date: dateStr,
           uri: localPath,
-          size: 0,
+          size: '0.5 MB',
           mimeType: 'application/pdf',
-          isBuilt: true
+          isBuilt: true,
+          isDefault: isFirst || !currentList.some((r: any) => r.isDefault),
         };
 
         const newList = sortResumesWithDefaultFirst([newResume, ...currentList]);
         await FileSystem.writeAsStringAsync(resumesJsonPath, JSON.stringify(newList));
+
+        // Sync default resume with onboarding profile
+        try {
+          const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+          const profileInfo = await FileSystem.getInfoAsync(profilePath);
+          let profileData: any = {};
+          if (profileInfo.exists) {
+            const pText = await FileSystem.readAsStringAsync(profilePath);
+            profileData = JSON.parse(pText);
+          }
+          const updatedProfile = {
+            ...profileData,
+            firstName: formData.firstName || profileData.firstName,
+            lastName: formData.lastName || profileData.lastName,
+            email: formData.email || profileData.email,
+            jobTitle: formData.jobTitle || profileData.jobTitle,
+            defaultResumeId: newResume.id,
+            defaultResumeFile: newResume,
+            resumeFile: {
+              name: newResume.name,
+              uri: newResume.uri,
+            },
+          };
+          await FileSystem.writeAsStringAsync(profilePath, JSON.stringify(updatedProfile));
+        } catch (e) {
+          console.log('Error syncing resume to onboarding profile:', e);
+        }
 
         // Sync built resume upload to MongoDB backend database
         (async () => {
@@ -1510,10 +1540,15 @@ export default function BuildResumeScreen() {
           from: uri,
           to: sharePath
         });
-        await Sharing.shareAsync(sharePath, { UTI: '.pdf', mimeType: 'application/pdf' });
+
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        await Sharing.shareAsync(sharePath, { UTI: '.pdf', mimeType: 'application/pdf' }).catch(() => {});
+        router.replace('/(tabs)');
       } catch (saveErr) {
         console.log("Failed to save built resume to resumes list:", saveErr);
-        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' }).catch(() => {});
+        router.replace('/(tabs)');
       }
     } catch (err) {
       console.log('Error generating or sharing PDF:', err);
@@ -1683,7 +1718,7 @@ export default function BuildResumeScreen() {
       }
       return {
         ...prev,
-        skills: [...prev.skills, trimmed],
+        skills: [trimmed, ...prev.skills],
       };
     });
     setNewSkillText('');
@@ -2002,45 +2037,7 @@ export default function BuildResumeScreen() {
           contentContainerStyle={[styles.scrollContent, { paddingBottom: 220 }]}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.pageTitle}>Your Resume is ready 🥳</Text>
-
-          {/* QUICK STYLE SWITCHER */}
-          <Text style={{ fontSize: 13, fontWeight: '700', color: '#000000', marginBottom: 8, paddingHorizontal: 4 }}>
-            Change Resume Template Style:
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, marginBottom: 20, paddingBottom: 4 }}
-          >
-            {[
-              { id: 'modern_slate', name: 'Slate' },
-              { id: 'executive_classic', name: 'Executive' },
-              { id: 'creative_column', name: 'Creative' },
-              { id: 'elegant_warm', name: 'Elegant' },
-            ].map(t => {
-              const active = selectedTemplate === t.id;
-              return (
-                <TouchableOpacity
-                  key={t.id}
-                  onPress={() => setSelectedTemplate(t.id)}
-                  style={{
-                    backgroundColor: active ? '#000000' : '#FFFFFF',
-                    borderWidth: 1.5,
-                    borderColor: '#000000',
-                    borderRadius: 20,
-                    paddingHorizontal: 16,
-                    paddingVertical: 10,
-                    marginRight: 8
-                  }}
-                >
-                  <Text style={{ color: active ? '#FFFFFF' : '#000000', fontSize: 13, fontWeight: '700' }}>
-                    {t.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+          <Text style={styles.pageTitle}>Your Classic Resume is ready 🥳</Text>
 
           {/* PDF PREVIEW CONTAINER */}
           <View style={[
@@ -2185,7 +2182,7 @@ export default function BuildResumeScreen() {
 
                 {/* Profile Summary */}
                 <View style={{ marginBottom: 15 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 6 }}>SUMMERY</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#000000', borderBottomWidth: 1, borderColor: '#cbd5e1', paddingBottom: 2, marginBottom: 6 }}>SUMMARY</Text>
                   <Text style={{ fontSize: 11, color: '#374151', lineHeight: 15 }}>{formData.summary}</Text>
                 </View>
 

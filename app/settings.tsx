@@ -279,7 +279,7 @@ export default function Settings() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#F8FAFC', '#FFFFFF']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#F8FAFC', '#FFFFFF']} style={StyleSheet.absoluteFill} />
 
       {/* Header */}
       <View style={[styles.header, { marginTop: insets.top }]}>
@@ -308,7 +308,7 @@ export default function Settings() {
         <View style={styles.referralCard}>
           <LinearGradient
             colors={['rgba(168, 210, 73, 0.05)', 'rgba(0, 191, 255, 0.02)']}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
           />
           <View style={styles.referralHeader}>
             <Ionicons name="gift-outline" size={22} color="#a8d249" />
@@ -351,7 +351,7 @@ export default function Settings() {
           <View style={styles.referrerCard}>
             <LinearGradient
               colors={['rgba(0, 191, 255, 0.04)', 'rgba(0, 191, 255, 0.01)']}
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
             />
             <View style={styles.referralHeader}>
               <Ionicons name="people-outline" size={22} color="#00bfff" />

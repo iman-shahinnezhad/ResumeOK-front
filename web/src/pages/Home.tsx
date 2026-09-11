@@ -3,81 +3,27 @@ import { useNavigate } from 'react-router-dom';
 import useSEO from '../hooks/useSEO';
 
 // Import exact design assets
-import webHome from '../assets/web-home.png';
 import webHome2 from '../assets/web-home2.png';
-import webHome3 from '../assets/web-home3.png';
-import webHome4 from '../assets/web-home4.png';
-import webHome5 from '../assets/web-home5.png';
-import webHome6 from '../assets/web-home6.png';
-import webHome7 from '../assets/web-home7.png';
 import webHome8 from '../assets/web-home8.png';
 import webHome9 from '../assets/web-home9.png';
-import webHome10 from '../assets/web-home10.png';
-import webHome11 from '../assets/web-home11.png';
-import webHome12 from '../assets/web-home12.png';
-import webHome13 from '../assets/web-home13.png';
-import webHome14 from '../assets/web-home14.png';
-import webHome15 from '../assets/web-home15.png';
-import webHome16 from '../assets/web-home16.png';
-import webHome17 from '../assets/web-home17.png';
+import web1 from '../assets/web1.jpg';
+import web2 from '../assets/web2.png';
+import web3 from '../assets/web3.png';
+import web4 from '../assets/web4.png';
+import web5 from '../assets/web5.png';
+import web6 from '../assets/web6.png';
+import web7 from '../assets/web7.png';
+import web8 from '../assets/web8.png';
+import web9 from '../assets/web9.png';
 
 export default function Home() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(0);
-  const [activeTab2, setActiveTab2] = useState(0);
+  const [calcHours, setCalcHours] = useState(3);
 
   useSEO(
-    "ApplyDesk - Land Interviews 6x Faster",
+    "ApplyDesk - Land Interviews 8x Faster",
     "AI that reads job posts like a recruiter — matches your real skills, tailors every resume, and auto-applies only where you're a genuine fit."
   );
-
-  const tabData = [
-    {
-      title: "Smart Match",
-      desc: "Stop scrolling through hundreds of irrelevant listings. Our AI filters 8M+ jobs down to the ones that actually match your experience, skills, and career trajectory — with zero fake postings or expired links.",
-      linkText: "Explore Smart Match",
-      path: "/match",
-      image: webHome4
-    },
-    {
-      title: "AI Resume Builder",
-      desc: "Generate a role-specific resume in seconds. The AI analyzes each job description, highlights your most relevant experience, optimizes for ATS parsing, and formats it professionally — so you stand out in the first 6-second scan.",
-      linkText: "Explore AI Resume Builder",
-      path: "/build",
-      image: webHome6
-    },
-    {
-      title: "Hands-free Auto Apply",
-      desc: "Set your preferences once and let AI handle the rest. It applies to matching roles daily, tailoring each submission — saving you 10+ hours a week of repetitive form-filling.",
-      linkText: "Explore Auto Apply",
-      path: "/jobs",
-      image: webHome17
-    }
-  ];
-
-  const tabData2 = [
-    {
-      title: "Insider Referrals",
-      desc: "Discover alumni, mutual connections, and hiring managers at your target companies. Get warm introductions that increase your interview chances by 4x — no cold outreach required.",
-      linkText: "Build connections",
-      path: "/tasks",
-      image: webHome4
-    },
-    {
-      title: "Interview Intelligence",
-      desc: "Get company-specific interview questions, salary benchmarks, and hiring timeline insights pulled from real candidate data — so you walk in prepared, not guessing.",
-      linkText: "Prep smarter",
-      path: "/audit",
-      image: webHome13
-    },
-    {
-      title: "Application Tracker",
-      desc: "See every application in one dashboard — status updates, response rates, follow-up reminders, and insights on which strategies are landing you interviews. No more spreadsheet chaos.",
-      linkText: "Track applications",
-      path: "/jobs",
-      image: webHome17
-    }
-  ];
 
   return (
     <div className="resumeok-landing">
@@ -87,8 +33,8 @@ export default function Home() {
           {/* Left Title Column */}
           <div className="resumeok-hero-left">
             <h1 className="resumeok-hero-headline">
-              Land interviews 6x fasterr..<br />
-              Zero guesswork.
+              Land interviews 8x faster.<br />
+              Old applying is dead.
             </h1>
           </div>
 
@@ -105,14 +51,14 @@ export default function Home() {
 
         {/* Hero Demo Screenshot Frame Box */}
         <div className="resumeok-hero-banner-container">
-          <img src={webHome6} alt="ResumeOK AI Workflow Mockup" className="resumeok-hero-banner-img" />
+          <img src={web1} alt="ResumeOK AI Resume Analysis" className="resumeok-hero-banner-img" />
         </div>
       </section>
 
       {/* 2. Verified Jobs Logos Ticker Section */}
       <section className="resumeok-logos-section">
         <div className="resumeok-logos-header">
-          8M+ VERIFIED JOBS. UPDATED EVERY HOUR.
+          Small startups to large corporate jobs.
         </div>
         <div className="resumeok-logos-container">
           <img src={webHome9} alt="Top Companies Hiring" className="resumeok-logos-img" />
@@ -130,7 +76,7 @@ export default function Home() {
           </p>
           <div className="resumeok-ceo-author">
             <div className="resumeok-ceo-name">Saman Kazempour</div>
-            <div className="resumeok-ceo-title">CEO of ApplyDesk</div>
+            <div className="resumeok-ceo-title">CEO of ResumeOK</div>
           </div>
         </div>
         <div className="resumeok-ceo-col-image">
@@ -142,36 +88,128 @@ export default function Home() {
       <section className="resumeok-fullwidth-banner">
         <div className="resumeok-fullwidth-banner-inner">
           <h2 className="resumeok-fullwidth-title">
-            No fluff. No fake listings. Just the tools that<br />
-            actually get you hired.
+            8,000,000+ Job. No fluff. No fake listings.<br />
+            Just the tools that actually get you hired.
           </h2>
           <div className="resumeok-fullwidth-graphic">
-            <img src={webHome12} alt="Glass Sphere Graphic" className="resumeok-glass-sphere-img" />
+            <img src={web2} alt="ResumeOK Tools Folder Graphic" className="resumeok-glass-sphere-img" />
           </div>
         </div>
       </section>
 
-      {/* 5. AI Reads Job Post Feature Section */}
+      {/* 5. Personalized AI Job Matches Section */}
       <section className="resumeok-ai-read-section">
         <div className="resumeok-ai-read-inner">
           {/* Left Column */}
           <div className="resumeok-ai-read-left">
             <div className="resumeok-ai-read-text-box">
               <h2 className="resumeok-ai-read-title">
-                AI that actually reads the job post
+                Personalized AI Job Matches
               </h2>
               <p className="resumeok-ai-read-desc">
-                Our AI doesn't just keyword-match — it understands role context, seniority signals, and hidden requirements. You see jobs you're genuinely qualified for, ranked by real fit score, with early alerts before the applicant flood.
+                See jobs you're truly qualified for, matched to your real skills, with no fake listings and early alerts.
               </p>
             </div>
             <div className="resumeok-ai-read-small-card">
-              <img src={webHome3} alt="What To Put On Your Resume When You Have No Experience" className="resumeok-ai-read-small-img" />
+              <img src={web4} alt="Sticky Note Card" className="resumeok-ai-read-small-img" />
             </div>
           </div>
 
           {/* Right Column */}
           <div className="resumeok-ai-read-right">
-            <img src={webHome4} alt="AI Job Reading Interface" className="resumeok-ai-read-large-img" />
+            <img src={web3} alt="Personalized AI Job Matches Mockup" className="resumeok-ai-read-large-img" />
+          </div>
+        </div>
+      </section>
+
+      {/* 5.5 Interactive Calculator Section */}
+      <section className="resumeok-calc-section">
+        <div className="resumeok-calc-inner">
+          <div className="resumeok-calc-header">
+            <h2 className="resumeok-calc-headline">
+              Auto-filling the fields put you forward others.
+            </h2>
+            <p className="resumeok-calc-subheadline">
+              A 8x monthly lift applying more than regular appying.
+            </p>
+          </div>
+
+          <div className="resumeok-calc-card">
+            {/* Left Box: Controls & Slider */}
+            <div className="resumeok-calc-card-left">
+              <div>
+                <h3 className="resumeok-calc-title">Calculate Applying</h3>
+                <p className="resumeok-calc-subtitle">
+                  Select the number of hours you spend applying each day.
+                </p>
+
+                {/* Slider */}
+                <div className="resumeok-calc-slider-box">
+                  <div className="resumeok-calc-slider-track">
+                    <div
+                      className="resumeok-calc-slider-fill"
+                      style={{ width: `${((calcHours - 1) / 7) * 100}%` }}
+                    />
+                    <div
+                      className="resumeok-calc-slider-handle"
+                      style={{ left: `${((calcHours - 1) / 7) * 100}%` }}
+                    />
+                    <input
+                      type="range"
+                      min={1}
+                      max={8}
+                      step={1}
+                      value={calcHours}
+                      onChange={(e) => setCalcHours(Number(e.target.value))}
+                      className="resumeok-calc-range-input"
+                    />
+                  </div>
+                  <div className="resumeok-calc-ticks">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((h) => (
+                      <div
+                        key={h}
+                        className={`resumeok-calc-tick ${calcHours === h ? 'active' : ''}`}
+                        onClick={() => setCalcHours(h)}
+                      >
+                        <div className="resumeok-calc-tick-line" />
+                        <span>{h} HOUR</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature Bullet Points */}
+              <div className="resumeok-calc-features">
+                <div className="resumeok-calc-feature-item">+ Tailored resume for each job</div>
+                <div className="resumeok-calc-feature-item">+ Personalized cover letter for each role</div>
+                <div className="resumeok-calc-feature-item">+ Completing application forms</div>
+              </div>
+            </div>
+
+            {/* Vertical Divider Line */}
+            <div className="resumeok-calc-divider" />
+
+            {/* Right Box: Output Stats */}
+            <div className="resumeok-calc-card-right">
+              <div className="resumeok-calc-right-header">
+                Total application sent<br />in 30 days
+              </div>
+
+              <div className="resumeok-calc-stat-group top">
+                <div className="resumeok-calc-stat-label orange">ResumeOK</div>
+                <div className="resumeok-calc-stat-num orange">
+                  {(calcHours * 320).toLocaleString()}
+                </div>
+              </div>
+
+              <div className="resumeok-calc-stat-group bottom">
+                <div className="resumeok-calc-stat-label dark">NORMAL APPLYING</div>
+                <div className="resumeok-calc-stat-num dark">
+                  {(calcHours * 40).toLocaleString()}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -182,16 +220,16 @@ export default function Home() {
           {/* Left Feature Card */}
           <div className="resumeok-feature-box">
             <div className="resumeok-feature-box-media">
-              <img src={webHome17} alt="One-click apply AI conversation summary" className="resumeok-feature-box-img" />
+              <img src={web5} alt="Job Specific Tailored Resume" className="resumeok-feature-box-img" />
             </div>
             <div className="resumeok-feature-box-content">
               <h3 className="resumeok-feature-box-title">
-                One-click apply that doesn't cut corners
+                Job Specific Tailored Resume
               </h3>
               <p className="resumeok-feature-box-desc">
-                Auto-fill applications across every major job board and ATS. But unlike bulk-spray tools, each submission is tailored — your resume, cover letter, and answers adapted to what that specific role actually asks for.
+                Get a perfectly tailored, professional resume that passes ATS and highlights your strengths in just 6 seconds.
               </p>
-              <button className="resumeok-btn-feature-box" onClick={() => navigate('/jobs')}>
+              <button className="resumeok-btn-feature-box" onClick={() => navigate('/build')}>
                 Find your dream job
               </button>
             </div>
@@ -200,16 +238,16 @@ export default function Home() {
           {/* Right Feature Card */}
           <div className="resumeok-feature-box">
             <div className="resumeok-feature-box-media">
-              <img src={webHome13} alt="Topics Explorer ATS Resume Scoring" className="resumeok-feature-box-img" />
+              <img src={web6} alt="1-Click Application Autofill" className="resumeok-feature-box-img" />
             </div>
             <div className="resumeok-feature-box-content">
               <h3 className="resumeok-feature-box-title">
-                Resume scoring that thinks like a recruiter
+                1-Click Application Autofill
               </h3>
               <p className="resumeok-feature-box-desc">
-                Get an instant breakdown of how your resume stacks up against each job post. See exactly what's missing, what's strong, and get AI rewrites that close the gap — before you hit apply.
+                Apply to hundreds of jobs daily across all major ATS platforms. Skip repetitive data entry and save 80% of your time.
               </p>
-              <button className="resumeok-btn-feature-box" onClick={() => navigate('/audit')}>
+              <button className="resumeok-btn-feature-box" onClick={() => navigate('/jobs')}>
                 Find your dream job
               </button>
             </div>
@@ -217,173 +255,63 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 7. AI Career Copilot Section */}
-      <section className="resumeok-copilot-section">
-        {/* Left Column (Centered Content) */}
-        <div className="resumeok-copilot-left">
-          <span className="resumeok-copilot-tag">AI CAREER COPILOT</span>
-          <h2 className="resumeok-copilot-title">
-            Your personal<br />
-            hiring strategist
+      {/* 6.5 Jobs Database & Stats Section */}
+      <section className="resumeok-db-section">
+        <div className="resumeok-db-inner">
+          <h2 className="resumeok-db-headline">
+            Never out of jobs. 4 Million job in one place.
           </h2>
-          <div className="resumeok-copilot-orb-box">
-            <img src={webHome11} alt="AI Sphere Orb" className="resumeok-copilot-orb-img" />
-          </div>
-          <p className="resumeok-copilot-desc">
-            More than a chatbot — a career copilot that tracks your applications, preps you for interviews, and learns your strengths, goals and preferences over time Available 24/7 — like having a recruiter in your pocket.
-          </p>
-          <button className="resumeok-btn-copilot" onClick={() => navigate('/match')}>
-            Meet your copilot
-          </button>
-        </div>
 
-        {/* Right Column (Sharp Art Image) */}
-        <div className="resumeok-copilot-right">
-          <img src={webHome} alt="AI Career Copilot Illustration" className="resumeok-copilot-art-img" />
-        </div>
-      </section>
+          {/* Diagram Container */}
+          <div className="resumeok-db-diagram">
+            {/* Left Image Graphic (web7.png) */}
+            <div className="resumeok-db-left-box">
+              <img src={web7} alt="Job Roles" className="resumeok-db-side-img" />
+            </div>
 
-      {/* 8. Complete Toolkit Header Section */}
-      <section className="resumeok-toolkit-section">
-        {/* Left Content */}
-        <div className="resumeok-toolkit-left">
-          <h2 className="resumeok-toolkit-title">
-            <span className="resumeok-toolkit-title-light">A complete toolkit</span><br />
-            <span className="resumeok-toolkit-title-dark">for modern job seekers</span>
-          </h2>
-          <p className="resumeok-toolkit-desc">
-            Everything you need in one place — from smart job discovery and AI resume building to application tracking, interview prep, and insider referrals. No switching between ten different tools.
-          </p>
-          <div className="resumeok-toolkit-buttons">
-            <button className="btn-resumeok-black" onClick={() => navigate('/match')}>
-              Get started free
-            </button>
-            <button className="btn-resumeok-outline" onClick={() => navigate('/jobs')}>
-              See it in action
-            </button>
-          </div>
-        </div>
+            {/* Center Orange Box */}
+            <div className="resumeok-db-center-box">
+              <h3 className="resumeok-db-center-logo">ResumeOK</h3>
+              <div className="resumeok-db-center-text">
+                <p>Gathering 20K jobs every day</p>
+                <p>Finding the right profiles and jobs</p>
+                <p>Tailoring 12K Resumes Daily</p>
+              </div>
+            </div>
 
-        {/* Right Flying Birds Graphic */}
-        <div className="resumeok-toolkit-right">
-          <img src={webHome7} alt="Flying Birds Illustration" className="resumeok-toolkit-birds-img" />
-        </div>
-      </section>
-
-      {/* 9. Interactive 3-Tab Feature Section 1 */}
-      <section className="resumeok-tabs-section">
-        <h2 className="resumeok-tabs-section-title">Find roles worth applying to</h2>
-
-        <div className="resumeok-tabs-grid">
-          {/* Left Column: Sharp Image directly adjacent */}
-          <div className="resumeok-tabs-media">
-            <img 
-              src={tabData[activeTab].image} 
-              alt={tabData[activeTab].title} 
-              className="resumeok-tabs-img" 
-            />
+            {/* Right Image Graphic (web8.png) */}
+            <div className="resumeok-db-right-box">
+              <img src={web8} alt="User Profiles" className="resumeok-db-side-img" />
+            </div>
           </div>
 
-          {/* Right Column: 3 Interactive Tabs */}
-          <div className="resumeok-tabs-list">
-            {tabData.map((tab, idx) => {
-              const isActive = activeTab === idx;
-              return (
-                <div 
-                  key={idx} 
-                  className={`resumeok-tab-item ${isActive ? 'resumeok-tab-active' : ''}`}
-                  onClick={() => setActiveTab(idx)}
-                >
-                  <div className="resumeok-tab-header">
-                    <span className="resumeok-tab-blue-square">■</span>
-                    <h3 className="resumeok-tab-title">{tab.title}</h3>
-                  </div>
-                  <p className="resumeok-tab-desc">{tab.desc}</p>
-                  {isActive && (
-                    <button 
-                      className="resumeok-tab-link-btn" 
-                      onClick={(e) => { e.stopPropagation(); navigate(tab.path); }}
-                    >
-                      {tab.linkText}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+          {/* Bottom 3-Column Stats Card */}
+          <div className="resumeok-db-stats-card">
+            <div className="resumeok-db-stat-item">
+              <div className="resumeok-db-stat-number">3 Million</div>
+              <div className="resumeok-db-stat-label">Job database</div>
+            </div>
+            <div className="resumeok-db-stat-divider" />
+            <div className="resumeok-db-stat-item">
+              <div className="resumeok-db-stat-number">20K</div>
+              <div className="resumeok-db-stat-label">Daily Jobs</div>
+            </div>
+            <div className="resumeok-db-stat-divider" />
+            <div className="resumeok-db-stat-item">
+              <div className="resumeok-db-stat-number">12K</div>
+              <div className="resumeok-db-stat-label">Daily Apply</div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 10. Interactive 3-Tab Feature Section 2 (Get Inside Access) */}
-      <section className="resumeok-tabs-section">
-        <h2 className="resumeok-toolkit-title" style={{ marginBottom: '36px' }}>
-          <span className="resumeok-toolkit-title-dark">Get inside access</span><br />
-          <span className="resumeok-toolkit-title-light">to the companies you want</span>
-        </h2>
-
-        <div className="resumeok-tabs-grid">
-          {/* Left Column: Sharp Image directly adjacent */}
-          <div className="resumeok-tabs-media">
-            <img 
-              src={tabData2[activeTab2].image} 
-              alt={tabData2[activeTab2].title} 
-              className="resumeok-tabs-img" 
-            />
-          </div>
-
-          {/* Right Column: 3 Interactive Tabs */}
-          <div className="resumeok-tabs-list">
-            {tabData2.map((tab, idx) => {
-              const isActive = activeTab2 === idx;
-              return (
-                <div 
-                  key={idx} 
-                  className={`resumeok-tab-item ${isActive ? 'resumeok-tab-active' : ''}`}
-                  onClick={() => setActiveTab2(idx)}
-                >
-                  <div className="resumeok-tab-header">
-                    <span className="resumeok-tab-blue-square">■</span>
-                    <h3 className="resumeok-tab-title">{tab.title}</h3>
-                  </div>
-                  <p className="resumeok-tab-desc">{tab.desc}</p>
-                  {isActive && (
-                    <button 
-                      className="resumeok-tab-link-btn" 
-                      onClick={(e) => { e.stopPropagation(); navigate(tab.path); }}
-                    >
-                      {tab.linkText}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+      {/* 6.6 Sticky Notes Testimonials Banner Section */}
+      <section className="resumeok-sticky-banner-section">
+        <div className="resumeok-sticky-banner-inner">
+          <img src={web9} alt="Sticky Notes Testimonials Banner" className="resumeok-sticky-banner-img" />
         </div>
       </section>
 
-      {/* 11. Testimonial Banner 2 (3 Columns, Warm Sand Container, Sharp Corners, Not Full Width) */}
-      <section className="resumeok-clay-testimonial-section">
-        {/* Column 1: Clay Logo */}
-        <div className="resumeok-clay-col-logo">
-          <img src={webHome10} alt="Clay Logo" className="resumeok-clay-logo-img" />
-        </div>
-
-        {/* Column 2: Quote & Author */}
-        <div className="resumeok-clay-col-quote">
-          <p className="resumeok-clay-quote-text">
-            “ I went from mass-applying to 50 jobs a week with zero callbacks, to landing 3 interviews in my first week using ResumeOK. The AI actually matched me to roles I was qualified for — game changer.”
-          </p>
-          <div className="resumeok-clay-author">
-            <div className="resumeok-clay-author-name">Marcus Chen</div>
-            <div className="resumeok-clay-author-title">Senior Product Designer</div>
-          </div>
-        </div>
-
-        {/* Column 3: Marcus Chen Portrait Photo */}
-        <div className="resumeok-clay-col-photo">
-          <img src={webHome5} alt="Marcus Chen - Senior Product Designer" className="resumeok-clay-photo-img" />
-        </div>
-      </section>
 
       {/* 12. Honest Pricing Section */}
       <section className="resumeok-pricing-container-section">
@@ -405,70 +333,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 13. Blog Articles Cards */}
-      <section className="resumeok-partner-section">
-        <div className="resumeok-partner-grid">
-          {/* Card 1 */}
-          <div 
-            className="resumeok-partner-box resumeok-blog-card-link"
-            onClick={() => navigate('/library')}
-            role="button"
-            tabIndex={0}
-          >
-            <div className="resumeok-partner-box-media">
-              <img src={webHome14} alt="Your data stays yours" className="resumeok-partner-box-img" />
-            </div>
-            <div className="resumeok-partner-box-content">
-              <h3 className="resumeok-partner-box-title">
-                Your data stays yours <span className="blog-link-arrow">→</span>
-              </h3>
-              <p className="resumeok-partner-box-desc">
-                Enterprise-grade encryption. We never sell your data or share your resume with third parties.
-              </p>
-            </div>
-          </div>
-
-          {/* Card 2 */}
-          <div 
-            className="resumeok-partner-box resumeok-blog-card-link"
-            onClick={() => navigate('/library')}
-            role="button"
-            tabIndex={0}
-          >
-            <div className="resumeok-partner-box-media">
-              <img src={webHome15} alt="Real humans, real help" className="resumeok-partner-box-img" />
-            </div>
-            <div className="resumeok-partner-box-content">
-              <h3 className="resumeok-partner-box-title">
-                Real humans, real help <span className="blog-link-arrow">→</span>
-              </h3>
-              <p className="resumeok-partner-box-desc">
-                Our career experts and AI engineers are available 24/7. When algorithm guidance isn't enough, get personalized support from real recruiters who want you to win.
-              </p>
-            </div>
-          </div>
-
-          {/* Card 3 */}
-          <div 
-            className="resumeok-partner-box resumeok-blog-card-link"
-            onClick={() => navigate('/library')}
-            role="button"
-            tabIndex={0}
-          >
-            <div className="resumeok-partner-box-media">
-              <img src={webHome16} alt="The Job Search Playbook" className="resumeok-partner-box-img" />
-            </div>
-            <div className="resumeok-partner-box-content">
-              <h3 className="resumeok-partner-box-title">
-                The Job Search Playbook <span className="blog-link-arrow">→</span>
-              </h3>
-              <p className="resumeok-partner-box-desc">
-                Get battle-tested strategies, interview frameworks, and salary negotiation scripts derived from analyzing over 100,000 successful hires.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 
 const itemSKUs = Platform.select({
-  ios: ['com.resume.starter', 'com.resume.pro'],
+  ios: ['com.applydesk.monthly', 'com.applydesk.weekly'],
   android: []
 }) as string[];
 
@@ -28,15 +28,9 @@ export const initPurchases = async (userId?: string) => {
   const RNIap = getIAP();
   if (!RNIap) return;
   try {
-    if (Platform.OS === 'ios') {
-      try {
-        await RNIap.setup({ storekitMode: 'STOREKIT1_MODE' });
-        console.log('Forced StoreKit 1 Mode on iOS');
-      } catch (setupErr) {
-        console.warn('Failed to setup StoreKit 1 mode:', setupErr);
-      }
+    if (typeof RNIap.initConnection === 'function') {
+      await RNIap.initConnection();
     }
-    await RNIap.initConnection();
   } catch (err) {
     console.warn('Failed to connect to StoreKit:', err);
   }
@@ -45,18 +39,18 @@ export const initPurchases = async (userId?: string) => {
 const MOCK_PACKAGES = [
   {
     product: {
-      identifier: 'com.resume.starter',
-      title: 'Starter',
-      description: '70 Match Resume + 30 Cover letter',
-      priceString: '$4.99',
+      identifier: 'com.applydesk.monthly',
+      title: 'Monthly',
+      description: '200 applications / Month',
+      priceString: '$9.99',
     }
   },
   {
     product: {
-      identifier: 'com.resume.pro',
-      title: 'Pro',
-      description: '140 Match Resume + 60 Cover letter',
-      priceString: '$9.99',
+      identifier: 'com.applydesk.weekly',
+      title: 'Weekly',
+      description: '50 applications / Week',
+      priceString: '$17.99',
     }
   }
 ];
@@ -82,12 +76,18 @@ export const getPackages = async (): Promise<any[]> => {
       let desc = product.description;
       let title = product.title;
 
-      if (productId === 'com.resume.starter') {
-        desc = '70 Match Resume + 30 Cover letter';
-        title = 'Starter';
+      if (productId === 'com.applydesk.monthly') {
+        desc = '200 applications / Month';
+        title = 'Monthly';
+      } else if (productId === 'com.applydesk.weekly') {
+        desc = '50 applications / Week';
+        title = 'Weekly';
+      } else if (productId === 'com.resume.starter') {
+        desc = '200 applications / Month';
+        title = 'Monthly';
       } else if (productId === 'com.resume.pro') {
-        desc = '140 Match Resume + 60 Cover letter';
-        title = 'Pro';
+        desc = '50 applications / Week';
+        title = 'Weekly';
       }
 
       // Format price to 2 decimal places and preserve currency symbol if possible
@@ -116,7 +116,7 @@ export const getPackages = async (): Promise<any[]> => {
       return {
         product: {
           identifier: productId,
-          title: title || product.title || (productId === 'com.resume.pro' ? 'Pro' : 'Starter'),
+          title: title || product.title || 'Subscription',
           description: desc,
           priceString: priceStr,
         }
@@ -260,7 +260,7 @@ export const syncSubscriptionStatusWithStoreKit = async (userId: string, token: 
     
     // Filter for our weekly subscription SKUs
     const activeSubscription = purchases?.find((p: any) => 
-      p.productId === 'com.resume.starter' || p.productId === 'com.resume.pro'
+      p.productId === 'com.applydesk.monthly' || p.productId === 'com.applydesk.weekly' || p.productId === 'com.resume.starter' || p.productId === 'com.resume.pro'
     );
 
     if (activeSubscription) {

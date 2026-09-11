@@ -88,7 +88,7 @@ export default function SkillsScreen() {
   const handleAddTechSkill = (skillToAdd?: string) => {
     const target = (skillToAdd || newTechInput).trim();
     if (target && !technicalSkills.includes(target)) {
-      const updated = [...technicalSkills, target];
+      const updated = [target, ...technicalSkills];
       saveSkillsData(updated, softSkills);
       if (!skillToAdd) setNewTechInput('');
     }
@@ -102,7 +102,7 @@ export default function SkillsScreen() {
   const handleAddSoftSkill = () => {
     const trimmed = newSoftInput.trim();
     if (trimmed && !softSkills.includes(trimmed)) {
-      const updated = [...softSkills, trimmed];
+      const updated = [trimmed, ...softSkills];
       saveSkillsData(technicalSkills, updated);
       setNewSoftInput('');
     }

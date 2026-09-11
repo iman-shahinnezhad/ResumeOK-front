@@ -26,9 +26,15 @@ export default function Pricing() {
     async function load() {
       try {
         const pkgs = await getPackages();
-        setPackages(pkgs);
-        if (pkgs.length > 0) {
-          setSelectedPack(pkgs[0]);
+        // Sort so Monthly (com.applydesk.monthly) comes first
+        const sorted = [...pkgs].sort((a, b) => {
+          const idA = a.product.identifier || '';
+          if (idA.includes('monthly')) return -1;
+          return 1;
+        });
+        setPackages(sorted);
+        if (sorted.length > 0) {
+          setSelectedPack(sorted[0]);
         }
       } catch (err) {
         console.error('Failed to load packages', err);
@@ -113,10 +119,10 @@ export default function Pricing() {
               try {
                 const mockSku = selectedPack.product.identifier;
                 let payloadB64 = '';
-                if (mockSku === 'com.resume.pro') {
-                  payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20ucmVzdW1lLnBybyIsInRyYW5zYWN0aW9uSWQiOiJtb2NrXzEyMyJ9';
+                if (mockSku === 'com.applydesk.monthly') {
+                  payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20uYXBwbHlkZXNrLm1vbnRobHkiLCJ0cmFuc2FjdGlvbklkIjoibW9ja18xMjMifQ==';
                 } else {
-                  payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20ucmVzdW1lLnN0YXJ0ZXIiLCJ0cmFuc2FjdGlvbklkIjoibW9ja18xMjMifQ==';
+                  payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20uYXBwbHlkZXNrLndlZWtseSIsInRyYW5zYWN0aW9uSWQiOiJtb2NrXzEyMyJ9';
                 }
 
                 const mockReceipt = `eyJhbGciOiJSUzI1NiJ9.${payloadB64}.mock_signature`;
@@ -173,9 +179,9 @@ export default function Pricing() {
   };
 
   const renderFeature = (text: string) => (
-    <View style={styles.featureRow}>
+    <View style={styles.featureRow} key={text}>
       <View style={styles.featureIcon}>
-        <Ionicons name="checkmark-circle-outline" size={20} color="#000000" />
+        <Ionicons name="checkmark-circle-outline" size={22} color="#3B1EB8" />
       </View>
       <Text style={styles.featureText}>{text}</Text>
     </View>
@@ -184,16 +190,16 @@ export default function Pricing() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#EBE8FF', '#FFFFFF']}
+        colors={['#DCD6FE', '#F3EFFF', '#FFFFFF']}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 0.4 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
       />
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingTop: 35 }]}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top, 16) + 12 }]}>
         <View style={styles.headerRow}>
-          <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={24} color="#000000" />
+          <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()} activeOpacity={0.7}>
+            <Ionicons name="chevron-back" size={22} color="#000000" />
           </TouchableOpacity>
 
           <View style={styles.creditsBadge}>
@@ -201,18 +207,18 @@ export default function Pricing() {
           </View>
         </View>
 
-        <Text style={styles.title}>Unlock AI Features{'\n'}on your phone</Text>
+        <Text style={styles.title}>Get hired by next{'\n'}week!</Text>
 
         <View style={styles.featuresContainer}>
-          {renderFeature('Tailor unlimited resumes & CVs')}
-          {renderFeature('Write custom cover letters instantly')}
-          {renderFeature('AI-powered ATS matching & insights')}
-          {renderFeature('Download & share professional PDFs')}
+          {renderFeature('Access 8M+ fresh job listings')}
+          {renderFeature('AI-powered resume tailoring for every job')}
+          {renderFeature('Personalized cover letters')}
+          {renderFeature('AI job application autofill')}
         </View>
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#000000" />
+            <ActivityIndicator size="large" color="#3B1EB8" />
             <Text style={styles.loadingText}>Fetching live plans from Apple...</Text>
           </View>
         ) : (
@@ -220,28 +226,34 @@ export default function Pricing() {
             <View style={styles.packagesContainer}>
               {packages.map((pkg, idx) => {
                 const isSelected = selectedPack?.product.identifier === pkg.product.identifier;
-                const formattedPrice = pkg.product.priceString.includes('Week') || pkg.product.priceString.includes('week')
-                  ? pkg.product.priceString
-                  : `${pkg.product.priceString}/Week`;
+                const rawPrice = pkg.product.priceString || '$9.99';
+                const formattedPrice = (rawPrice.toLowerCase().includes('week') || rawPrice.toLowerCase().includes('month'))
+                  ? rawPrice
+                  : `${rawPrice}/Week`;
 
                 return (
                   <TouchableOpacity
-                    key={idx}
-                    style={[styles.packageCard, isSelected ? styles.packageCardSelected : undefined]}
-                    activeOpacity={0.8}
+                    key={pkg.product.identifier || idx}
+                    style={[styles.packageCard, isSelected ? styles.packageCardSelected : styles.packageCardUnselected]}
+                    activeOpacity={0.85}
                     onPress={() => setSelectedPack(pkg)}
                   >
-                    <View style={[styles.radioContainer, isSelected ? styles.radioContainerSelected : undefined]}>
+                    <View style={[styles.radioContainer, isSelected ? styles.radioContainerSelected : styles.radioContainerUnselected]}>
                       {isSelected && <View style={styles.radioInner} />}
                     </View>
 
                     <View style={styles.packageContent}>
-                      <View style={styles.packageHeaderRow}>
-                        <Text style={styles.pkgTitle}>{pkg.product.title}</Text>
-                        <Text style={styles.pkgPrice}>{formattedPrice}</Text>
-                      </View>
-                      <Text style={styles.pkgDesc}>{pkg.product.description}</Text>
+                      <Text style={[styles.pkgTitle, isSelected ? styles.pkgTitleSelected : styles.pkgTitleUnselected]}>
+                        {pkg.product.title}
+                      </Text>
+                      <Text style={[styles.pkgDesc, isSelected ? styles.pkgDescSelected : styles.pkgDescUnselected]}>
+                        {pkg.product.description}
+                      </Text>
                     </View>
+
+                    <Text style={[styles.pkgPrice, isSelected ? styles.pkgPriceSelected : styles.pkgPriceUnselected]}>
+                      {formattedPrice}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -251,12 +263,12 @@ export default function Pricing() {
                 activeOpacity={0.8}
                 onPress={() => setReferralVisible(true)}
               >
-                <Ionicons name="gift" size={20} color="#000000" style={{ marginRight: 12 }} />
+                <Ionicons name="gift" size={20} color="#3B1EB8" style={{ marginRight: 12 }} />
                 <View style={styles.inviteContent}>
                   <Text style={styles.inviteTitle}>Or Invite Friends</Text>
                   <Text style={styles.inviteDesc}>Get free credits for each friend who joins</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#000000" />
+                <Ionicons name="chevron-forward" size={18} color="#3B1EB8" />
               </TouchableOpacity>
             </View>
             <Text style={styles.subscriptionTermsText}>
@@ -266,33 +278,35 @@ export default function Pricing() {
         )}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 140) }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity
           style={[styles.continueBtn, (!selectedPack || isPurchasing || isLoading) ? styles.continueBtnDisabled : undefined]}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
           onPress={handleContinue}
           disabled={!selectedPack || isPurchasing || isLoading}
         >
           {isPurchasing ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <>
+            <View style={styles.continueBtnContent}>
               <Text style={styles.continueBtnText}>CONTINUE</Text>
-              <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
-            </>
+              <Ionicons name="chevron-forward" size={18} color="#FFFFFF" style={{ marginLeft: 4 }} />
+            </View>
           )}
         </TouchableOpacity>
 
-        <Text style={styles.cancelAnytimeFooterText}>Cancelable at any time</Text>
+        <View style={styles.footerBottomRow}>
+          <View style={styles.privacyTermsRow}>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL('https://pixflow.net/pixflow-resumeok-app-privacy-policy/')}>
+              <Text style={styles.footerLinkText}>Privacy</Text>
+            </TouchableOpacity>
+            <Text style={styles.footerPipeText}> | </Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}>
+              <Text style={styles.footerLinkText}>Terms</Text>
+            </TouchableOpacity>
+          </View>
 
-        <View style={styles.footerLinksRow}>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL('https://pixflow.net/pixflow-resumeok-app-privacy-policy/')}>
-            <Text style={styles.footerText}>Privacy Policy</Text>
-          </TouchableOpacity>
-          <Text style={[styles.footerText, { marginHorizontal: 8 }]}></Text>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}>
-            <Text style={styles.footerText}>Terms of Use</Text>
-          </TouchableOpacity>
+          <Text style={styles.cancelAnytimeText}>Cancelable at any time</Text>
         </View>
       </View>
 
@@ -311,7 +325,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingBottom: 140,
+    paddingBottom: 130,
   },
   headerRow: {
     marginBottom: 20,
@@ -324,50 +338,49 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  creditsBadge: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
   },
+  creditsBadge: {
+    backgroundColor: '#EAEAEF',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 24,
+  },
   creditsText: {
-    color: '#000000',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '600',
   },
   title: {
-    color: '#0F172A',
-    fontSize: 32,
+    color: '#3B1EB8',
+    fontSize: 34,
     fontWeight: '800',
     textAlign: 'center',
-    marginBottom: 28,
+    marginBottom: 24,
     lineHeight: 40,
+    letterSpacing: -0.5,
   },
   featuresContainer: {
-    marginBottom: 25,
-    paddingHorizontal: 10,
+    marginBottom: 32,
+    paddingHorizontal: 12,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   featureIcon: {
-    marginRight: 12,
+    marginRight: 10,
   },
   featureText: {
-    color: '#5C4DE6',
+    color: '#3B1EB8',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -376,145 +389,105 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#000000',
+    color: '#3B1EB8',
     marginTop: 16,
     fontSize: 14,
     fontWeight: '500',
   },
   packagesContainer: {
-    gap: 16,
+    gap: 12,
   },
   packageCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 28,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderRadius: 22,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
   },
   packageCardSelected: {
-    borderColor: '#000000',
-    backgroundColor: '#EBE7FF',
+    backgroundColor: '#000000',
   },
-  packageContent: {
-    flex: 1,
-  },
-  packageHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
+  packageCardUnselected: {
+    backgroundColor: '#EAEAEF',
   },
   radioContainer: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#000000',
-    marginRight: 10,
+    borderWidth: 2,
+    marginRight: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioContainerSelected: {
-    borderColor: '#000000',
+    borderColor: '#FFFFFF',
+  },
+  radioContainerUnselected: {
+    borderColor: '#9CA3AF',
   },
   radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#000000',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFFFFF',
+  },
+  packageContent: {
+    flex: 1,
   },
   pkgTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  pkgTitleSelected: {
+    color: '#FFFFFF',
+  },
+  pkgTitleUnselected: {
     color: '#0F172A',
-    fontSize: 17,
-    fontWeight: '800',
   },
   pkgDesc: {
-    color: '#0F172A',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13.5,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  pkgDescSelected: {
+    color: '#9CA3AF',
+  },
+  pkgDescUnselected: {
+    color: '#64748B',
   },
   pkgPrice: {
-    color: '#0F172A',
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    zIndex: 999,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  continueBtn: {
-    backgroundColor: '#4C2BE6',
-    borderRadius: 30,
-    paddingVertical: 18,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-    shadowColor: '#4C2BE6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  continueBtnDisabled: {
-    opacity: 0.5,
-  },
-  continueBtnText: {
-    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '800',
-    marginRight: 4,
+    fontWeight: '700',
+    marginLeft: 8,
   },
-  footerLinksRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 0,
+  pkgPriceSelected: {
+    color: '#FFFFFF',
   },
-  footerText: {
-    color: '#9CA3AF',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  cancelAnytimeFooterText: {
-    color: '#9CA3AF',
-    fontSize: 13,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginBottom: 10,
+  pkgPriceUnselected: {
+    color: '#0F172A',
   },
   inviteCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(124, 58, 237, 0.05)',
+    backgroundColor: 'rgba(59, 30, 184, 0.05)',
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     borderWidth: 1.5,
-    borderColor: 'rgba(124, 58, 237, 0.15)',
-    marginTop: 8,
+    borderColor: 'rgba(59, 30, 184, 0.15)',
+    marginTop: 4,
   },
   inviteContent: {
     flex: 1,
   },
   inviteTitle: {
-    color: '#0F172A',
+    color: '#3B1EB8',
     fontSize: 14,
     fontWeight: '800',
     marginBottom: 2,
   },
   inviteDesc: {
-    color: '#0F172A',
+    color: '#475569',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -526,5 +499,63 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
     paddingHorizontal: 8,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    zIndex: 999,
+  },
+  continueBtn: {
+    backgroundColor: '#000000',
+    borderRadius: 30,
+    paddingVertical: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  continueBtnDisabled: {
+    opacity: 0.5,
+  },
+  continueBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  continueBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  footerBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginBottom: 6,
+  },
+  privacyTermsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  footerLinkText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  footerPipeText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  cancelAnytimeText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

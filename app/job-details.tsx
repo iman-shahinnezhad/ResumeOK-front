@@ -854,7 +854,7 @@ export default function JobDetailsScreen() {
       >
         <View style={styles.modalOverlayBackdrop}>
           <TouchableOpacity
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             activeOpacity={1}
             onPress={() => setShowTailorModal(false)}
           />
@@ -1403,7 +1403,7 @@ export default function JobDetailsScreen() {
       >
         <View style={styles.modalOverlayBackdrop}>
           <TouchableOpacity
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             activeOpacity={1}
             onPress={() => setShowDidYouApplyModal(false)}
           />
