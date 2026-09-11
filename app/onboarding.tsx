@@ -309,24 +309,25 @@ function AppleNativeButton({
   };
 
   return (
-    <TouchableOpacity
-      onPress={() => {
-        if (!disabled && onPress) {
-          if (Platform.OS === 'ios' || Platform.OS === 'android') {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    <Animated.View style={[{ width: '100%', alignItems: 'center' }, { transform: [{ scale: scaleAnim }] }]}>
+      <TouchableOpacity
+        onPress={() => {
+          if (!disabled && onPress) {
+            if (Platform.OS === 'ios' || Platform.OS === 'android') {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+            }
+            onPress();
           }
-          onPress();
-        }
-      }}
-      disabled={disabled}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      activeOpacity={0.8}
-    >
-      <Animated.View style={[style, { transform: [{ scale: scaleAnim }] }]}>
+        }}
+        disabled={disabled}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={0.85}
+        style={style}
+      >
         {children}
-      </Animated.View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 

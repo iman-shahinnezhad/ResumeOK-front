@@ -11,6 +11,27 @@ import * as Application from 'expo-application';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { AuthProvider } from '../context/AuthContext';
 
+// Global JS error handler for release builds to show on-screen crash diagnostics
+if (typeof globalThis !== 'undefined' && (globalThis as any).ErrorUtils) {
+  const ErrorUtils = (globalThis as any).ErrorUtils;
+  const originalHandler = ErrorUtils.getGlobalHandler?.();
+  ErrorUtils.setGlobalHandler?.((error: any, isFatal?: boolean) => {
+    console.error('GLOBAL JS UNHANDLED EXCEPTION:', error);
+    const errMsg = error?.message || String(error || 'Unknown Error');
+    const errStack = (error?.stack || '').substring(0, 400);
+    Alert.alert(
+      "Crash Diagnostic Log",
+      `An error occurred:\n\n${errMsg}\n\nStack:\n${errStack}`,
+      [{ text: "OK" }]
+    );
+    if (originalHandler) {
+      try {
+        originalHandler(error, isFatal);
+      } catch (e) {}
+    }
+  });
+}
+
 // Keep the native splash screen visible until we explicitly hide it in RootLayout
 SplashScreen.preventAutoHideAsync().catch(() => { });
 
