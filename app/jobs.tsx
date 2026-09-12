@@ -240,14 +240,14 @@ export default function JobsScreen() {
   };
 
   const handleOpenCardMenu = (job: GreenhouseJob) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
     setMenuJob(job);
     setShowCardMenuModal(true);
   };
 
   const handleActionAlreadyApplied = async (job: GreenhouseJob) => {
     setShowCardMenuModal(false);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}); } catch (e) {};
 
     try {
       const appliedPath = `${FileSystem.documentDirectory}user_applied_jobs.json`;
@@ -292,7 +292,7 @@ export default function JobsScreen() {
 
   const handleActionShare = async (job: GreenhouseJob) => {
     setShowCardMenuModal(false);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
     try {
       const shareUrl = job.absolute_url || 'https://resumeok.ai';
       const company = job.companyName || 'Company';
@@ -325,7 +325,7 @@ export default function JobsScreen() {
       return;
     }
     setIsSubmittingReport(true);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}); } catch (e) {};
 
     try {
       if (reportJob) {
@@ -2187,7 +2187,7 @@ export default function JobsScreen() {
           style={styles.roleFilterPill}
           activeOpacity={0.75}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
             setShowSearchModal(true);
           }}
         >
@@ -2210,7 +2210,7 @@ export default function JobsScreen() {
           style={styles.creditsPill}
           activeOpacity={0.75}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
             router.push('/pricing' as any);
           }}
         >
@@ -2232,7 +2232,7 @@ export default function JobsScreen() {
           style={styles.menuCircleBtn}
           activeOpacity={0.7}
           onPress={() => {
-            Haptics.selectionAsync();
+            try { Haptics.selectionAsync().catch(() => {}); } catch (e) {};
             setViewMode(prev => prev === 'card' ? 'list' : 'card');
           }}
         >

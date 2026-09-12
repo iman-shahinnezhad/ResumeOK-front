@@ -483,7 +483,7 @@ export default function JobDetailsScreen() {
   };
 
   const handleShareJob = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
@@ -618,7 +618,7 @@ export default function JobDetailsScreen() {
           style={styles.backCircleBtn}
           activeOpacity={0.7}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
             if (router.canGoBack()) {
               router.back();
             } else {
@@ -639,7 +639,7 @@ export default function JobDetailsScreen() {
             style={[styles.segmentedTab, activeTab === 'overview' && styles.segmentedTabActive]}
             activeOpacity={0.75}
             onPress={() => {
-              Haptics.selectionAsync();
+              try { Haptics.selectionAsync().catch(() => {}); } catch (e) {};
               setActiveTab('overview');
             }}
           >
@@ -652,7 +652,7 @@ export default function JobDetailsScreen() {
             style={[styles.segmentedTab, activeTab === 'company' && styles.segmentedTabActive]}
             activeOpacity={0.75}
             onPress={() => {
-              Haptics.selectionAsync();
+              try { Haptics.selectionAsync().catch(() => {}); } catch (e) {};
               setActiveTab('company');
             }}
           >
@@ -667,7 +667,7 @@ export default function JobDetailsScreen() {
           style={styles.creditsPill}
           activeOpacity={0.75}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
             router.push('/pricing' as any);
           }}
         >
@@ -837,7 +837,7 @@ export default function JobDetailsScreen() {
           style={styles.blackTailorApplyBtn}
           activeOpacity={0.85}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); } catch (e) {};
             setShowTailorModal(true);
           }}
         >
@@ -866,7 +866,7 @@ export default function JobDetailsScreen() {
                 style={styles.modalCloseCircleBtn}
                 activeOpacity={0.7}
                 onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
                   setShowTailorModal(false);
                 }}
               >
@@ -941,7 +941,7 @@ export default function JobDetailsScreen() {
               style={styles.applyWithoutCustomizingBtn}
               activeOpacity={0.7}
               onPress={async () => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
                 const currentCredit = user?.credit ?? guestCredit ?? 0;
                 if (currentCredit < 1) {
                   setShowTailorModal(false);
@@ -975,7 +975,7 @@ export default function JobDetailsScreen() {
               style={styles.customizeBlackBtn}
               activeOpacity={0.85}
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); } catch (e) {};
                 const currentCredit = user?.credit ?? guestCredit ?? 0;
                 if (currentCredit < 2) {
                   setShowTailorModal(false);
@@ -1006,7 +1006,7 @@ export default function JobDetailsScreen() {
               style={styles.backCircleBtn}
               activeOpacity={0.7}
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
                 setIsMatchingWithAI(false);
               }}
             >
@@ -1021,7 +1021,7 @@ export default function JobDetailsScreen() {
               style={styles.creditsPill}
               activeOpacity={0.75}
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
                 router.push('/pricing' as any);
               }}
             >
@@ -1150,7 +1150,7 @@ export default function JobDetailsScreen() {
               style={styles.backCircleBtn}
               activeOpacity={0.7}
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
                 setShowMatchResultModal(false);
               }}
             >
@@ -1165,7 +1165,7 @@ export default function JobDetailsScreen() {
               style={styles.creditsPill}
               activeOpacity={0.75}
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
                 router.push('/pricing' as any);
               }}
             >
@@ -1274,7 +1274,7 @@ export default function JobDetailsScreen() {
                   style={styles.viewDocBtnPill}
                   activeOpacity={0.8}
                   onPress={async () => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
                     if (tailoredResumeUri) {
                       try {
                         await Print.printAsync({ uri: tailoredResumeUri });
@@ -1341,7 +1341,7 @@ export default function JobDetailsScreen() {
                   style={styles.viewDocBtnPill}
                   activeOpacity={0.8}
                   onPress={async () => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
                     if (tailoredCoverLetterUri) {
                       try {
                         await Print.printAsync({ uri: tailoredCoverLetterUri });
@@ -1369,7 +1369,7 @@ export default function JobDetailsScreen() {
               style={styles.blackTailorApplyBtn}
               activeOpacity={0.85}
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); } catch (e) {};
                 hasOpenedApplyRef.current = true;
                 setShowMatchResultModal(false);
                 if (jobData?.absolute_url) {
@@ -1421,7 +1421,7 @@ export default function JobDetailsScreen() {
                 style={styles.modalCloseCircleBtn}
                 activeOpacity={0.7}
                 onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
                   setShowDidYouApplyModal(false);
                 }}
               >

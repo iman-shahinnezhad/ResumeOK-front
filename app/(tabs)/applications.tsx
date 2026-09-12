@@ -223,7 +223,7 @@ export default function ApplicationsTab() {
             style={styles.openUrlBtn}
             activeOpacity={0.75}
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
               router.push({
                 pathname: '/apply-job',
                 params: {
@@ -254,7 +254,7 @@ export default function ApplicationsTab() {
             style={styles.creditsBadgeHeader}
             activeOpacity={0.8}
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
               router.push('/pricing' as any);
             }}
           >
@@ -282,7 +282,7 @@ export default function ApplicationsTab() {
               style={styles.segmentedTab}
               activeOpacity={0.75}
               onPress={() => {
-                Haptics.selectionAsync();
+                try { Haptics.selectionAsync().catch(() => {}); } catch (e) {};
                 setActiveSegment('applied');
               }}
             >
@@ -295,7 +295,7 @@ export default function ApplicationsTab() {
               style={styles.segmentedTab}
               activeOpacity={0.75}
               onPress={() => {
-                Haptics.selectionAsync();
+                try { Haptics.selectionAsync().catch(() => {}); } catch (e) {};
                 setActiveSegment('skipped');
               }}
             >

@@ -664,9 +664,6 @@ export default function OnboardingScreen() {
       const interval = setInterval(() => {
         current += 1;
         setCompletedSteps(current);
-        if (Platform.OS !== 'web') {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-        }
         if (current >= ANALYSIS_STEPS.length) {
           clearInterval(interval);
           setTimeout(() => {
@@ -2656,9 +2653,9 @@ const styles = StyleSheet.create({
   // STEP 3 - REFERRAL
   hiddenTextInput: {
     position: 'absolute',
-    width: 0,
-    height: 0,
-    opacity: 0,
+    width: 1,
+    height: 1,
+    opacity: 0.01,
   },
   referralMiddleArea: {
     alignItems: 'center',

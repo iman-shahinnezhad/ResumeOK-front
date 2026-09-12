@@ -102,13 +102,13 @@ export default function Settings() {
 
   const handleCopyCode = () => {
     if (!referralCode) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); } catch (e) {};
     copyToClipboard(referralCode, "Referral Code Copied", "Share your code with friends to earn credits!");
   };
 
   const handleCopyLink = () => {
     if (!referralCode) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); } catch (e) {};
     const link = `https://resumeok.app/invite?code=${referralCode}`;
     copyToClipboard(link, "Invite Link Copied", "Share your link with friends to earn credits!");
   };
@@ -132,7 +132,7 @@ export default function Settings() {
         if (data.user) {
           await updateUser(data.user);
         }
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}); } catch (e) {};
         Alert.alert("Success", data.message || "Referrer code applied successfully!");
       } else {
         setReferrerSubmitError(data.error || "Invalid referrer code.");
@@ -148,7 +148,7 @@ export default function Settings() {
 
   const shareCode = async () => {
     if (!referralCode) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); } catch (e) {};
     try {
       if (Platform.OS === 'ios' || Platform.OS === 'android') {
         const { Share } = require('react-native');
@@ -237,7 +237,7 @@ export default function Settings() {
       style={styles.menuItem}
       activeOpacity={0.8}
       onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
         if (title === 'Restore Purchases') {
           handleRestore();
         } else if (title === 'Report Bug') {
@@ -287,7 +287,7 @@ export default function Settings() {
           style={styles.backCircleBtn}
           activeOpacity={0.7}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
             router.back();
           }}
         >

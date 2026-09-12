@@ -1296,7 +1296,7 @@ export default function ApplyJobScreen() {
   const [isAutofilling, setIsAutofilling] = useState(false);
 
   const handleTriggerAutofill = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); } catch (e) {};
     if (webViewRef.current && profileData) {
       setIsAutofilling(true);
       const experiences = profileData.workExperiences || profileData.experiences || [];
@@ -1542,7 +1542,7 @@ export default function ApplyJobScreen() {
   };
 
   const handleInjectSingleField = (fieldName: 'name' | 'email' | 'phone', val: string, label: string) => {
-    Haptics.selectionAsync();
+    try { Haptics.selectionAsync().catch(() => {}); } catch (e) {};
     if (val) {
       Clipboard.setStringAsync(val);
     }
@@ -1673,7 +1673,7 @@ export default function ApplyJobScreen() {
               const data = JSON.parse(event.nativeEvent.data);
               if (data.type === 'AUTOFILL_SUCCESS' && data.count > 0) {
                 setAutofillCount(data.count);
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}); } catch (e) {};
               } else if (data.type === 'log') {
                 console.log('\x1b[33m[WebView Log]\x1b[0m', data.message);
               } else if (data.type === 'AUTOFILL_ERROR') {

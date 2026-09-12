@@ -134,7 +134,7 @@ export default function Account() {
             style={styles.creditsBadge}
             activeOpacity={0.8}
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
               router.push('/pricing' as any);
             }}
           >
@@ -150,7 +150,7 @@ export default function Account() {
             style={styles.settingsCircleBtn}
             activeOpacity={0.8}
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
               router.push('/settings');
             }}
           >

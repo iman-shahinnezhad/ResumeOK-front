@@ -51,7 +51,7 @@ export default function ReportBug() {
           style={styles.glassBackContainer}
           activeOpacity={0.7}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
             router.back();
           }}
         >
@@ -67,7 +67,7 @@ export default function ReportBug() {
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
             router.push('/pricing' as any);
           }}
         >

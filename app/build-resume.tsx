@@ -1541,7 +1541,7 @@ export default function BuildResumeScreen() {
           to: sharePath
         });
 
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}); } catch (e) {};
 
         await Sharing.shareAsync(sharePath, { UTI: '.pdf', mimeType: 'application/pdf' }).catch(() => {});
         router.replace('/(tabs)');
