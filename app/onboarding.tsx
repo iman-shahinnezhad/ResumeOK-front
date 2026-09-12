@@ -1407,7 +1407,7 @@ export default function OnboardingScreen() {
       {(step === 'intro' || step === 'welcome') ? (
         <>
           <Image
-            source={require('../assets/images/onboarding.png')}
+            source={require('../assets/images/onboarding-main.png')}
             style={styles.backgroundImage}
             resizeMode="cover"
           />
