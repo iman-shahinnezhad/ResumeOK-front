@@ -676,8 +676,14 @@ export default function JobsScreen() {
           console.log('📞 Contact & Account Config:', JSON.stringify(loadedConfig, null, 2));
           console.log('📄 Resumes Count & List:', loadedResumes.length, JSON.stringify(loadedResumes, null, 2));
           console.log('=================================================================\n');
+
+          // Always fetch initial jobs on focus if jobs list is empty or on fresh screen focus
+          const activeRole = (Array.isArray(loadedProfile?.roles) && loadedProfile?.roles[0]) || loadedProfile?.jobTitle || loadedProfile?.role || filterQuery;
+          const activeLoc = loadedProfile?.city || loadedProfile?.location || filterLocation;
+          fetchJobsFromAllBoards(1, false, activeRole, selectedCompanyFilter, activeLoc);
         } catch (e) {
           console.log("Error initializing jobs screen on focus:", e);
+          fetchJobsFromAllBoards(1, false);
         }
       }
       initData();
@@ -694,7 +700,9 @@ export default function JobsScreen() {
     try {
       const qParam = queryStr.trim() ? `&q=${encodeURIComponent(queryStr.trim())}` : '';
       const companyParam = companyStr && companyStr !== 'ALL' ? `&company=${encodeURIComponent(companyStr)}` : '';
-      const locParam = locationStr.trim() ? `&location=${encodeURIComponent(locationStr.trim())}` : '';
+      // Clean location string (e.g. "Manhattan, New York, United States" -> "New York" or primary city token)
+      const cleanLoc = locationStr.includes(',') ? (locationStr.split(',')[1] || locationStr.split(',')[0]).trim() : locationStr.trim();
+      const locParam = cleanLoc ? `&location=${encodeURIComponent(cleanLoc)}` : '';
       const currentUserId = user?.id || guestId || '';
       const userIdParam = currentUserId ? `&userId=${encodeURIComponent(currentUserId)}` : '';
       const response = await fetch(`${API_URL}/api/jobs?limit=50&page=${pageToFetch}${qParam}${companyParam}${userIdParam}${locParam}`);
