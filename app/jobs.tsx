@@ -786,8 +786,15 @@ export default function JobsScreen() {
       }
     }
 
-    // ALWAYS SORT STRICTLY BY NEWEST DATE/TIME ADDED FIRST (postedAt / createdAt descending)
-    result.sort((a, b) => getJobTimestamp(b) - getJobTimestamp(a));
+    // SORT BY JOB MATCH SCORE DESCENDING (Most relevant/similar jobs first), breaking ties by newest date added
+    result.sort((a, b) => {
+      const matchA = calculateJobMatch(a?.content || '', a?.title || '', userProfile).jobMatch;
+      const matchB = calculateJobMatch(b?.content || '', b?.title || '', userProfile).jobMatch;
+      if (matchB !== matchA) {
+        return matchB - matchA; // Highest match score first!
+      }
+      return getJobTimestamp(b) - getJobTimestamp(a);
+    });
 
     setFilteredJobs(result);
     // Reset active card index when filter changes, but NOT during background fetches
