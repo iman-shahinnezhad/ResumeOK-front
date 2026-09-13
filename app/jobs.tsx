@@ -633,7 +633,7 @@ export default function JobsScreen() {
     }, [])
   );
 
-  const fetchJobsFromAllBoards = async (pageToFetch = 1, append = false, queryStr = filterQuery, companyStr = selectedCompanyFilter, locationStr = filterLocation) => {
+  const fetchJobsFromAllBoards = async (pageToFetch = 1, append = false, queryStr = filterQuery, companyStr = selectedCompanyFilter, locationStr = filterLocation, activeSkillsFilter = selectedSkillsFilter) => {
     if (pageToFetch === 1) {
       setIsLoadingJobs(true);
     } else {
@@ -643,7 +643,8 @@ export default function JobsScreen() {
     try {
       const qParam = queryStr.trim() ? `&q=${encodeURIComponent(queryStr.trim())}` : '';
       const targetRolesList = userProfile ? getUserTargetRolesList(userProfile) : [];
-      const rolesParam = (!qParam && targetRolesList.length > 0) ? `&roles=${encodeURIComponent(targetRolesList.join(','))}` : '';
+      const rolesToUse = activeSkillsFilter.length > 0 ? activeSkillsFilter : targetRolesList;
+      const rolesParam = (!qParam && rolesToUse.length > 0) ? `&roles=${encodeURIComponent(rolesToUse.join(','))}` : '';
       const companyParam = companyStr && companyStr !== 'ALL' ? `&company=${encodeURIComponent(companyStr)}` : '';
       // Clean location string (e.g. "Manhattan, New York, United States" -> "New York" or primary city token)
       const cleanLoc = locationStr.includes(',') ? (locationStr.split(',')[1] || locationStr.split(',')[0]).trim() : locationStr.trim();
@@ -719,11 +720,11 @@ export default function JobsScreen() {
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
-      fetchJobsFromAllBoards(1, false, filterQuery, selectedCompanyFilter, filterLocation);
+      fetchJobsFromAllBoards(1, false, filterQuery, selectedCompanyFilter, filterLocation, selectedSkillsFilter);
     }, 450); // 450ms debounce to prevent flooding search requests
 
     return () => clearTimeout(delayDebounce);
-  }, [filterQuery, selectedCompanyFilter, filterLocation]);
+  }, [filterQuery, selectedCompanyFilter, filterLocation, selectedSkillsFilter]);
 
   // Client-side multi-filter effect (Work Model, Experience Level, Salary, Location, Skills)
   useEffect(() => {
@@ -5107,7 +5108,7 @@ function matchesRoleFilter(job: any, selectedRoles: string[], profile: any): boo
   const deptNorm = deptNames.toLowerCase().replace(/[-_/]/g, ' ');
   const fullNorm = `${titleNorm} ${deptNorm} ${snippetNorm}`;
 
-  const GENERIC_SENIORITY = new Set(['senior', 'sr', 'junior', 'jr', 'lead', 'principal', 'staff', 'associate', 'intern', 'entry', 'mid', 'head', 'vp', 'director', 'manager', 'level']);
+  const GENERIC_SENIORITY = new Set(['senior', 'sr', 'junior', 'jr', 'lead', 'principal', 'staff', 'associate', 'intern', 'entry', 'mid', 'head', 'vp', 'director', 'manager', 'level', 'role', 'roles', 'job']);
 
   for (const roleItem of selectedRoles) {
     if (!roleItem) continue;
@@ -5117,18 +5118,17 @@ function matchesRoleFilter(job: any, selectedRoles: string[], profile: any): boo
     // 1. Direct substring match on title or full normalized text
     if (titleNorm.includes(rNorm) || fullNorm.includes(rNorm)) return true;
 
-    // 2. Token domain match (e.g. "Frontend Engineer" matches "Frontend Developer" or "Front-End Engineer")
-    const words = rNorm.split(/\s+/).filter(w => w.length > 2);
+    // 2. Token domain match (e.g. "UI/UX Designer" matches "UI Designer", "UX Designer", "Product Designer", "Graphic Designer")
+    const words = rNorm.split(/\s+/).filter(w => w.length >= 2);
     const domainWords = words.filter(w => !GENERIC_SENIORITY.has(w));
 
     if (domainWords.length > 0) {
-      // Check if title or full text contains key domain terms (e.g. "frontend" or "react" or "designer")
-      const matchesAllDomains = domainWords.every(dw => fullNorm.includes(dw));
-      if (matchesAllDomains) return true;
-
-      // Check if title contains at least one significant domain word (e.g. "frontend", "backend", "designer", "product")
+      // Check if title contains at least one significant domain word (e.g. "ui", "ux", "designer", "researcher", "graphic")
       const matchesTitleDomain = domainWords.some(dw => titleNorm.includes(dw));
       if (matchesTitleDomain) return true;
+
+      const matchesFullDomain = domainWords.some(dw => fullNorm.includes(dw));
+      if (matchesFullDomain) return true;
     }
 
     // 3. Fallback: Check calculateJobMatch score (if 40%+, job is functionally relevant to candidate profile)
