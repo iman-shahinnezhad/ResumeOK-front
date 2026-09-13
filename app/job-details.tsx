@@ -170,18 +170,13 @@ export default function JobDetailsScreen() {
 
       setAiStep(2);
 
-      // 2. Prepare FormData
-      const formData = new FormData();
-      const resumeFileObj: any = {
-        uri: selectedResume.uri,
-        name: selectedResume.name || 'resume.pdf',
-        type: selectedResume.mimeType || 'application/pdf'
-      };
-      formData.append('resume', resumeFileObj);
+      // 2. Read resume file as base64 to avoid native React Native FormData crashes
+      const base64Data = await FileSystem.readAsStringAsync(selectedResume.uri, { encoding: 'base64' });
 
-      // 3. Make POST request to backend
+      // 3. Make POST request to backend with base64 payload
       const session = await getSession();
       const headers: any = {
+        'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
       if (session && session.accessToken) {
@@ -191,7 +186,9 @@ export default function JobDetailsScreen() {
       const matchRes = await fetch(`${API_URL}/api/jobs/${jobData.id}/match`, {
         method: 'POST',
         headers,
-        body: formData
+        body: JSON.stringify({
+          resumeBase64: base64Data
+        })
       });
 
       if (!matchRes.ok) {

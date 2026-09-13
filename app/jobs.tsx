@@ -1796,17 +1796,12 @@ export default function JobsScreen() {
       const cleanJobDesc = stripHtml(jobDetailsHtml);
 
       setMatchLoadingStep("Matching resume and cover letter with AI...");
-      const formData = new FormData();
-      const resumeFileObj: any = {
-        uri: baseResume.uri,
-        name: baseResume.name,
-        type: baseResume.mimeType || 'application/pdf'
-      };
-      formData.append('resume', resumeFileObj);
+      const base64Data = await FileSystem.readAsStringAsync(baseResume.uri, { encoding: 'base64' });
 
       // Include user access token if logged in
       const session = await getSession();
       const headers: any = {
+        'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
       if (session && session.accessToken) {
@@ -1816,7 +1811,9 @@ export default function JobsScreen() {
       const matchRes = await fetch(`${API_URL}/api/jobs/${selectedJob.id}/match`, {
         method: 'POST',
         headers,
-        body: formData
+        body: JSON.stringify({
+          resumeBase64: base64Data
+        })
       });
 
       if (!matchRes.ok) {
@@ -1963,26 +1960,12 @@ export default function JobsScreen() {
       if (hasDirectApiKey) {
         // Submit Application via unified backend endpoint
         console.log("Submitting application to backend...");
-        const formData = new FormData();
-        formData.append('jobId', String(selectedJob?.id));
-        formData.append('companySlug', targetToken);
-        formData.append('sourceType', selectedJob?.sourceType || 'greenhouse');
-        formData.append('firstName', firstName);
-        formData.append('lastName', lastName);
-        formData.append('email', email);
-        if (phone) formData.append('phone', phone);
-        if (config.jobBoardKey) formData.append('jobBoardKey', config.jobBoardKey);
-
-        const resumeFileObj: any = {
-          uri: finalResumeUri,
-          name: finalResumeName,
-          type: 'application/pdf'
-        };
-        formData.append('resume', resumeFileObj);
+        const resumeBase64 = await FileSystem.readAsStringAsync(finalResumeUri, { encoding: 'base64' });
 
         // Include user access token if logged in
         const session = await getSession();
         const headers: any = {
+          'Content-Type': 'application/json',
           'Accept': 'application/json',
         };
         if (session && session.accessToken) {
@@ -1992,7 +1975,18 @@ export default function JobsScreen() {
         const postResponse = await fetch(`${API_URL}/api/jobs/apply`, {
           method: 'POST',
           headers,
-          body: formData
+          body: JSON.stringify({
+            jobId: String(selectedJob?.id),
+            companySlug: targetToken,
+            sourceType: selectedJob?.sourceType || 'greenhouse',
+            firstName,
+            lastName,
+            email,
+            phone: phone || undefined,
+            jobBoardKey: config.jobBoardKey || undefined,
+            resumeBase64,
+            resumeName: finalResumeName
+          })
         });
 
         if (!postResponse.ok) {
