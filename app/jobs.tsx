@@ -847,25 +847,11 @@ export default function JobsScreen() {
           const contentLower = (job.content || '').toLowerCase();
           return domainWords.some(dw => titleLower.includes(dw) || contentLower.includes(dw));
         });
-
-        result.sort((a, b) => {
-          const aTitle = (a.title || '').toLowerCase();
-          const bTitle = (b.title || '').toLowerCase();
-
-          const aDomainScore = domainWords.filter(w => aTitle.includes(w)).length * 10 + qWords.filter(w => aTitle.includes(w)).length;
-          const bDomainScore = domainWords.filter(w => bTitle.includes(w)).length * 10 + qWords.filter(w => bTitle.includes(w)).length;
-
-          if (aDomainScore !== bDomainScore) {
-            return bDomainScore - aDomainScore;
-          }
-          return getJobTimestamp(b) - getJobTimestamp(a);
-        });
-      } else {
-        result.sort((a, b) => getJobTimestamp(b) - getJobTimestamp(a));
       }
-    } else {
-      result.sort((a, b) => getJobTimestamp(b) - getJobTimestamp(a));
     }
+
+    // ALWAYS SORT STRICTLY BY NEWEST DATE/TIME ADDED FIRST (postedAt / createdAt descending)
+    result.sort((a, b) => getJobTimestamp(b) - getJobTimestamp(a));
 
     setFilteredJobs(result);
     // Reset active card index when filter changes, but NOT during background fetches
