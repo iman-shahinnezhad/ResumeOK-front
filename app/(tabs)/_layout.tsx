@@ -23,22 +23,22 @@ export default function TabLayout() {
       rippleColor="#EAEAEA"
     >
       <NativeTabs.Trigger name="jobs">
-        <NativeTabs.Trigger.Label>Job Board</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Jobs</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon src={jobIcon} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="applications">
-        <NativeTabs.Trigger.Label>Status</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Application</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon src={appIcon} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Inbox</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Resume</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon src={resumeIcon} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="account">
-        <NativeTabs.Trigger.Label>My Profile</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon src={profileIcon} />
       </NativeTabs.Trigger>
 
