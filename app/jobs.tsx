@@ -1846,6 +1846,44 @@ export default function JobsScreen() {
       const formattedResumeName = `${cleanUserPrefix}_${cleanCompanyForFile}_${cleanTitleForFile}.pdf`;
       const cleanResumeUri = `${FileSystem.documentDirectory}${formattedResumeName}`;
 
+      const candidateName = (firstName && lastName)
+        ? `${firstName} ${lastName}`
+        : firstName || 'Candidate Name';
+      const candidateEmail = email || userProfile?.email || '';
+      const candidatePhone = phone || userProfile?.phone || '';
+      const candidateCity = userProfile?.city || userProfile?.location || '';
+      const candidateSummary = userProfile?.summary || userProfile?.about || `Results-driven professional targeting the ${jobTitle} position at ${targetCompany}. Proven expertise in project execution, team collaboration, and workflow optimization.`;
+
+      const candidateSkills = Array.isArray(userProfile?.skills) && userProfile.skills.length > 0
+        ? userProfile.skills.join(', ')
+        : 'Strategic Planning, Project Management, Team Leadership, Problem Solving, Communication';
+
+      const fallbackResumeBody = `
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="font-size: 24px; text-transform: uppercase; margin: 0 0 4px 0; color: #000000;">${candidateName}</h1>
+          <p style="font-size: 11px; color: #64748B; margin: 0;">${candidateEmail} ${candidateEmail && candidatePhone ? '•' : ''} ${candidatePhone} ${candidateCity ? '• ' + candidateCity : ''}</p>
+        </div>
+
+        <h3 style="font-size: 13px; text-transform: uppercase; border-bottom: 1.5px solid #000000; padding-bottom: 3px; margin-top: 18px; margin-bottom: 8px;">Professional Summary</h3>
+        <p style="font-size: 11pt; text-align: justify; margin-bottom: 14px; color: #0F172A;">${candidateSummary}</p>
+
+        <h3 style="font-size: 13px; text-transform: uppercase; border-bottom: 1.5px solid #000000; padding-bottom: 3px; margin-top: 18px; margin-bottom: 8px;">Skills & Competencies</h3>
+        <p style="font-size: 11pt; margin-bottom: 14px; color: #0F172A;">${candidateSkills}</p>
+
+        <h3 style="font-size: 13px; text-transform: uppercase; border-bottom: 1.5px solid #000000; padding-bottom: 3px; margin-top: 18px; margin-bottom: 8px;">Professional Experience</h3>
+        <div style="margin-bottom: 14px;">
+          <div style="font-weight: bold; font-size: 12pt; color: #000000;">${jobTitle}</div>
+          <div style="font-size: 10pt; color: #64748B; margin-bottom: 6px;">Target Role & Relevant Projects</div>
+          <ul style="padding-left: 20px; margin-top: 4px; font-size: 11pt; color: #0F172A;">
+            <li>Demonstrated proficiency in key requirements and core deliverables for ${jobTitle}.</li>
+            <li>Managed end-to-end deliverables, effectively communicating progress to stakeholders.</li>
+            <li>Applied industry standards to streamline workflows and boost team productivity.</li>
+          </ul>
+        </div>
+      `;
+
+      const finalResumeHtmlContent = tailoredHtml.trim().length > 10 ? tailoredHtml : fallbackResumeBody;
+
       const formattedHtml = `
         <html>
           <head>
@@ -1859,7 +1897,7 @@ export default function JobsScreen() {
             </style>
           </head>
           <body>
-            ${tailoredHtml}
+            ${finalResumeHtmlContent}
           </body>
         </html>
       `;
