@@ -93,6 +93,12 @@ function normalizeKeyword(str: string): string {
   return SYNONYM_MAP[clean] || str.trim();
 }
 
+const GENERIC_EXCLUDE_TOKENS = [
+  'product', 'design', 'development', 'systems', 'management', 'manager',
+  'developer', 'designer', 'engineer', 'engineering', 'lead', 'senior',
+  'junior', 'head', 'chief', 'associate', 'group', 'global', 'digital', 'tech'
+];
+
 function matchesKeyword(userStr: string, requiredStr: string): boolean {
   const u = normalizeKeyword(userStr).toLowerCase();
   const r = normalizeKeyword(requiredStr).toLowerCase();
@@ -102,7 +108,7 @@ function matchesKeyword(userStr: string, requiredStr: string): boolean {
   const uTokens = u.split(/[\s/&-]+/);
   const rTokens = r.split(/[\s/&-]+/);
   const common = uTokens.filter(t => t.length > 2 && rTokens.includes(t));
-  return common.length > 0 && common.some(t => !['design', 'development', 'systems', 'management'].includes(t));
+  return common.length > 0 && common.some(t => !GENERIC_EXCLUDE_TOKENS.includes(t));
 }
 
 const matchCache = new Map<string, JobMatchResult>();
@@ -228,30 +234,73 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
   }
 
   // 4. ROLE SCORE (0 - 100%, 60% weight in Job Match)
-  const SENIORITY_WORDS = new Set(['senior', 'sr', 'junior', 'jr', 'lead', 'principal', 'staff', 'associate', 'intern', 'entry', 'mid', 'head', 'vp', 'director', 'manager', 'executive', 'chief', 'level', 'i', 'ii', 'iii', 'iv']);
+  const SENIORITY_WORDS = new Set(['senior', 'sr', 'junior', 'jr', 'lead', 'principal', 'staff', 'associate', 'intern', 'entry', 'mid', 'level', 'i', 'ii', 'iii', 'iv', 'v']);
+  const GENERIC_MODIFIER_TOKENS = new Set([
+    ...Array.from(SENIORITY_WORDS),
+    'product', 'technical', 'global', 'digital', 'group', 'team', 'head', 'vp',
+    'director', 'executive', 'chief'
+  ]);
 
   let roleScore = 40;
   const userRoleTitles = [...userRoles, userProfile?.jobTitle, userProfile?.role].filter(Boolean).map(r => r.toLowerCase());
 
-  const getDomainTokens = (str: string) => str.split(/[\s/&-]+/).filter(w => w.length > 1 && !SENIORITY_WORDS.has(w));
-  const jobTitleDomainTokens = getDomainTokens(titleLower);
-  const userDomainTokens = userRoleTitles.flatMap(r => getDomainTokens(r));
+  const getCoreTokens = (str: string) => str.split(/[\s/&-]+/).filter(w => w.length > 1 && !GENERIC_MODIFIER_TOKENS.has(w));
+  const jobTitleCoreTokens = getCoreTokens(titleLower);
+  const userCoreTokens = userRoleTitles.flatMap(r => getCoreTokens(r));
 
   const DEV_KEYWORDS = ['developer', 'engineer', 'programmer', 'coder', 'frontend', 'backend', 'fullstack', 'software', 'web', 'mobile', 'ios', 'android', 'react', 'python', 'node', 'java', 'tech'];
-  const DESIGN_KEYWORDS = ['designer', 'design', 'ui', 'ux', 'creative', 'illustrator', 'artist', 'animator', 'figma', 'visual'];
+  const DESIGN_KEYWORDS = ['designer', 'design', 'ui', 'ux', 'creative', 'illustrator', 'artist', 'animator', 'figma', 'visual', 'interaction'];
 
-  const userIsDev = userDomainTokens.some(t => DEV_KEYWORDS.includes(t));
-  const userIsDesign = userDomainTokens.some(t => DESIGN_KEYWORDS.includes(t));
-  const jobIsDev = jobTitleDomainTokens.some(t => DEV_KEYWORDS.includes(t)) || titleLower.includes('developer') || titleLower.includes('engineer');
-  const jobIsDesign = jobTitleDomainTokens.some(t => DESIGN_KEYWORDS.includes(t)) || (titleLower.includes('designer') && !titleLower.includes('design engineer'));
+  const checkIsProductMgmt = (t: string, tokens: string[]) => {
+    if (t.includes('product manager') || t.includes('product management') || t.includes('product owner') || t.includes('head of product') || t.includes('group pm')) {
+      return true;
+    }
+    if (tokens.includes('manager') && tokens.includes('product') && !tokens.includes('design') && !tokens.includes('engineering')) {
+      return true;
+    }
+    return false;
+  };
 
-  if (userIsDev && jobIsDesign && !userIsDesign) {
+  const checkIsDesign = (t: string, tokens: string[]) => {
+    if (t.includes('designer') || t.includes('ui/ux') || t.includes('ux design') || t.includes('ui design') || t.includes('product design')) {
+      return true;
+    }
+    return tokens.some(tok => DESIGN_KEYWORDS.includes(tok)) && !t.includes('design engineer');
+  };
+
+  const checkIsDev = (t: string, tokens: string[]) => {
+    if (t.includes('developer') || t.includes('engineer') || t.includes('software') || t.includes('frontend') || t.includes('backend') || t.includes('fullstack')) {
+      if (!t.includes('product manager') && !t.includes('design engineer')) return true;
+    }
+    return tokens.some(tok => DEV_KEYWORDS.includes(tok));
+  };
+
+  const allUserTokens = userRoleTitles.flatMap(r => r.split(/[\s/&-]+/));
+  const allJobTokens = titleLower.split(/[\s/&-]+/);
+
+  const userIsDev = userRoleTitles.some(r => checkIsDev(r, r.split(/[\s/&-]+/)));
+  const userIsDesign = userRoleTitles.some(r => checkIsDesign(r, r.split(/[\s/&-]+/))) || allUserTokens.some(t => DESIGN_KEYWORDS.includes(t));
+  const userIsProductMgmt = userRoleTitles.some(r => checkIsProductMgmt(r, r.split(/[\s/&-]+/)));
+
+  const jobIsDev = checkIsDev(titleLower, allJobTokens);
+  const jobIsDesign = checkIsDesign(titleLower, allJobTokens);
+  const jobIsProductMgmt = checkIsProductMgmt(titleLower, allJobTokens);
+
+  if (userIsDesign && !userIsProductMgmt && jobIsProductMgmt) {
     roleScore = 15;
-  } else if (userIsDesign && jobIsDev && !userIsDev) {
+  } else if (userIsProductMgmt && !userIsDesign && jobIsDesign) {
     roleScore = 15;
+  } else if (userIsDesign && !userIsDev && jobIsDev) {
+    roleScore = 15;
+  } else if (userIsDev && !userIsDesign && jobIsDesign) {
+    roleScore = 15;
+  } else if (userIsDev && !userIsProductMgmt && jobIsProductMgmt) {
+    roleScore = 20;
+  } else if (userIsProductMgmt && !userIsDev && jobIsDev) {
+    roleScore = 20;
   } else {
-    const hasCoreTokenMatch = userDomainTokens.some(uToken =>
-      jobTitleDomainTokens.some(jToken => uToken === jToken || (uToken.length > 3 && jToken.length > 3 && (uToken.includes(jToken) || jToken.includes(uToken))))
+    const hasCoreTokenMatch = userCoreTokens.some(uToken =>
+      jobTitleCoreTokens.some(jToken => uToken === jToken || (uToken.length > 3 && jToken.length > 3 && (uToken.includes(jToken) || jToken.includes(uToken))))
     );
 
     if (hasCoreTokenMatch) {
@@ -259,6 +308,8 @@ export function calculateJobMatch(jobContent: string, jobTitle: string, userProf
     } else if (userIsDev && jobIsDev) {
       roleScore = 85;
     } else if (userIsDesign && jobIsDesign) {
+      roleScore = 85;
+    } else if (userIsProductMgmt && jobIsProductMgmt) {
       roleScore = 85;
     } else {
       roleScore = 35;
