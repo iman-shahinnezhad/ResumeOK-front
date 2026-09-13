@@ -5290,52 +5290,75 @@ function getJobPostedTime(job: any): string {
 
 // Calculate 4 distinct, dynamic match percentages per job using calculateJobMatch from utils/jobMatch
 function calculateJobMatchScores(job: GreenhouseJob, profile: any) {
-  const matchResult = calculateJobMatch(job.content || '', job.title || '', profile);
+  try {
+    const matchResult = calculateJobMatch(job?.content || '', job?.title || '', profile);
+    const jm = typeof matchResult?.jobMatch === 'number' ? matchResult.jobMatch : 35;
+    const res = typeof matchResult?.resume === 'number' ? matchResult.resume : 35;
+    const kw = typeof matchResult?.keywords === 'number' ? matchResult.keywords : 35;
 
-  return {
-    jobMatch: `${matchResult.jobMatch}%`,
-    resume: `${matchResult.resume}%`,
-    keywords: `${matchResult.keywords}%`,
-    expMatch: `${matchResult.resume}%`,
-    excellentMatch: `${matchResult.jobMatch}%`,
-    fairMatch: `${matchResult.keywords}%`,
-    perfectMatch: `${matchResult.jobMatch}%`
-  };
+    return {
+      jobMatch: `${jm}%`,
+      resume: `${res}%`,
+      keywords: `${kw}%`,
+      expMatch: `${res}%`,
+      excellentMatch: `${jm}%`,
+      fairMatch: `${kw}%`,
+      perfectMatch: `${jm}%`
+    };
+  } catch (err) {
+    return {
+      jobMatch: '35%',
+      resume: '35%',
+      keywords: '35%',
+      expMatch: '35%',
+      excellentMatch: '35%',
+      fairMatch: '35%',
+      perfectMatch: '35%'
+    };
+  }
 }
 
 // Helper to determine dynamic colors for match pills based on percentage thresholds
 function getMatchPillColors(scoreStr: string) {
-  const val = parseInt(scoreStr.replace(/[^0-9]/g, ''), 10) || 0;
+  try {
+    const val = parseInt((scoreStr || '').replace(/[^0-9]/g, ''), 10) || 0;
 
-  if (val === 0) {
+    if (val === 0) {
+      return {
+        bg: '#F1F5F9',       // Muted slate gray (Zero Match / No profile)
+        scoreColor: '#64748B',
+        labelColor: '#64748B',
+      };
+    }
+
+    if (val >= 75) {
+      return {
+        bg: '#DCFCE7',       // Soft Emerald Green (High Match >= 75%)
+        scoreColor: '#15803D',
+        labelColor: '#166534',
+      };
+    }
+
+    if (val >= 35) {
+      return {
+        bg: '#FEF3C7',       // Soft Amber / Warm Orange (Medium Match 35%-74%)
+        scoreColor: '#D97706',
+        labelColor: '#B45309',
+      };
+    }
+
     return {
-      bg: '#F1F5F9',       // Muted slate gray (Zero Match / No profile)
+      bg: '#FFE4E6',         // Soft Rose / Crimson Red (Low Match < 35%)
+      scoreColor: '#E11D48',
+      labelColor: '#BE123C',
+    };
+  } catch {
+    return {
+      bg: '#F1F5F9',
       scoreColor: '#64748B',
       labelColor: '#64748B',
     };
   }
-
-  if (val >= 75) {
-    return {
-      bg: '#DCFCE7',       // Soft Emerald Green (High Match >= 75%)
-      scoreColor: '#15803D',
-      labelColor: '#166534',
-    };
-  }
-
-  if (val >= 35) {
-    return {
-      bg: '#FEF3C7',       // Soft Amber / Warm Orange (Medium Match 35%-74%)
-      scoreColor: '#D97706',
-      labelColor: '#B45309',
-    };
-  }
-
-  return {
-    bg: '#FFE4E6',         // Soft Rose / Crimson Red (Low Match < 35%)
-    scoreColor: '#E11D48',
-    labelColor: '#BE123C',
-  };
 }
 
 
