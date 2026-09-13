@@ -222,11 +222,23 @@ export function isReliablePdfText(text: string): { isReliable: boolean; readable
   return { isReliable, readableRatio, garbageRatio, reason };
 }
 
+export function cleanCoreRoleTitle(title?: string): string {
+  if (!title) return '';
+  const SENIORITY_REGEX = /\b(senior|sr\.?|junior|jr\.?|lead|principal|staff|associate|intern|entry[\s-]*level|mid[\s-]*level|head\s+of|director\s+of|vp\s+of|executive|chief)\b/gi;
+  const cleaned = title.replace(SENIORITY_REGEX, '').replace(/\s+/g, ' ').trim();
+  return cleaned || title.trim();
+}
+
 /**
  * Step 7: Output Validation & Hallucination Repair
  */
 export function validateAndRepairParsedProfile(parsed: ParsedProfile): ParsedProfile {
   const repaired: ParsedProfile = { ...parsed };
+
+  // Normalize target role to core domain (e.g. "Senior Product Designer" -> "Product Designer")
+  if (repaired.targetRole) {
+    repaired.targetRole = cleanCoreRoleTitle(repaired.targetRole);
+  }
 
   // 1. Email Validation - Must have valid top-level domain (TLD) and no PDF stream artifacts
   const KNOWN_TLDS = /\.(com|org|net|edu|gov|mil|io|co|ca|de|fr|uk|au|nl|se|es|it|ir|ai|dev|me|info|biz|app|tech|xyz|online|store|site|work|live|club|design|agency|digital|pro|global|systems|email)$/i;

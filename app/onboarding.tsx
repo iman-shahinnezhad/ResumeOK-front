@@ -37,7 +37,7 @@ import * as Notifications from 'expo-notifications';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { City, Country } from 'country-state-city';
-import { parsePdfResumeText } from '../utils/pdfParser';
+import { parsePdfResumeText, cleanCoreRoleTitle } from '../utils/pdfParser';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -766,7 +766,7 @@ export default function OnboardingScreen() {
                 if (parsed.firstName && typeof parsed.firstName === 'string') setFirstName(String(parsed.firstName));
                 if (parsed.lastName && typeof parsed.lastName === 'string') setLastName(String(parsed.lastName));
                 if (parsed.email && typeof parsed.email === 'string') setEmail(String(parsed.email));
-                if (parsed.targetRole) setSelectedRoles([parsed.targetRole]);
+                if (parsed.targetRole) setSelectedRoles([cleanCoreRoleTitle(parsed.targetRole)]);
                 if (parsed.experienceLevel) setSelectedExperience(parsed.experienceLevel);
                 if (parsed.skills && parsed.skills.length > 0) {
                   setSelectedInterests(parsed.skills.slice(0, 5));
