@@ -113,28 +113,33 @@ function matchesKeyword(userStr: string, requiredStr: string): boolean {
 
 const matchCache = new Map<string, JobMatchResult>();
 
-export function calculateJobMatch(jobContent: string, jobTitle: string, userProfile: any): JobMatchResult {
-  const cacheKey = `${jobContent.length}_${jobTitle}_${userProfile?.skills?.length || 0}_${userProfile?.experience || ''}`;
+export function calculateJobMatch(jobContent: string = '', jobTitle: string = '', userProfile: any = {}): JobMatchResult {
+  const safeContent = typeof jobContent === 'string' ? jobContent : '';
+  const safeTitle = typeof jobTitle === 'string' ? jobTitle : '';
+  const safeProfile = userProfile && typeof userProfile === 'object' ? userProfile : {};
+
+  const cacheKey = `${safeContent.length}_${safeTitle}_${safeProfile?.skills?.length || 0}_${safeProfile?.experience || ''}`;
   if (matchCache.has(cacheKey)) {
     return matchCache.get(cacheKey)!;
   }
 
-  const contentLower = (jobContent + ' ' + jobTitle).toLowerCase();
-  const titleLower = (jobTitle || '').toLowerCase();
+  const contentLower = (safeContent + ' ' + safeTitle).toLowerCase();
+  const titleLower = safeTitle.toLowerCase();
 
   // Extract candidate profile details
-  const userSkills: string[] = Array.isArray(userProfile?.skills) ? userProfile.skills : [];
-  const userInterests: string[] = Array.isArray(userProfile?.interests) ? userProfile.interests : [];
-  const userSoftSkills: string[] = Array.isArray(userProfile?.softSkills) ? userProfile.softSkills : [];
-  const userRoles: string[] = Array.isArray(userProfile?.roles) ? userProfile.roles : [];
-  const extraRoles = [userProfile?.jobTitle, userProfile?.role, userProfile?.title].filter(Boolean) as string[];
+  const userSkills: string[] = Array.isArray(safeProfile?.skills) ? safeProfile.skills : [];
+  const userInterests: string[] = Array.isArray(safeProfile?.interests) ? safeProfile.interests : [];
+  const userSoftSkills: string[] = Array.isArray(safeProfile?.softSkills) ? safeProfile.softSkills : [];
+  const userRoles: string[] = Array.isArray(safeProfile?.roles) ? safeProfile.roles : [];
+  const extraRoles = [safeProfile?.jobTitle, safeProfile?.role, safeProfile?.title].filter(Boolean) as string[];
 
   const allCandidateKeywords = [...userSkills, ...userInterests, ...userSoftSkills, ...userRoles, ...extraRoles]
+    .filter(s => typeof s === 'string')
     .map(s => s.trim())
     .filter(Boolean);
-  const userExpStr = (userProfile?.experience || '').toLowerCase();
+  const userExpStr = typeof safeProfile?.experience === 'string' ? safeProfile.experience.toLowerCase() : '';
 
-  const hasProfileData = Boolean(userExpStr || allCandidateKeywords.length > 0 || userProfile?.resumeFile || userProfile?.title || userProfile?.jobTitle || userProfile?.role);
+  const hasProfileData = Boolean(userExpStr || allCandidateKeywords.length > 0 || safeProfile?.resumeFile || safeProfile?.title || safeProfile?.jobTitle || safeProfile?.role);
 
   if (!userProfile || !hasProfileData) {
     return {
