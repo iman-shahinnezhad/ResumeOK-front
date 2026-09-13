@@ -568,7 +568,14 @@ export default function JobsScreen() {
             if (loadedProfile.email) finalEmail = loadedProfile.email;
             const profilePhone = loadedProfile.phone || loadedProfile.phoneNumber || loadedProfile.mobile || '';
             if (profilePhone) setPhone(profilePhone);
-            isProfileDefaultsLoaded.current = true;
+
+            if (!isProfileDefaultsLoaded.current) {
+              const defaultRoles = getUserTargetRolesList(loadedProfile);
+              if (defaultRoles.length > 0) {
+                setSelectedSkillsFilter(defaultRoles);
+              }
+              isProfileDefaultsLoaded.current = true;
+            }
           }
 
           // Load greenhouse config and override/merge
@@ -723,8 +730,14 @@ export default function JobsScreen() {
     if (selectedSkillsFilter.length > 0) {
       result = result.filter(job => {
         const deptNames = Array.isArray(job.departments) ? job.departments.map(d => d.name).join(' ') : '';
-        const jobText = `${job.title || ''} ${job.content || ''} ${job.companyName || ''} ${deptNames}`.toLowerCase();
-        return selectedSkillsFilter.some(skill => jobText.includes(skill.toLowerCase()));
+        const titleLower = (job.title || '').toLowerCase();
+        const snippetLower = (job.cleanSnippet || '').toLowerCase();
+        const deptLower = deptNames.toLowerCase();
+
+        return selectedSkillsFilter.some(skill => {
+          const sLower = skill.toLowerCase();
+          return titleLower.includes(sLower) || deptLower.includes(sLower) || snippetLower.includes(sLower);
+        });
       });
     }
 
