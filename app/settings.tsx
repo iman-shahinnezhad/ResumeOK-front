@@ -231,6 +231,44 @@ export default function Settings() {
     );
   };
 
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete your account? All saved resumes, cover letters, and profile data will be permanently removed.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete Account",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+              const configPath = `${FileSystem.documentDirectory}greenhouse_config.json`;
+              const resumesPath = `${FileSystem.documentDirectory}resumes.json`;
+              const lettersPath = `${FileSystem.documentDirectory}cover_letters.json`;
+              
+              await FileSystem.deleteAsync(profilePath, { idempotent: true });
+              await FileSystem.deleteAsync(configPath, { idempotent: true });
+              await FileSystem.deleteAsync(resumesPath, { idempotent: true });
+              await FileSystem.deleteAsync(lettersPath, { idempotent: true });
+
+              await logout();
+              Alert.alert("Account Deleted", "Your account and stored profile data have been permanently deleted.");
+              router.replace('/onboarding' as any);
+            } catch (err) {
+              console.log("Delete account error:", err);
+              await logout();
+              router.replace('/onboarding' as any);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderMenuItem = (title: string, iconName: any) => (
     <TouchableOpacity
       key={title}
@@ -248,6 +286,8 @@ export default function Settings() {
           Linking.openURL('https://pixflow.net/pixflow-resumeok-app-privacy-policy/');
         } else if (title === 'Log Out') {
           handleLogout();
+        } else if (title === 'Delete Account') {
+          handleDeleteAccount();
         }
       }}
     >
@@ -255,14 +295,14 @@ export default function Settings() {
         <Ionicons
           name={iconName}
           size={20}
-          color={title === 'Log Out' ? '#EF4444' : '#64748B'}
+          color={(title === 'Log Out' || title === 'Delete Account') ? '#EF4444' : '#64748B'}
         />
         <Text
           style={[
             styles.menuItemText,
             {
               marginLeft: 12,
-              color: title === 'Log Out' ? '#EF4444' : '#0F172A',
+              color: (title === 'Log Out' || title === 'Delete Account') ? '#EF4444' : '#0F172A',
             },
           ]}
         >
@@ -418,6 +458,8 @@ export default function Settings() {
           {renderMenuItem('Report Bug', 'alert-circle-outline')}
           <View style={styles.menuDivider} />
           {renderMenuItem('Log Out', 'log-out-outline')}
+          <View style={styles.menuDivider} />
+          {renderMenuItem('Delete Account', 'trash-outline')}
         </View>
 
       </ScrollView>

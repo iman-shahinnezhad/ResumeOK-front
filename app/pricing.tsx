@@ -178,6 +178,23 @@ export default function Pricing() {
     }
   };
 
+  const handleRestorePurchases = async () => {
+    setIsPurchasing(true);
+    try {
+      const { restorePurchases } = await import('../utils/purchases');
+      const restored = await restorePurchases();
+      if (restored) {
+        Alert.alert("Purchases Restored", "Your previous purchases have been successfully restored.");
+      } else {
+        Alert.alert("No Purchases Found", "No previous purchases were found for your Apple ID.");
+      }
+    } catch (e) {
+      Alert.alert("Restore Error", "Could not restore purchases at this time.");
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
   const renderFeature = (text: string) => (
     <View style={styles.featureRow} key={text}>
       <View style={styles.featureIcon}>
@@ -299,6 +316,10 @@ export default function Pricing() {
           <View style={styles.privacyTermsRow}>
             <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL('https://pixflow.net/pixflow-resumeok-app-privacy-policy/')}>
               <Text style={styles.footerLinkText}>Privacy</Text>
+            </TouchableOpacity>
+            <Text style={styles.footerPipeText}> | </Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={handleRestorePurchases}>
+              <Text style={styles.footerLinkText}>Restore</Text>
             </TouchableOpacity>
             <Text style={styles.footerPipeText}> | </Text>
             <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}>
