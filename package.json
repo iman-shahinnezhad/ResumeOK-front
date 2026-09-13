@@ -1,7 +1,7 @@
 {
   "name": "applydesk",
   "main": "expo-router/entry",
-  "version": "2.1.8",
+  "version": "2.1.9",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -38,7 +38,6 @@
     "expo-image-picker": "~57.0.17",
     "expo-linear-gradient": "~57.0.2",
     "expo-linking": "~57.0.10",
-    "expo-modules-core": "~3.0.0",
     "expo-notifications": "~57.0.17",
     "expo-print": "~57.0.1",
     "expo-router": "~57.0.20",
