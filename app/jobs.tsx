@@ -568,69 +568,7 @@ export default function JobsScreen() {
             if (loadedProfile.email) finalEmail = loadedProfile.email;
             const profilePhone = loadedProfile.phone || loadedProfile.phoneNumber || loadedProfile.mobile || '';
             if (profilePhone) setPhone(profilePhone);
-
-            if (!isProfileDefaultsLoaded.current) {
-              // Auto-populate filter values from onboarding choices (Prioritize targeted job roles)
-              const onboardingRoles = Array.isArray(loadedProfile.roles) && loadedProfile.roles.length > 0
-                ? loadedProfile.roles
-                : (Array.isArray(loadedProfile.skills) ? loadedProfile.skills : []);
-
-              const rawRole = (Array.isArray(loadedProfile.roles) && loadedProfile.roles[0]) || loadedProfile.jobTitle || loadedProfile.role || onboardingRoles[0] || '';
-              const onboardingRole = typeof rawRole === 'string' ? rawRole : '';
-              if (onboardingRole && !filterQuery) {
-                setFilterQuery(onboardingRole);
-              }
-
-              // Location auto-selection from onboarding profile
-              const rawLoc = loadedProfile.city || loadedProfile.location || '';
-              const onboardingLoc = typeof rawLoc === 'string' ? rawLoc : '';
-              if (onboardingLoc && !filterLocation) {
-                setFilterLocation(onboardingLoc);
-              }
-
-              // Work Model auto-selection from onboarding city or interests
-              const interestsArr = Array.isArray(loadedProfile.interests) ? loadedProfile.interests : [];
-              const isRemotePref = onboardingLoc.toLowerCase().includes('remote') || interestsArr.some((i: any) => String(i).toLowerCase().includes('remote'));
-              const isHybridPref = onboardingLoc.toLowerCase().includes('hybrid') || interestsArr.some((i: any) => String(i).toLowerCase().includes('hybrid'));
-              if (isRemotePref && filterWorkModel === 'ALL') {
-                setFilterWorkModel('Remote');
-              } else if (isHybridPref && filterWorkModel === 'ALL') {
-                setFilterWorkModel('Hybrid');
-              }
-
-              // Experience Seniority auto-selection
-              const rawExp = loadedProfile.experienceLevel || loadedProfile.experience || '';
-              const onboardingExp = typeof rawExp === 'string' ? rawExp.toLowerCase() : '';
-              if (onboardingExp && filterExperience === 'ALL') {
-                if (onboardingExp.includes('senior') || onboardingExp.includes('expert') || onboardingExp.includes('leadership') || onboardingExp.includes('6-9') || onboardingExp.includes('10+')) {
-                  setFilterExperience('Senior');
-                } else if (onboardingExp.includes('mid') || onboardingExp.includes('3-5') || onboardingExp.includes('3-4')) {
-                  setFilterExperience('Mid');
-                } else if (onboardingExp.includes('junior') || onboardingExp.includes('entry') || onboardingExp.includes('intern') || onboardingExp.includes('1-2')) {
-                  setFilterExperience('Junior');
-                }
-              }
-
-              // Salary Range auto-selection from onboarding expectedSalary
-              if (loadedProfile.expectedSalary) {
-                const minS = typeof loadedProfile.expectedSalary === 'object' ? (loadedProfile.expectedSalary.min ?? 0) : Number(loadedProfile.expectedSalary) || 0;
-                const maxS = typeof loadedProfile.expectedSalary === 'object' ? (loadedProfile.expectedSalary.max ?? 500000) : 500000;
-
-                if (minS <= 0 || (minS <= 30000 && maxS >= 250000)) {
-                  setFilterSalary('ALL');
-                } else if (minS >= 180000) {
-                  setFilterSalary('$180K+');
-                } else if (minS >= 100000) {
-                  setFilterSalary('$100K - $180K');
-                } else if (minS >= 40000) {
-                  setFilterSalary('$50K - $100K');
-                } else {
-                  setFilterSalary('ALL');
-                }
-              }
-
-              isProfileDefaultsLoaded.current = true;
-            }
+            isProfileDefaultsLoaded.current = true;
           }
 
           // Load greenhouse config and override/merge
@@ -677,13 +615,11 @@ export default function JobsScreen() {
           console.log('📄 Resumes Count & List:', loadedResumes.length, JSON.stringify(loadedResumes, null, 2));
           console.log('=================================================================\n');
 
-          // Always fetch initial jobs on focus if jobs list is empty or on fresh screen focus
-          const activeRole = (Array.isArray(loadedProfile?.roles) && loadedProfile?.roles[0]) || loadedProfile?.jobTitle || loadedProfile?.role || filterQuery;
-          const activeLoc = loadedProfile?.city || loadedProfile?.location || filterLocation;
-          fetchJobsFromAllBoards(1, false, activeRole, selectedCompanyFilter, activeLoc);
+          // Always fetch initial jobs on focus without forcing restrictive onboarding role query
+          fetchJobsFromAllBoards(1, false, filterQuery, selectedCompanyFilter, filterLocation);
         } catch (e) {
           console.log("Error initializing jobs screen on focus:", e);
-          fetchJobsFromAllBoards(1, false);
+          fetchJobsFromAllBoards(1, false, '', 'ALL', '');
         }
       }
       initData();
