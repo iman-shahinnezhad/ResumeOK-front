@@ -1094,6 +1094,23 @@ export default function OnboardingScreen() {
               if (credential.fullName?.familyName) setLastName(credential.fullName.familyName);
               if (credential.email) setEmail(credential.email);
 
+              // Check if account already exists (isNewUser === false) OR local onboarding profile exists
+              const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+              const profileInfo = await FileSystem.getInfoAsync(profilePath).catch(() => ({ exists: false }));
+              const completedPath = `${FileSystem.documentDirectory}onboarding_completed.txt`;
+              const seenPath = `${FileSystem.documentDirectory}has_seen_onboarding.txt`;
+
+              const isExistingAccount = data.isNewUser === false || profileInfo.exists;
+
+              if (isExistingAccount) {
+                console.log("Existing user logged in via Apple. Skipping onboarding...");
+                await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => {});
+                await FileSystem.writeAsStringAsync(seenPath, 'true').catch(() => {});
+                router.replace('/(tabs)/jobs');
+                return;
+              }
+
+              // Brand new user -> proceed to onboarding setup
               setStep('engineered');
               return;
             }
@@ -1120,6 +1137,19 @@ export default function OnboardingScreen() {
         if (credential.fullName?.givenName) setFirstName(credential.fullName.givenName);
         if (credential.fullName?.familyName) setLastName(credential.fullName.familyName);
         if (credential.email) setEmail(credential.email);
+
+        const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+        const profileInfo = await FileSystem.getInfoAsync(profilePath).catch(() => ({ exists: false }));
+
+        if (profileInfo.exists) {
+          console.log("Local profile exists. Skipping onboarding...");
+          const completedPath = `${FileSystem.documentDirectory}onboarding_completed.txt`;
+          const seenPath = `${FileSystem.documentDirectory}has_seen_onboarding.txt`;
+          await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => {});
+          await FileSystem.writeAsStringAsync(seenPath, 'true').catch(() => {});
+          router.replace('/(tabs)/jobs');
+          return;
+        }
 
         setStep('engineered');
       }
