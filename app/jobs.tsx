@@ -728,17 +728,7 @@ export default function JobsScreen() {
     let result = [...allJobs];
 
     if (selectedSkillsFilter.length > 0) {
-      result = result.filter(job => {
-        const deptNames = Array.isArray(job.departments) ? job.departments.map(d => d.name).join(' ') : '';
-        const titleLower = (job.title || '').toLowerCase();
-        const snippetLower = (job.cleanSnippet || '').toLowerCase();
-        const deptLower = deptNames.toLowerCase();
-
-        return selectedSkillsFilter.some(skill => {
-          const sLower = skill.toLowerCase();
-          return titleLower.includes(sLower) || deptLower.includes(sLower) || snippetLower.includes(sLower);
-        });
-      });
+      result = result.filter(job => matchesRoleFilter(job, selectedSkillsFilter, userProfile));
     }
 
     if (filterWorkModel !== 'ALL') {
@@ -2138,7 +2128,7 @@ export default function JobsScreen() {
         >
           <View style={{ flexShrink: 1, marginRight: 8 }}>
             <Text style={styles.roleFilterTitle} numberOfLines={1}>
-              {filterQuery ? filterQuery : (selectedSkillsFilter.length > 0 ? selectedSkillsFilter.join(', ') : 'All Jobs')}
+              {filterQuery ? filterQuery : (selectedSkillsFilter.length > 2 ? `${selectedSkillsFilter[0]} (+${selectedSkillsFilter.length - 1} roles)` : (selectedSkillsFilter.length > 0 ? selectedSkillsFilter.join(', ') : 'All Jobs'))}
             </Text>
             <Text style={styles.roleFilterSub} numberOfLines={1}>
               {filterLocation ? filterLocation : 'All Locations'}
@@ -5052,6 +5042,51 @@ function getJobSalary(job: any): string {
   }
 
   return '';
+}
+
+function matchesRoleFilter(job: any, selectedRoles: string[], profile: any): boolean {
+  if (!job || !selectedRoles || selectedRoles.length === 0) return true;
+
+  const titleLower = (job.title || '').toLowerCase();
+  const titleNorm = titleLower.replace(/[-_/]/g, ' ');
+  const snippetLower = (job.cleanSnippet || '').toLowerCase();
+  const snippetNorm = snippetLower.replace(/[-_/]/g, ' ');
+  const deptNames = Array.isArray(job.departments) ? job.departments.map((d: any) => d.name).join(' ') : '';
+  const deptNorm = deptNames.toLowerCase().replace(/[-_/]/g, ' ');
+  const fullNorm = `${titleNorm} ${deptNorm} ${snippetNorm}`;
+
+  const GENERIC_SENIORITY = new Set(['senior', 'sr', 'junior', 'jr', 'lead', 'principal', 'staff', 'associate', 'intern', 'entry', 'mid', 'head', 'vp', 'director', 'manager', 'level']);
+
+  for (const roleItem of selectedRoles) {
+    if (!roleItem) continue;
+    const rLower = roleItem.toLowerCase();
+    const rNorm = rLower.replace(/[-_/]/g, ' ');
+
+    // 1. Direct substring match on title or full normalized text
+    if (titleNorm.includes(rNorm) || fullNorm.includes(rNorm)) return true;
+
+    // 2. Token domain match (e.g. "Frontend Engineer" matches "Frontend Developer" or "Front-End Engineer")
+    const words = rNorm.split(/\s+/).filter(w => w.length > 2);
+    const domainWords = words.filter(w => !GENERIC_SENIORITY.has(w));
+
+    if (domainWords.length > 0) {
+      // Check if title or full text contains key domain terms (e.g. "frontend" or "react" or "designer")
+      const matchesAllDomains = domainWords.every(dw => fullNorm.includes(dw));
+      if (matchesAllDomains) return true;
+
+      // Check if title contains at least one significant domain word (e.g. "frontend", "backend", "designer", "product")
+      const matchesTitleDomain = domainWords.some(dw => titleNorm.includes(dw));
+      if (matchesTitleDomain) return true;
+    }
+
+    // 3. Fallback: Check calculateJobMatch score (if 40%+, job is functionally relevant to candidate profile)
+    if (profile) {
+      const matchScore = calculateJobMatch(job?.content || '', job?.title || '', profile).jobMatch;
+      if (matchScore >= 40) return true;
+    }
+  }
+
+  return false;
 }
 
 function getUserTargetRolesList(profile: any): string[] {
