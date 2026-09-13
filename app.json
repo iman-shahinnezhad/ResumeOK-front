@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "applydesk",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pixflow.applydesk",
@@ -27,7 +26,6 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "versionCode": 14,
       "permissions": [
@@ -70,13 +68,7 @@
           }
         }
       ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "The app accesses your photos or documents to let you choose files for ApplyDesk.",
-          "cameraPermission": "The app needs to access your camera to let you take a photo for ApplyDesk."
-        }
-      ],
+      "expo-image-picker",
       "expo-web-browser",
       "@react-native-community/datetimepicker",
       "expo-font",
@@ -92,7 +84,6 @@
       "eas": {
         "projectId": "f71680bd-b86e-4ad1-8214-87bcc22a01f5"
       }
-    },
-    "owner": ""
+    }
   }
 }

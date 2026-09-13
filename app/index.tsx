@@ -24,8 +24,6 @@ export default function Index() {
         setHasOnboarded(false);
       } finally {
         setLoading(false);
-        // Hide splash screen now that onboarding status is loaded and redirect is ready
-        await SplashScreen.hideAsync().catch(() => {});
       }
     }
     checkOnboarding();
