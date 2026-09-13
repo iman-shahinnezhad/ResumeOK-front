@@ -43,6 +43,7 @@ import { API_URL, useAuth } from '../context/AuthContext';
 import { WebView } from 'react-native-webview';
 import { getSession } from '../utils/session';
 import { calculateJobMatch } from '../utils/jobMatch';
+import { cleanCoreRoleTitle } from '../utils/pdfParser';
 import { sortResumesWithDefaultFirst } from '../utils/resumeUtils';
 
 const cleanJsCodeForInjection = (js: string) => js;
@@ -3216,45 +3217,37 @@ export default function JobsScreen() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
               >
-                {/* SECTION 0: YOUR SKILLS & TARGET ROLES */}
+                {/* SECTION 0: TARGET ROLES CHIPS */}
                 {(() => {
-                  const onboardSkills = userProfile ? getUserSkillsList(userProfile) : [];
-                  const allDisplaySkills = Array.from(new Set([...selectedSkillsFilter, ...onboardSkills]));
-                  if (allDisplaySkills.length === 0) return null;
+                  const onboardRoles = userProfile ? getUserTargetRolesList(userProfile) : [];
+                  const allDisplayRoles = Array.from(new Set([...selectedSkillsFilter, ...onboardRoles]));
+                  if (allDisplayRoles.length === 0) return null;
 
                   return (
                     <View style={{ marginTop: 4, marginBottom: 14 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <Text style={styles.searchLabel}>Skills & Target Roles</Text>
-                        {selectedSkillsFilter.length > 0 && (
-                          <TouchableOpacity onPress={() => setSelectedSkillsFilter([])}>
-                            <Text style={{ fontSize: 12, color: '#3B82F6', fontWeight: '600' }}>Clear ({selectedSkillsFilter.length})</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
                         <TouchableOpacity
                           style={[styles.filterChip, selectedSkillsFilter.length === 0 && styles.filterChipActive]}
                           onPress={() => setSelectedSkillsFilter([])}
                         >
                           <Text style={[styles.filterChipText, selectedSkillsFilter.length === 0 && styles.filterChipTextActive]}>
-                            ✨ All Skills
+                            ✨ All Roles
                           </Text>
                         </TouchableOpacity>
-                        {allDisplaySkills.map((skill: string, idx: number) => {
-                          const isSelected = selectedSkillsFilter.includes(skill);
+                        {allDisplayRoles.map((roleItem: string, idx: number) => {
+                          const isSelected = selectedSkillsFilter.includes(roleItem);
                           return (
                             <TouchableOpacity
-                              key={`skill-chip-${idx}-${skill}`}
+                              key={`role-chip-${idx}-${roleItem}`}
                               style={[styles.filterChip, isSelected && styles.filterChipActive]}
                               onPress={() => {
                                 setSelectedSkillsFilter(prev =>
-                                  isSelected ? prev.filter(s => s !== skill) : [skill, ...prev]
+                                  isSelected ? prev.filter(s => s !== roleItem) : [roleItem, ...prev]
                                 );
                               }}
                             >
                               <Text style={[styles.filterChipText, isSelected && styles.filterChipTextActive]}>
-                                {isSelected ? '✓ ' : ''}{skill}
+                                {isSelected ? '✓ ' : ''}{roleItem}
                               </Text>
                             </TouchableOpacity>
                           );
@@ -5117,32 +5110,28 @@ function getJobSalary(job: any): string {
   return '';
 }
 
-function getUserSkillsList(profile: any): string[] {
+function getUserTargetRolesList(profile: any): string[] {
   if (!profile) return [];
   const list: string[] = [];
 
   const addVal = (val: any) => {
     if (typeof val === 'string' && val.trim()) {
-      const cleaned = val.trim();
-      if (!list.includes(cleaned)) list.push(cleaned);
+      const cleaned = cleanCoreRoleTitle(val.trim());
+      if (cleaned && !list.includes(cleaned)) list.push(cleaned);
     } else if (val && typeof val === 'object') {
-      const name = val.name || val.title || val.label || val.skill;
+      const name = val.name || val.title || val.label || val.role;
       if (typeof name === 'string' && name.trim()) {
-        const cleaned = name.trim();
-        if (!list.includes(cleaned)) list.push(cleaned);
+        const cleaned = cleanCoreRoleTitle(name.trim());
+        if (cleaned && !list.includes(cleaned)) list.push(cleaned);
       }
     }
   };
 
-  // 1. FIRST: Onboarding targeted job roles ("What job are you targeting?")
+  // Only onboarding targeted job roles ("What job are you targeting?") & parsed target roles
   if (Array.isArray(profile.roles)) profile.roles.forEach(addVal);
   if (profile.targetRole) addVal(profile.targetRole);
   if (profile.jobTitle) addVal(profile.jobTitle);
   if (profile.role) addVal(profile.role);
-
-  // 2. SECOND: Resume skills & interests
-  if (Array.isArray(profile.skills)) profile.skills.forEach(addVal);
-  if (Array.isArray(profile.interests)) profile.interests.forEach(addVal);
 
   return list;
 }
