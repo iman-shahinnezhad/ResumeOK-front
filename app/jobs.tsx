@@ -642,13 +642,15 @@ export default function JobsScreen() {
     console.log(`Fetching jobs from backend aggregator: page=${pageToFetch}, q=${queryStr}, company=${companyStr}, location=${locationStr}`);
     try {
       const qParam = queryStr.trim() ? `&q=${encodeURIComponent(queryStr.trim())}` : '';
+      const targetRolesList = userProfile ? getUserTargetRolesList(userProfile) : [];
+      const rolesParam = (!qParam && targetRolesList.length > 0) ? `&roles=${encodeURIComponent(targetRolesList.join(','))}` : '';
       const companyParam = companyStr && companyStr !== 'ALL' ? `&company=${encodeURIComponent(companyStr)}` : '';
       // Clean location string (e.g. "Manhattan, New York, United States" -> "New York" or primary city token)
       const cleanLoc = locationStr.includes(',') ? (locationStr.split(',')[1] || locationStr.split(',')[0]).trim() : locationStr.trim();
       const locParam = cleanLoc ? `&location=${encodeURIComponent(cleanLoc)}` : '';
       const currentUserId = user?.id || guestId || '';
       const userIdParam = currentUserId ? `&userId=${encodeURIComponent(currentUserId)}` : '';
-      const response = await fetch(`${API_URL}/api/jobs?limit=50&page=${pageToFetch}${qParam}${companyParam}${userIdParam}${locParam}`);
+      const response = await fetch(`${API_URL}/api/jobs?limit=50&page=${pageToFetch}${qParam}${rolesParam}${companyParam}${userIdParam}${locParam}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && Array.isArray(data.jobs)) {
@@ -789,14 +791,26 @@ export default function JobsScreen() {
       }
     }
 
-    // SORT BY JOB MATCH SCORE DESCENDING (Most relevant/similar jobs first), breaking ties by newest date added
+    // SORTING: Place matching jobs (high/medium match score) FIRST at the top, and sort matching jobs BY TIME (NEWEST POSTED DATE FIRST)
+    const targetRolesList = userProfile ? getUserTargetRolesList(userProfile) : [];
+
     result.sort((a, b) => {
       const matchA = calculateJobMatch(a?.content || '', a?.title || '', userProfile).jobMatch;
       const matchB = calculateJobMatch(b?.content || '', b?.title || '', userProfile).jobMatch;
-      if (matchB !== matchA) {
-        return matchB - matchA; // Highest match score first!
-      }
-      return getJobTimestamp(b) - getJobTimestamp(a);
+
+      const isMatchA = matchA >= 50 || matchesRoleFilter(a, targetRolesList, userProfile);
+      const isMatchB = matchB >= 50 || matchesRoleFilter(b, targetRolesList, userProfile);
+
+      // Tier 1: Matching jobs (high/medium match) come BEFORE non-matching jobs
+      if (isMatchA && !isMatchB) return -1;
+      if (!isMatchA && isMatchB) return 1;
+
+      // Within matching jobs (or within non-matching jobs), sort strictly BY POSTED DATE (NEWEST FIRST)!
+      const timeDiff = getJobTimestamp(b) - getJobTimestamp(a);
+      if (timeDiff !== 0) return timeDiff;
+
+      // Tie breaker by match score
+      return matchB - matchA;
     });
 
     setFilteredJobs(result);
