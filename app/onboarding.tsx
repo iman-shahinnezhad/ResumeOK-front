@@ -1469,14 +1469,7 @@ export default function OnboardingScreen() {
                     <Text style={styles.authBtnText}>Continue with Apple</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[styles.authBtn, { marginTop: 14 }]}
-                    activeOpacity={0.85}
-                    onPress={handleGooglePress}
-                  >
-                    <Image source={require('../assets/images/google-logo.png')} style={styles.googleIconImage} resizeMode="contain" />
-                    <Text style={styles.authBtnText}>Continue with Google</Text>
-                  </TouchableOpacity>
+                  {/* Google Sign-In hidden for now */}
 
                   <TouchableOpacity style={styles.skipBtnLink} onPress={() => setStep('engineered')}>
                     <Text style={styles.skipBtnText}>Skip for now</Text>
