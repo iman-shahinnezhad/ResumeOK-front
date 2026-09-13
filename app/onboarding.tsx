@@ -499,25 +499,16 @@ export default function OnboardingScreen() {
 
     setIsSearchingCity(true);
 
-    // 1. Fast local package search from country-state-city npm package
+    // 1. Fast local search from popular tech hubs
+    const POPULAR_CITIES = [
+      'New York, NY, United States', 'San Francisco, CA, United States', 'Los Angeles, CA, United States',
+      'Seattle, WA, United States', 'Austin, TX, United States', 'Boston, MA, United States',
+      'Chicago, IL, United States', 'London, United Kingdom', 'Berlin, Germany',
+      'Toronto, ON, Canada', 'Vancouver, BC, Canada', 'Sydney, Australia',
+      'Amsterdam, Netherlands', 'Paris, France', 'Dubai, UAE', 'Tokyo, Japan'
+    ];
     const queryLower = query.toLowerCase();
-    const packageMatches: string[] = [];
-    try {
-      const allCities = City.getAllCities();
-      for (let i = 0; i < allCities.length && packageMatches.length < 15; i++) {
-        const c = allCities[i];
-        if (c.name.toLowerCase().startsWith(queryLower) || c.name.toLowerCase().includes(queryLower)) {
-          const countryObj = Country.getCountryByCode(c.countryCode);
-          const countryName = countryObj ? countryObj.name : c.countryCode;
-          let formatted = c.stateCode ? `${c.name}, ${c.stateCode}, ${countryName}` : `${c.name}, ${countryName}`;
-          if (!packageMatches.includes(formatted)) {
-            packageMatches.push(formatted);
-          }
-        }
-      }
-    } catch (e) {
-      console.log('Package city filter error:', e);
-    }
+    const packageMatches = POPULAR_CITIES.filter(c => c.toLowerCase().includes(queryLower));
 
     if (packageMatches.length > 0) {
       setCitySearchResults(packageMatches);
