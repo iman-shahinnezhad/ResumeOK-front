@@ -2102,16 +2102,15 @@ export default function OnboardingScreen() {
                       <Text style={styles.sliderValue}>${minSalary.toLocaleString()}</Text>
                     </View>
                     <Slider
-                      key={`min-slider-${step}-${minSalary}`}
                       style={styles.sliderBar}
                       minimumValue={0}
                       maximumValue={300000}
-                      step={5000}
                       value={minSalary}
                       onValueChange={(val) => {
-                        setMinSalary(val);
-                        if (val > maxSalary) {
-                          setMaxSalary(val);
+                        const rounded = Math.round(val / 1000) * 1000;
+                        setMinSalary(rounded);
+                        if (rounded > maxSalary) {
+                          setMaxSalary(rounded);
                         }
                       }}
                       minimumTrackTintColor="#007AFF"
@@ -2126,16 +2125,15 @@ export default function OnboardingScreen() {
                       <Text style={styles.sliderValue}>${maxSalary.toLocaleString()}</Text>
                     </View>
                     <Slider
-                      key={`max-slider-${step}-${maxSalary}`}
                       style={styles.sliderBar}
-                      minimumValue={100000}
+                      minimumValue={50000}
                       maximumValue={500000}
-                      step={5000}
                       value={maxSalary}
                       onValueChange={(val) => {
-                        setMaxSalary(val);
-                        if (val < minSalary) {
-                          setMinSalary(val);
+                        const rounded = Math.round(val / 1000) * 1000;
+                        setMaxSalary(rounded);
+                        if (rounded < minSalary) {
+                          setMinSalary(rounded);
                         }
                       }}
                       minimumTrackTintColor="#007AFF"
