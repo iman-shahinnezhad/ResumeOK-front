@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert, ActivityIndicator, Linking, TextInput, Platform } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, API_URL } from '../context/AuthContext';
@@ -18,7 +19,8 @@ const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreCl
 export default function Settings() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { guestCredit, guestId, user, updateUser, logout } = useAuth();
+  const { guestCredit, guestId, user, updateUser, logout, login, isLoggedIn } = useAuth();
+  const [appleLoggingIn, setAppleLoggingIn] = React.useState(false);
 
   const [referralCode, setReferralCode] = React.useState('');
 
@@ -269,11 +271,66 @@ export default function Settings() {
     );
   };
 
+  const handleAppleLogin = async () => {
+    try {
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      if (!isAvailable) {
+        Alert.alert('Not Supported', 'Apple Sign-In is not supported on this device.');
+        return;
+      }
+
+      setAppleLoggingIn(true);
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (credential.identityToken) {
+        const authRes = await fetch(`${API_URL}/api/auth/apple`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            identityToken: credential.identityToken,
+            name: credential.fullName ? {
+              firstName: credential.fullName.givenName || '',
+              lastName: credential.fullName.familyName || '',
+            } : undefined,
+          }),
+        });
+
+        if (authRes.ok) {
+          const data = await authRes.json();
+          if (data.success && data.token) {
+            await login({
+              user: data.user,
+              accessToken: data.token,
+            });
+            Alert.alert("Success", "Signed in with Apple successfully!");
+          } else {
+            Alert.alert("Sign In Failed", data.error || "Could not sign in with Apple.");
+          }
+        } else {
+          Alert.alert("Sign In Failed", "Server error during authentication.");
+        }
+      }
+    } catch (e: any) {
+      if (e.code !== 'ERR_REQUEST_CANCELED') {
+        console.log('Apple Login Error:', e);
+        Alert.alert("Sign In Error", "An error occurred during Apple Sign-In.");
+      }
+    } finally {
+      setAppleLoggingIn(false);
+    }
+  };
+
   const renderMenuItem = (title: string, iconName: any) => (
     <TouchableOpacity
       key={title}
       style={styles.menuItem}
       activeOpacity={0.8}
+      disabled={title === 'Sign In with Apple' && appleLoggingIn}
       onPress={() => {
         try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {};
         if (title === 'Restore Purchases') {
@@ -288,21 +345,28 @@ export default function Settings() {
           handleLogout();
         } else if (title === 'Delete Account') {
           handleDeleteAccount();
+        } else if (title === 'Sign In with Apple') {
+          handleAppleLogin();
         }
       }}
     >
       <View style={styles.menuItemLeft}>
-        <Ionicons
-          name={iconName}
-          size={20}
-          color={(title === 'Log Out' || title === 'Delete Account') ? '#EF4444' : '#64748B'}
-        />
+        {title === 'Sign In with Apple' && appleLoggingIn ? (
+          <ActivityIndicator size="small" color="#0F172A" style={{ width: 20 }} />
+        ) : (
+          <Ionicons
+            name={iconName}
+            size={20}
+            color={(title === 'Log Out' || title === 'Delete Account') ? '#EF4444' : (title === 'Sign In with Apple' ? '#0F172A' : '#64748B')}
+          />
+        )}
         <Text
           style={[
             styles.menuItemText,
             {
               marginLeft: 12,
               color: (title === 'Log Out' || title === 'Delete Account') ? '#EF4444' : '#0F172A',
+              fontWeight: title === 'Sign In with Apple' ? '600' : '400',
             },
           ]}
         >
@@ -445,7 +509,7 @@ export default function Settings() {
 
         {/* Menu Section */}
         <View style={styles.menuSectionHeader}>
-          <Text style={styles.menuSectionTitle}>{currentData.plan} Plan</Text>
+          <Text style={styles.menuSectionTitle}>{isLoggedIn ? (user?.plan || 'Free') : 'Guest Mode'}</Text>
         </View>
 
         <View style={styles.menuCard}>
@@ -456,10 +520,19 @@ export default function Settings() {
           {renderMenuItem('Privacy Policy', 'book-outline')}
           <View style={styles.menuDivider} />
           {renderMenuItem('Report Bug', 'alert-circle-outline')}
-          <View style={styles.menuDivider} />
-          {renderMenuItem('Log Out', 'log-out-outline')}
-          <View style={styles.menuDivider} />
-          {renderMenuItem('Delete Account', 'trash-outline')}
+          {isLoggedIn ? (
+            <>
+              <View style={styles.menuDivider} />
+              {renderMenuItem('Log Out', 'log-out-outline')}
+              <View style={styles.menuDivider} />
+              {renderMenuItem('Delete Account', 'trash-outline')}
+            </>
+          ) : (
+            <>
+              <View style={styles.menuDivider} />
+              {renderMenuItem('Sign In with Apple', 'logo-apple')}
+            </>
+          )}
         </View>
 
       </ScrollView>
