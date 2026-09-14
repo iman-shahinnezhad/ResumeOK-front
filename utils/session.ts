@@ -9,6 +9,8 @@ export interface User {
   avatar: string | null;
   plan: string;
   credit: number;
+  hasCompletedOnboarding?: boolean;
+  profile?: any;
 }
 
 export interface Session {

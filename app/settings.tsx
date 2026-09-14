@@ -307,6 +307,15 @@ export default function Settings() {
               user: data.user,
               accessToken: data.token,
             });
+
+            if (data.user?.profile && Object.keys(data.user.profile).length > 0) {
+              const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+              await FileSystem.writeAsStringAsync(profilePath, JSON.stringify(data.user.profile, null, 2)).catch(() => {});
+              await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}resume_builder_form_data.json`, JSON.stringify(data.user.profile, null, 2)).catch(() => {});
+              await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}onboarding_completed.txt`, "true").catch(() => {});
+              await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}has_seen_onboarding.txt`, "true").catch(() => {});
+            }
+
             Alert.alert("Success", "Signed in with Apple successfully!");
           } else {
             Alert.alert("Sign In Failed", data.error || "Could not sign in with Apple.");

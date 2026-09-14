@@ -30,6 +30,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import Svg, { Path, G, Circle } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
 import { useAuth, API_URL } from '../context/AuthContext';
+import { getSession } from '../utils/session';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as StoreReview from 'expo-store-review';
@@ -393,7 +394,12 @@ export default function OnboardingScreen() {
   // Prevent authenticated user from remaining on or returning to welcome login step
   useEffect(() => {
     if ((isLoggedIn || !!user) && step === 'welcome') {
-      _setStep('engineered');
+      const serverHasCompleted = (user as any)?.hasCompletedOnboarding || ((user as any)?.profile && Object.keys((user as any).profile).length > 0);
+      if (serverHasCompleted) {
+        router.replace('/(tabs)/jobs');
+      } else {
+        _setStep('engineered');
+      }
     }
   }, [isLoggedIn, user, step]);
 
@@ -1042,7 +1048,28 @@ export default function OnboardingScreen() {
       if (familyName) setLastName(familyName);
       if (emailVal) setEmail(emailVal);
 
-      // Only advance to engineered step on successful Google authentication!
+      // Check if user has completed onboarding on backend or locally
+      const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+      const profileInfo = await FileSystem.getInfoAsync(profilePath).catch(() => ({ exists: false }));
+      const completedPath = `${FileSystem.documentDirectory}onboarding_completed.txt`;
+      const seenPath = `${FileSystem.documentDirectory}has_seen_onboarding.txt`;
+
+      const serverHasCompleted = (sessionUser as any)?.hasCompletedOnboarding || ((sessionUser as any)?.profile && Object.keys((sessionUser as any).profile).length > 0);
+      const isExistingAccount = serverHasCompleted || profileInfo.exists;
+
+      if (isExistingAccount) {
+        console.log("Existing user logged in via Google with completed onboarding. Skipping onboarding...");
+        if ((sessionUser as any)?.profile && Object.keys((sessionUser as any).profile).length > 0) {
+          await FileSystem.writeAsStringAsync(profilePath, JSON.stringify((sessionUser as any).profile, null, 2)).catch(() => {});
+          await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}resume_builder_form_data.json`, JSON.stringify((sessionUser as any).profile, null, 2)).catch(() => {});
+        }
+        await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => {});
+        await FileSystem.writeAsStringAsync(seenPath, 'true').catch(() => {});
+        router.replace('/(tabs)/jobs');
+        return;
+      }
+
+      // Only advance to engineered step on successful Google authentication for incomplete users!
       setStep('engineered');
     } catch (err: any) {
       console.log('Google auth error:', err);
@@ -1094,23 +1121,30 @@ export default function OnboardingScreen() {
               if (credential.fullName?.familyName) setLastName(credential.fullName.familyName);
               if (credential.email) setEmail(credential.email);
 
-              // Check if account already exists (isNewUser === false) OR local onboarding profile exists
+              // Check if account already exists with completed onboarding OR local onboarding profile exists
               const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
               const profileInfo = await FileSystem.getInfoAsync(profilePath).catch(() => ({ exists: false }));
               const completedPath = `${FileSystem.documentDirectory}onboarding_completed.txt`;
               const seenPath = `${FileSystem.documentDirectory}has_seen_onboarding.txt`;
 
-              const isExistingAccount = data.isNewUser === false || profileInfo.exists;
+              const serverHasCompleted = data.user?.hasCompletedOnboarding || (data.user?.profile && Object.keys(data.user.profile).length > 0);
+              const isExistingAccount = serverHasCompleted || profileInfo.exists;
 
               if (isExistingAccount) {
-                console.log("Existing user logged in via Apple. Skipping onboarding...");
+                console.log("Existing user logged in via Apple with completed onboarding. Skipping onboarding...");
+                
+                if (data.user?.profile && Object.keys(data.user.profile).length > 0) {
+                  await FileSystem.writeAsStringAsync(profilePath, JSON.stringify(data.user.profile, null, 2)).catch(() => {});
+                  await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}resume_builder_form_data.json`, JSON.stringify(data.user.profile, null, 2)).catch(() => {});
+                }
+
                 await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => {});
                 await FileSystem.writeAsStringAsync(seenPath, 'true').catch(() => {});
                 router.replace('/(tabs)/jobs');
                 return;
               }
 
-              // Brand new user -> proceed to onboarding setup
+              // Brand new user / incomplete onboarding -> proceed to onboarding setup
               setStep('engineered');
               return;
             }
@@ -1274,22 +1308,39 @@ export default function OnboardingScreen() {
         }
       }
 
-      const session = await FileSystem.getInfoAsync(`${FileSystem.documentDirectory}session.json`);
-      if (session.exists) {
-        const text = await FileSystem.readAsStringAsync(`${FileSystem.documentDirectory}session.json`);
-        const parsed = JSON.parse(text);
-        if (parsed.accessToken) {
-          await fetch(`${API_URL}/api/auth/update`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${parsed.accessToken}`
-            },
-            body: JSON.stringify({
-              name: `${firstName.trim()} ${lastName.trim()}`.trim()
-            })
-          });
-        }
+      const sessionInfo = await getSession().catch(() => null);
+      let token = sessionInfo?.accessToken || '';
+      let targetUserId = user?.id || sessionInfo?.user?.id || guestId;
+
+      if (token) {
+        await fetch(`${API_URL}/api/auth/update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: `${firstName.trim()} ${lastName.trim()}`.trim()
+          })
+        }).catch(() => {});
+      }
+
+      // Sync onboarding profile and completion status to backend server
+      try {
+        await fetch(`${API_URL}/api/user/profile`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            userId: targetUserId,
+            profile: profile,
+            hasCompletedOnboarding: true
+          })
+        });
+      } catch (serverSaveErr) {
+        console.log('Error pushing profile to server:', serverSaveErr);
       }
     } catch (e) {
       console.error('Failed to save profile onboarding details:', e);
