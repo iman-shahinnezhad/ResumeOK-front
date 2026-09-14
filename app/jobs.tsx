@@ -3154,6 +3154,7 @@ export default function JobsScreen() {
                       setFilterLocation('');
                       setSelectedCompanyFilter('ALL');
                       setSelectedSkillsFilter([]);
+                      fetchJobsFromAllBoards(1, false, '', 'ALL', '', []);
                     }}
                   >
                     <Text style={{ fontSize: 13, fontWeight: '600', color: '#64748B' }}>Reset All</Text>
@@ -3352,7 +3353,10 @@ export default function JobsScreen() {
               <TouchableOpacity
                 style={[styles.applyFilterBtn, { marginBottom: Platform.OS === 'ios' ? 0 : 12 }]}
                 activeOpacity={0.8}
-                onPress={() => setShowSearchModal(false)}
+                onPress={() => {
+                  setShowSearchModal(false);
+                  fetchJobsFromAllBoards(1, false, filterQuery, selectedCompanyFilter, filterLocation, selectedSkillsFilter);
+                }}
               >
                 <Text style={styles.applyFilterBtnText}>Apply & Filter Jobs</Text>
               </TouchableOpacity>
@@ -5101,41 +5105,23 @@ function matchesRoleFilter(job: any, selectedRoles: string[], profile: any): boo
   if (!job || !selectedRoles || selectedRoles.length === 0) return true;
 
   const titleLower = (job.title || '').toLowerCase();
-  const titleNorm = titleLower.replace(/[-_/]/g, ' ');
-  const snippetLower = (job.cleanSnippet || '').toLowerCase();
-  const snippetNorm = snippetLower.replace(/[-_/]/g, ' ');
-  const deptNames = Array.isArray(job.departments) ? job.departments.map((d: any) => d.name).join(' ') : '';
-  const deptNorm = deptNames.toLowerCase().replace(/[-_/]/g, ' ');
-  const fullNorm = `${titleNorm} ${deptNorm} ${snippetNorm}`;
+  if (!titleLower) return false;
 
-  const GENERIC_SENIORITY = new Set(['senior', 'sr', 'junior', 'jr', 'lead', 'principal', 'staff', 'associate', 'intern', 'entry', 'mid', 'head', 'vp', 'director', 'manager', 'level', 'role', 'roles', 'job']);
+  const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
   for (const roleItem of selectedRoles) {
-    if (!roleItem) continue;
-    const rLower = roleItem.toLowerCase();
-    const rNorm = rLower.replace(/[-_/]/g, ' ');
+    if (!roleItem || !roleItem.trim()) continue;
 
-    // 1. Direct substring match on title or full normalized text
-    if (titleNorm.includes(rNorm) || fullNorm.includes(rNorm)) return true;
+    const words = roleItem.toLowerCase().split(/[\s/&\-_]+/).filter(w => w.length > 0);
+    if (words.length === 0) continue;
 
-    // 2. Token domain match (e.g. "UI/UX Designer" matches "UI Designer", "UX Designer", "Product Designer", "Graphic Designer")
-    const words = rNorm.split(/\s+/).filter(w => w.length >= 2);
-    const domainWords = words.filter(w => !GENERIC_SENIORITY.has(w));
+    const allWordsMatch = words.every(w => {
+      const escaped = escapeRegex(w);
+      const pattern = w.length <= 2 ? `\\b${escaped}\\b` : `\\b${escaped}`;
+      return new RegExp(pattern, 'i').test(titleLower);
+    });
 
-    if (domainWords.length > 0) {
-      // Check if title contains at least one significant domain word (e.g. "ui", "ux", "designer", "researcher", "graphic")
-      const matchesTitleDomain = domainWords.some(dw => titleNorm.includes(dw));
-      if (matchesTitleDomain) return true;
-
-      const matchesFullDomain = domainWords.some(dw => fullNorm.includes(dw));
-      if (matchesFullDomain) return true;
-    }
-
-    // 3. Fallback: Check calculateJobMatch score (if 40%+, job is functionally relevant to candidate profile)
-    if (profile) {
-      const matchScore = calculateJobMatch(job?.content || '', job?.title || '', profile).jobMatch;
-      if (matchScore >= 40) return true;
-    }
+    if (allWordsMatch) return true;
   }
 
   return false;
