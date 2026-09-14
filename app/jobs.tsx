@@ -569,13 +569,16 @@ export default function JobsScreen() {
             const profilePhone = loadedProfile.phone || loadedProfile.phoneNumber || loadedProfile.mobile || '';
             if (profilePhone) setPhone(profilePhone);
 
-            if (!isProfileDefaultsLoaded.current) {
-              const defaultRoles = getUserTargetRolesList(loadedProfile);
-              if (defaultRoles.length > 0) {
-                setSelectedSkillsFilter(defaultRoles);
-              }
-              isProfileDefaultsLoaded.current = true;
+          let initialRoles: string[] = selectedSkillsFilter;
+          if (!isProfileDefaultsLoaded.current && loadedProfile) {
+            const defaultRoles = getUserTargetRolesList(loadedProfile);
+            if (defaultRoles.length > 0) {
+              setSelectedSkillsFilter(defaultRoles);
+              initialRoles = defaultRoles;
             }
+            isProfileDefaultsLoaded.current = true;
+          } else if (selectedSkillsFilter.length > 0) {
+            initialRoles = selectedSkillsFilter;
           }
 
           // Load greenhouse config and override/merge
@@ -622,8 +625,8 @@ export default function JobsScreen() {
           console.log('📄 Resumes Count & List:', loadedResumes.length, JSON.stringify(loadedResumes, null, 2));
           console.log('=================================================================\n');
 
-          // Always fetch initial jobs on focus without forcing restrictive onboarding role query
-          fetchJobsFromAllBoards(1, false, filterQuery, selectedCompanyFilter, filterLocation);
+          // Always fetch initial jobs on focus using initialRoles
+          fetchJobsFromAllBoards(1, false, filterQuery, selectedCompanyFilter, filterLocation, initialRoles);
         } catch (e) {
           console.log("Error initializing jobs screen on focus:", e);
           fetchJobsFromAllBoards(1, false, '', 'ALL', '');
