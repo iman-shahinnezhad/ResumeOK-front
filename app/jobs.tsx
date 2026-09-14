@@ -568,6 +568,7 @@ export default function JobsScreen() {
             if (loadedProfile.email) finalEmail = loadedProfile.email;
             const profilePhone = loadedProfile.phone || loadedProfile.phoneNumber || loadedProfile.mobile || '';
             if (profilePhone) setPhone(profilePhone);
+          }
 
           let initialRoles: string[] = selectedSkillsFilter;
           if (!isProfileDefaultsLoaded.current && loadedProfile) {
