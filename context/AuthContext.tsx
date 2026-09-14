@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { initPurchases, syncSubscriptionStatusWithStoreKit } from '../utils/purchases';
 import { clearSession, getSession, saveSession, User, Session } from '../utils/session';
+import { syncProfileOnLogin } from '../utils/profileSync';
 
 const GUEST_CREDIT_FILE = `${FileSystem.documentDirectory}guest_credit.txt`;
 const GUEST_ID_FILE = `${FileSystem.documentDirectory}guest_id.txt`;
@@ -127,6 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await saveSession(session);
       setUser(session.user);
       await initPurchases(session.user.id);
+      await syncProfileOnLogin(session.user, session.accessToken, API_URL);
     } catch (err) {
       console.error('Failed to login:', err);
     } finally {
