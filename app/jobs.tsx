@@ -1818,7 +1818,20 @@ export default function JobsScreen() {
       const cleanJobDesc = stripHtml(jobDetailsHtml);
 
       setMatchLoadingStep("Matching resume and cover letter with AI...");
-      const base64Data = await FileSystem.readAsStringAsync(baseResume.uri, { encoding: 'base64' });
+      let base64Data = '';
+      try {
+        if (baseResume?.uri) {
+          base64Data = await FileSystem.readAsStringAsync(baseResume.uri, { encoding: 'base64' });
+        }
+      } catch (readErr) {
+        console.log('Error reading baseResume base64:', readErr);
+      }
+
+      if (!base64Data) {
+        setIsMatchingWithAI(false);
+        Alert.alert("Resume File Required", "Please select or upload a valid resume before tailoring.");
+        return;
+      }
 
       // Include user access token if logged in
       const session = await getSession();
@@ -1834,18 +1847,22 @@ export default function JobsScreen() {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          resumeBase64: base64Data
+          resumeBase64: base64Data,
+          jobData: {
+            id: selectedJob.id,
+            title: selectedJob.title || selectedJob.role,
+            company: selectedJob.company || selectedJob.companyName,
+            description: selectedJob.description || selectedJob.snippet || selectedJob.title,
+            requirements: selectedJob.requirements || selectedJob.skills
+          }
         })
       });
 
-      if (!matchRes.ok) {
-        const errText = await matchRes.text();
-        throw new Error(`Server match failed: ${matchRes.status} - ${errText}`);
-      }
+      const matchData = await matchRes.json().catch(() => null);
 
-      const matchData = await matchRes.json();
-      if (!matchData.success) {
-        throw new Error(matchData.error || "Failed to analyze match from server.");
+      if (!matchRes.ok || !matchData || !matchData.success) {
+        const errorMsg = matchData?.error || matchData?.message || "Failed to analyze match from server.";
+        throw new Error(errorMsg);
       }
 
       const tailoredHtml = matchData.tailoredResumeHtml || "";

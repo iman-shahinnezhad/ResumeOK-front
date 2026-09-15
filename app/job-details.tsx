@@ -171,9 +171,22 @@ export default function JobDetailsScreen() {
       setAiStep(2);
 
       // 2. Read resume file as base64 to avoid native React Native FormData crashes
-      const base64Data = await FileSystem.readAsStringAsync(selectedResume.uri, { encoding: 'base64' });
+      let base64Data = '';
+      try {
+        if (selectedResume?.uri) {
+          base64Data = await FileSystem.readAsStringAsync(selectedResume.uri, { encoding: 'base64' });
+        }
+      } catch (readErr) {
+        console.log('Error reading selected resume base64:', readErr);
+      }
 
-      // 3. Make POST request to backend with base64 payload
+      if (!base64Data) {
+        setIsMatchingWithAI(false);
+        Alert.alert("Resume File Required", "Please select or upload a valid resume before tailoring.");
+        return;
+      }
+
+      // 3. Make POST request to backend with base64 payload & job details
       const session = await getSession();
       const headers: any = {
         'Content-Type': 'application/json',
@@ -187,18 +200,22 @@ export default function JobDetailsScreen() {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          resumeBase64: base64Data
+          resumeBase64: base64Data,
+          jobData: {
+            id: jobData.id,
+            title: jobTitle,
+            company: companyName,
+            description: jobData.description || jobData.snippet || jobTitle,
+            requirements: jobData.requirements || jobData.skills
+          }
         })
       });
 
-      if (!matchRes.ok) {
-        const errText = await matchRes.text();
-        throw new Error(`Server match failed: ${matchRes.status} - ${errText}`);
-      }
+      const matchData = await matchRes.json().catch(() => null);
 
-      const matchData = await matchRes.json();
-      if (!matchData.success) {
-        throw new Error(matchData.error || "Failed to analyze match from server.");
+      if (!matchRes.ok || !matchData || !matchData.success) {
+        const errorMsg = matchData?.error || matchData?.message || "Failed to analyze match from server.";
+        throw new Error(errorMsg);
       }
 
       // Calculate dynamic tailored score and issues fixed count

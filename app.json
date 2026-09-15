@@ -2,7 +2,7 @@
   "expo": {
     "name": "ApplyDesk",
     "slug": "resumeok",
-    "version": "2.2.8",
+    "version": "2.2.9",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "applydesk",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pixflow.applydesk",
-      "buildNumber": "101",
+      "buildNumber": "102",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "This app requires access to your photo library to select a profile photo to be embedded directly into your generated resume templates.",
@@ -27,7 +27,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "versionCode": 23,
+      "versionCode": 24,
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
