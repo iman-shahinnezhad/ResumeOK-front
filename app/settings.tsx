@@ -347,9 +347,9 @@ export default function Settings() {
         } else if (title === 'Report Bug') {
           router.push('/report-bug');
         } else if (title === 'Terms of Service') {
-          Linking.openURL('https://pixflow.net/pixflow-app-user-agreement/');
+          Linking.openURL('https://applydesk.io/user-agreement');
         } else if (title === 'Privacy Policy') {
-          Linking.openURL('https://pixflow.net/pixflow-resumeok-app-privacy-policy/');
+          Linking.openURL('https://applydesk.io/privacy-policy');
         } else if (title === 'Log Out') {
           handleLogout();
         } else if (title === 'Delete Account') {

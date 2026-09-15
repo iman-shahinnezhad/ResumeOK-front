@@ -245,11 +245,11 @@ function MainAppContent() {
           <div className="footer-links">
             <Link to="/partnership">Partner Program</Link>
             <span>|</span>
-            <a href="https://pixflow.net/pixflow-resumeok-app-privacy-policy/" target="_blank" rel="noopener noreferrer">
+            <a href="https://applydesk.io/privacy-policy" target="_blank" rel="noopener noreferrer">
               Privacy Policy
             </a>
             <span>|</span>
-            <a href="https://pixflow.net/pixflow-app-user-agreement/" target="_blank" rel="noopener noreferrer">
+            <a href="https://applydesk.io/user-agreement" target="_blank" rel="noopener noreferrer">
               Terms of Service
             </a>
           </div>

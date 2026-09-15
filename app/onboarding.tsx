@@ -1562,14 +1562,14 @@ export default function OnboardingScreen() {
                 By continuing you agree to our{' '}
                 <Text
                   style={styles.termsUnderline}
-                  onPress={() => Linking.openURL('https://pixflow.net/pixflow-app-user-agreement/')}
+                  onPress={() => Linking.openURL('https://applydesk.io/user-agreement')}
                 >
                   Terms of Services
                 </Text>{' '}
                 &{' '}
                 <Text
                   style={styles.termsUnderline}
-                  onPress={() => Linking.openURL('https://pixflow.net/pixflow-resumeok-app-privacy-policy/')}
+                  onPress={() => Linking.openURL('https://applydesk.io/privacy-policy')}
                 >
                   Privacy Policy.
                 </Text>
