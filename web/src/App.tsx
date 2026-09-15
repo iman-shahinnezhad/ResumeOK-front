@@ -22,6 +22,8 @@ import ProfileSections from './pages/ProfileSections';
 import Tasks from './pages/Tasks';
 import Settings from './pages/Settings';
 import Partnership from './pages/Partnership';
+import UserAgreement from './pages/UserAgreement';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:3030'
@@ -232,6 +234,8 @@ function MainAppContent() {
           <Route path="/profile" element={<Profile user={user} setUser={setUser} token={token} credits={credits} API_URL={API_URL} />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/partnership" element={<Partnership />} />
+          <Route path="/user-agreement" element={<UserAgreement />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/checkout" element={<Checkout user={user} setUser={setUser} token={token} API_URL={API_URL} />} />
         </Routes>
       </div>
@@ -245,13 +249,13 @@ function MainAppContent() {
           <div className="footer-links">
             <Link to="/partnership">Partner Program</Link>
             <span>|</span>
-            <a href="https://applydesk.io/privacy-policy" target="_blank" rel="noopener noreferrer">
+            <Link to="/privacy-policy">
               Privacy Policy
-            </a>
+            </Link>
             <span>|</span>
-            <a href="https://applydesk.io/user-agreement" target="_blank" rel="noopener noreferrer">
+            <Link to="/user-agreement">
               Terms of Service
-            </a>
+            </Link>
           </div>
         </div>
       </footer>
