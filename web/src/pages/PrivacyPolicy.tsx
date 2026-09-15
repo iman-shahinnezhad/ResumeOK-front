@@ -62,7 +62,7 @@ export default function PrivacyPolicy() {
             color: '#0F172A',
             marginBottom: '12px'
           }}>
-            ResumeOK APP Privacy Policy
+            ApplyDesk Privacy Policy
           </h1>
 
           <p style={{ fontSize: '14px', color: '#64748B', margin: 0 }}>
@@ -86,7 +86,7 @@ export default function PrivacyPolicy() {
             1. Introduction
           </h3>
           <p>
-            Pixflow (“Company,” “we,” “our,” or “us”) respects your privacy and is committed to protecting it. This Privacy Policy describes the types of information we may collect from you or that you may provide when you use the <strong>ResumeOK by Pixflow</strong> mobile application (the “App”) and our practices for collecting, using, maintaining, protecting, and disclosing that information.
+            Pixflow (“Company,” “we,” “our,” or “us”) respects your privacy and is committed to protecting it. This Privacy Policy describes the types of information we may collect from you or that you may provide when you use the <strong>ApplyDesk</strong> mobile application and web platform (the “App”) and our practices for collecting, using, maintaining, protecting, and disclosing that information.
           </p>
 
           <hr style={{ border: 'none', borderTop: '1px solid #E2E8F0', margin: '28px 0' }} />
@@ -96,7 +96,7 @@ export default function PrivacyPolicy() {
           </h3>
           <p>This Privacy Policy applies to information we collect:</p>
           <ul style={{ paddingLeft: '20px', marginBottom: '20px' }}>
-            <li>Through the ResumeOK mobile application (iOS and Android)</li>
+            <li>Through the ApplyDesk application (iOS, Android, and Web)</li>
             <li>Through email and other electronic communications between you and Pixflow</li>
             <li>When you interact with our content, advertisements, analytics, or support services</li>
           </ul>
@@ -112,7 +112,7 @@ export default function PrivacyPolicy() {
               AI Data and Resume Processing
             </h4>
             <p style={{ margin: '0 0 12px 0' }}>
-              ResumeOK uses artificial intelligence technology to provide AI-powered resume optimization, CV tailoring, ATS matching, and professional cover letter generation features.
+              ApplyDesk uses artificial intelligence technology to provide AI-powered resume optimization, CV tailoring, ATS matching, and professional cover letter generation features.
             </p>
             <p style={{ margin: '0 0 12px 0' }}>
               To provide these features, users may input or upload text documents containing professional histories, education details, contact information, and skills (“Resume and Profile Data”). Resume and Profile Data is processed only for the purpose of generating the requested AI optimization, formatting, and ATS match results.
@@ -121,7 +121,7 @@ export default function PrivacyPolicy() {
               Inputted resumes, profile data, and cover letter contents are securely transmitted to our third-party AI processing providers, including the Google Gemini API infrastructure.
             </p>
             <p style={{ margin: '0 0 12px 0' }}>
-              ResumeOK does not permanently store, retain, sell, or use your uploaded documents, resumes, or profile data for advertising, external marketing, or AI model training purposes. Any temporary storage of your data is limited to the short period necessary to provide the requested functionality, process your requests, and maintain the operation of the service.
+              ApplyDesk does not permanently store, retain, sell, or use your uploaded documents, resumes, or profile data for advertising, external marketing, or AI model training purposes. Any temporary storage of your data is limited to the short period necessary to provide the requested functionality, process your requests, and maintain the operation of the service.
             </p>
             <p style={{ margin: '0 0 12px 0' }}>
               Resume and profile data are processed securely only to perform the requested optimization tasks. Your data is stored securely in your profile for your personal access, with clear options for users to delete their account data and documents at any time.
@@ -134,11 +134,11 @@ export default function PrivacyPolicy() {
           <p>This policy does not apply to:</p>
           <ul style={{ paddingLeft: '20px', marginBottom: '20px' }}>
             <li>Information collected offline or through any other means</li>
-            <li>Third-party services, websites, or applications that may link to or from ResumeOK</li>
+            <li>Third-party services, websites, or applications that may link to or from ApplyDesk</li>
           </ul>
 
           <p>
-            By using ResumeOK, you agree to this Privacy Policy. If you do not agree with the terms of this policy, please do not use the App.
+            By using ApplyDesk, you agree to this Privacy Policy. If you do not agree with the terms of this policy, please do not use the App.
           </p>
 
           <hr style={{ border: 'none', borderTop: '1px solid #E2E8F0', margin: '28px 0' }} />
@@ -147,7 +147,7 @@ export default function PrivacyPolicy() {
             3. Children Under the Age of 16
           </h3>
           <p>
-            ResumeOK is not intended for children under 16 years of age. We do not knowingly collect personal information from children under 16. If you believe a child has provided personal information to us, please contact us at <a href="mailto:help@pixflow.net" style={{ color: '#2563EB', textDecoration: 'underline' }}>help@pixflow.net</a>, and we will promptly delete the information.
+            ApplyDesk is not intended for children under 16 years of age. We do not knowingly collect personal information from children under 16. If you believe a child has provided personal information to us, please contact us at <a href="mailto:help@pixflow.net" style={{ color: '#2563EB', textDecoration: 'underline' }}>help@pixflow.net</a>, and we will promptly delete the information.
           </p>
 
           <hr style={{ border: 'none', borderTop: '1px solid #E2E8F0', margin: '28px 0' }} />
@@ -184,7 +184,7 @@ export default function PrivacyPolicy() {
           </h3>
           <p>We use collected information to:</p>
           <ul style={{ paddingLeft: '20px', marginBottom: '20px' }}>
-            <li>Provide and operate ResumeOK’s services</li>
+            <li>Provide and operate ApplyDesk’s services</li>
             <li>Generate AI-powered image transformations and visualizations</li>
             <li>Process user requests and support inquiries</li>
             <li>Improve app performance and user experience</li>
@@ -199,7 +199,7 @@ export default function PrivacyPolicy() {
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', marginTop: '28px', marginBottom: '12px' }}>
             6. Cookies and Tracking Technologies
           </h3>
-          <p>Where applicable, ResumeOK may use cookies, analytics technologies, and similar tools to:</p>
+          <p>Where applicable, ApplyDesk may use cookies, analytics technologies, and similar tools to:</p>
           <ul style={{ paddingLeft: '20px', marginBottom: '20px' }}>
             <li>Understand how users interact with the App</li>
             <li>Improve functionality and performance</li>
@@ -217,7 +217,7 @@ export default function PrivacyPolicy() {
           <ul style={{ paddingLeft: '20px', marginBottom: '20px' }}>
             <li>Analytics providers and infrastructure providers</li>
             <li>Cloud hosting and storage providers</li>
-            <li>AI processing service providers that help deliver ResumeOK’s functionality</li>
+            <li>AI processing service providers that help deliver ApplyDesk’s functionality</li>
             <li>Service providers operating under confidentiality obligations</li>
           </ul>
           <p>We may also disclose information if required by law or when necessary to protect our rights, users, or property.</p>
@@ -236,19 +236,19 @@ export default function PrivacyPolicy() {
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', marginTop: '28px', marginBottom: '12px' }}>
             9. User Uploaded Images and AI Processing
           </h3>
-          <p>When you upload images to ResumeOK:</p>
+          <p>When you upload images to ApplyDesk:</p>
           <ul style={{ paddingLeft: '20px', marginBottom: '20px' }}>
             <li>Your image may contain facial information that is processed to generate the requested AI output.</li>
             <li>Images and Face Data are used only for generating your requested result.</li>
             <li>Images and Face Data are not stored permanently after generation is completed.</li>
             <li>Images and Face Data are not used to train AI models.</li>
-            <li>Images are not sold, shared for advertising purposes, or used for any purpose unrelated to providing ResumeOK features.</li>
+            <li>Images are not sold, shared for advertising purposes, or used for any purpose unrelated to providing ApplyDesk features.</li>
           </ul>
           <p>
             Pixflow does not use uploaded images to train its own AI models unless explicitly disclosed and separately authorized by you.
           </p>
           <p>
-            By uploading content, you consent to the secure transfer and processing of your images for the purpose of providing ResumeOK’s AI-powered features.
+            By uploading content, you consent to the secure transfer and processing of your images for the purpose of providing ApplyDesk’s AI-powered features.
           </p>
 
           <hr style={{ border: 'none', borderTop: '1px solid #E2E8F0', margin: '28px 0' }} />
@@ -257,7 +257,7 @@ export default function PrivacyPolicy() {
             10. International Data Transfers
           </h3>
           <p>
-            ResumeOK is available worldwide. By using the App, you understand that your information may be transferred to and processed in countries outside your country of residence where privacy laws may differ. Where required, we take appropriate safeguards to protect personal information transferred internationally.
+            ApplyDesk is available worldwide. By using the App, you understand that your information may be transferred to and processed in countries outside your country of residence where privacy laws may differ. Where required, we take appropriate safeguards to protect personal information transferred internationally.
           </p>
 
           <hr style={{ border: 'none', borderTop: '1px solid #E2E8F0', margin: '28px 0' }} />
@@ -311,7 +311,7 @@ export default function PrivacyPolicy() {
             We may update this Privacy Policy from time to time.
           </p>
           <p>
-            Any changes will be posted within the App or on the applicable website and will become effective upon posting. Continued use of ResumeOK after changes become effective constitutes acceptance of the updated Privacy Policy.
+            Any changes will be posted within the App or on the applicable website and will become effective upon posting. Continued use of ApplyDesk after changes become effective constitutes acceptance of the updated Privacy Policy.
           </p>
 
           <hr style={{ border: 'none', borderTop: '1px solid #E2E8F0', margin: '28px 0' }} />
@@ -332,7 +332,7 @@ export default function PrivacyPolicy() {
           }}>
             <Mail style={{ width: '20px', height: '20px', color: '#059669', marginTop: '2px' }} />
             <div>
-              <p style={{ margin: 0, fontWeight: 600, color: '#0F172A' }}>ResumeOK by Pixflow</p>
+              <p style={{ margin: 0, fontWeight: 600, color: '#0F172A' }}>ApplyDesk</p>
               <p style={{ margin: '2px 0 0 0', color: '#64748B' }}>Paris, France</p>
               <p style={{ margin: '4px 0 0 0', color: '#334155' }}>
                 For privacy-related questions, requests, or concerns, please contact us at{' '}
