@@ -41,8 +41,36 @@ export async function getSession(): Promise<Session | null> {
 
 export async function clearSession(): Promise<void> {
   try {
-    await FileSystem.deleteAsync(SESSION_FILE, { idempotent: true });
+    const knownFiles = [
+      'session.json',
+      'user_onboarding_profile.json',
+      'resume_builder_form_data.json',
+      'onboarding_completed.txt',
+      'has_seen_onboarding.txt',
+      'has_seen_referral.txt',
+      'resumes.json',
+      'cover_letters.json',
+      'greenhouse_config.json',
+      'applied_jobs.json',
+      'skipped_jobs.json',
+      'claimed_tasks.json',
+      'audit_matches.json',
+      'resume_builder_latest.json',
+      'guest_credit.txt',
+      'guest_id.txt'
+    ];
+
+    const dir = FileSystem.documentDirectory;
+    if (dir) {
+      for (const name of knownFiles) {
+        await FileSystem.deleteAsync(`${dir}${name}`, { idempotent: true }).catch(() => {});
+      }
+      const files = await FileSystem.readDirectoryAsync(dir).catch(() => []);
+      for (const file of files) {
+        await FileSystem.deleteAsync(`${dir}${file}`, { idempotent: true }).catch(() => {});
+      }
+    }
   } catch (err) {
-    console.error('Failed to clear session:', err);
+    console.error('Failed to clear session and local storage:', err);
   }
 }
