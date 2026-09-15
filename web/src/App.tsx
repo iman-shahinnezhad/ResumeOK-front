@@ -37,6 +37,11 @@ function MainAppContent() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [bannerVisible, setBannerVisible] = useState(true);
 
+  // Reset scroll position to top whenever route changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   // Authentication State
   const [user, setUser] = useState<{
     id: string;

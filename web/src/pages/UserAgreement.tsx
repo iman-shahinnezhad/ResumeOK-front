@@ -1,7 +1,11 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, ArrowLeft, Mail } from 'lucide-react';
 
 export default function UserAgreement() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   return (
     <div style={{
       minHeight: '100vh',
