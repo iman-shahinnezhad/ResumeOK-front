@@ -125,6 +125,8 @@ export default function JobsScreen() {
   const filteredJobsRef = useRef<GreenhouseJob[]>([]);
   const isAnimatingRef = useRef(false);
 
+  const allJobsRef = useRef<GreenhouseJob[]>([]);
+
   useEffect(() => {
     currentIndexRef.current = currentIndex;
   }, [currentIndex]);
@@ -132,6 +134,10 @@ export default function JobsScreen() {
   useEffect(() => {
     filteredJobsRef.current = filteredJobs;
   }, [filteredJobs]);
+
+  useEffect(() => {
+    allJobsRef.current = allJobs;
+  }, [allJobs]);
 
   const getExcludedJobIds = async (): Promise<Set<string>> => {
     const set = new Set<string>();
@@ -544,8 +550,17 @@ export default function JobsScreen() {
           // Immediately filter out any skipped/applied jobs on focus with 0ms delay
           const excludedSet = await getExcludedJobIds();
           if (excludedSet.size > 0) {
-            setAllJobs(prev => prev.filter(j => !excludedSet.has(String(j.id))));
-            setFilteredJobs(prev => prev.filter(j => !excludedSet.has(String(j.id))));
+            setAllJobs(prev => {
+              const updated = prev.filter(j => !excludedSet.has(String(j.id)));
+              allJobsRef.current = updated;
+              return updated;
+            });
+            setFilteredJobs(prev => {
+              const updated = prev.filter(j => !excludedSet.has(String(j.id)));
+              filteredJobsRef.current = updated;
+              setCurrentIndex(cIndex => (cIndex >= updated.length ? Math.max(0, updated.length - 1) : cIndex));
+              return updated;
+            });
           }
 
           let finalFirstName = '';
@@ -626,11 +641,15 @@ export default function JobsScreen() {
           console.log('📄 Resumes Count & List:', loadedResumes.length, JSON.stringify(loadedResumes, null, 2));
           console.log('=================================================================\n');
 
-          // Always fetch initial jobs on focus using initialRoles
-          fetchJobsFromAllBoards(1, false, filterQuery, selectedCompanyFilter, filterLocation, initialRoles);
+          // Fetch initial jobs ONLY if no jobs are currently loaded in memory
+          if (allJobsRef.current.length === 0) {
+            fetchJobsFromAllBoards(1, false, filterQuery, selectedCompanyFilter, filterLocation, initialRoles);
+          }
         } catch (e) {
           console.log("Error initializing jobs screen on focus:", e);
-          fetchJobsFromAllBoards(1, false, '', 'ALL', '');
+          if (allJobsRef.current.length === 0) {
+            fetchJobsFromAllBoards(1, false, '', 'ALL', '');
+          }
         }
       }
       initData();
@@ -639,7 +658,9 @@ export default function JobsScreen() {
 
   const fetchJobsFromAllBoards = async (pageToFetch = 1, append = false, queryStr = filterQuery, companyStr = selectedCompanyFilter, locationStr = filterLocation, activeSkillsFilter = selectedSkillsFilter) => {
     if (pageToFetch === 1) {
-      setIsLoadingJobs(true);
+      if (allJobsRef.current.length === 0) {
+        setIsLoadingJobs(true);
+      }
     } else {
       setIsFetchingMore(true);
     }
@@ -819,10 +840,11 @@ export default function JobsScreen() {
     });
 
     setFilteredJobs(result);
-    // Reset active card index when filter changes, but NOT during background fetches
-    if (!isFetchingMore) {
-      setCurrentIndex(0);
-    }
+    // Keep active card index within valid bounds when filter changes
+    setCurrentIndex(cIndex => {
+      if (result.length === 0) return 0;
+      return cIndex >= result.length ? Math.max(0, result.length - 1) : cIndex;
+    });
   }, [allJobs, filterQuery, filterWorkModel, filterExperience, filterSalary, filterLocation, selectedSkillsFilter, userProfile]);
 
   const viewJobDetails = async (job: GreenhouseJob) => {
