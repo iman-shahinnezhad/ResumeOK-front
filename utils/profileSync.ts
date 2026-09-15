@@ -38,15 +38,16 @@ export async function syncProfileOnLogin(serverUser: User, accessToken: string, 
       interests: (serverProfile.interests && serverProfile.interests.length > 0) ? serverProfile.interests : (localProfile.interests || []),
     };
 
-    const hasAnyData = Boolean(
+    const hasOnboardingCareerData = Boolean(
       mergedProfile.jobTitle ||
       mergedProfile.role ||
-      (mergedProfile.roles && mergedProfile.roles.length > 0) ||
-      (mergedProfile.skills && mergedProfile.skills.length > 0) ||
-      mergedProfile.firstName
+      (Array.isArray(mergedProfile.roles) && mergedProfile.roles.length > 0) ||
+      (Array.isArray(mergedProfile.skills) && mergedProfile.skills.length > 0) ||
+      mergedProfile.experience ||
+      mergedProfile.resumeFile
     );
 
-    if (hasAnyData || hasLocal || hasServer) {
+    if (hasOnboardingCareerData) {
       await FileSystem.writeAsStringAsync(profilePath, JSON.stringify(mergedProfile, null, 2)).catch(() => {});
       await FileSystem.writeAsStringAsync(formPath, JSON.stringify(mergedProfile, null, 2)).catch(() => {});
       await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => {});
