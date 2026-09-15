@@ -1,6 +1,8 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 
+export const SUBSCRIPTION_GROUP_ID = '22386813';
+
 const itemSKUs = Platform.select({
   ios: ['com.applydesk.wk', 'com.applydesk.mn'],
   android: []
