@@ -2,7 +2,7 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 
 const itemSKUs = Platform.select({
-  ios: ['com.applydesk.monthly', 'com.applydesk.weekly'],
+  ios: ['com.applydesk.wk', 'com.applydesk.mn'],
   android: []
 }) as string[];
 
@@ -39,24 +39,26 @@ export const initPurchases = async (userId?: string) => {
 const MOCK_PACKAGES = [
   {
     product: {
-      identifier: 'com.applydesk.monthly',
+      identifier: 'com.applydesk.mn',
       title: 'Monthly',
       description: '200 applications / Month',
       priceString: '$9.99',
+      localizedPrice: '$9.99',
     }
   },
   {
     product: {
-      identifier: 'com.applydesk.weekly',
+      identifier: 'com.applydesk.wk',
       title: 'Weekly',
       description: '50 applications / Week',
       priceString: '$17.99',
+      localizedPrice: '$17.99',
     }
   }
 ];
 
 /**
- * Fetch the active store products
+ * Fetch the active store products directly from Apple StoreKit
  */
 export const getPackages = async (): Promise<any[]> => {
   const RNIap = getIAP();
@@ -64,10 +66,38 @@ export const getPackages = async (): Promise<any[]> => {
     return MOCK_PACKAGES;
   }
   try {
-    const products = await RNIap.fetchProducts({ skus: itemSKUs }) || [];
+    let products: any[] = [];
 
-    if (products.length === 0) {
-      console.warn("fetchProducts returned empty array. Using mock fallback packages.");
+    if (typeof RNIap.getSubscriptions === 'function') {
+      try {
+        products = await RNIap.getSubscriptions({ skus: itemSKUs }) || [];
+      } catch (err) {
+        console.warn("getSubscriptions failed, falling back to fetchProducts:", err);
+      }
+    }
+
+    if (!products || products.length === 0) {
+      if (typeof RNIap.fetchProducts === 'function') {
+        try {
+          products = await RNIap.fetchProducts({ skus: itemSKUs }) || [];
+        } catch (err) {
+          console.warn("fetchProducts failed, falling back to getProducts:", err);
+        }
+      }
+    }
+
+    if (!products || products.length === 0) {
+      if (typeof RNIap.getProducts === 'function') {
+        try {
+          products = await RNIap.getProducts({ skus: itemSKUs }) || [];
+        } catch (err) {
+          console.warn("getProducts failed:", err);
+        }
+      }
+    }
+
+    if (!products || products.length === 0) {
+      console.warn("No products returned from StoreKit. Using mock fallback packages.");
       return MOCK_PACKAGES;
     }
 
@@ -76,10 +106,10 @@ export const getPackages = async (): Promise<any[]> => {
       let desc = product.description;
       let title = product.title;
 
-      if (productId === 'com.applydesk.monthly') {
+      if (productId === 'com.applydesk.mn' || productId === 'com.applydesk.monthly') {
         desc = '200 applications / Month';
         title = 'Monthly';
-      } else if (productId === 'com.applydesk.weekly') {
+      } else if (productId === 'com.applydesk.wk' || productId === 'com.applydesk.weekly') {
         desc = '50 applications / Week';
         title = 'Weekly';
       } else if (productId === 'com.resume.starter') {
@@ -90,26 +120,18 @@ export const getPackages = async (): Promise<any[]> => {
         title = 'Weekly';
       }
 
-      // Format price to 2 decimal places and preserve currency symbol if possible
-      let priceStr = '';
-      const rawPrice = product.price;
-      const localized = product.localizedPrice;
-      if (typeof rawPrice === 'number') {
-        priceStr = rawPrice.toFixed(2);
-        if (typeof localized === 'string') {
-          const symbol = localized.replace(/[0-9.,\s]/g, '');
-          priceStr = symbol ? `${symbol}${priceStr}` : priceStr;
-        }
-      } else {
-        const numPrice = parseFloat(rawPrice);
-        if (!isNaN(numPrice)) {
-          priceStr = numPrice.toFixed(2);
-          if (typeof localized === 'string') {
-            const symbol = localized.replace(/[0-9.,\s]/g, '');
-            priceStr = symbol ? `${symbol}${priceStr}` : priceStr;
-          }
+      // Read localizedPrice from Apple StoreKit response
+      let priceStr = product.localizedPrice;
+
+      if (!priceStr) {
+        const rawPrice = product.price;
+        if (typeof rawPrice === 'number') {
+          priceStr = `$${rawPrice.toFixed(2)}`;
+        } else if (typeof rawPrice === 'string' && rawPrice.trim()) {
+          const numPrice = parseFloat(rawPrice);
+          priceStr = !isNaN(numPrice) ? `$${numPrice.toFixed(2)}` : rawPrice;
         } else {
-          priceStr = localized || String(rawPrice || '');
+          priceStr = productId.includes('mn') ? '$9.99' : '$17.99';
         }
       }
 
@@ -117,8 +139,11 @@ export const getPackages = async (): Promise<any[]> => {
         product: {
           identifier: productId,
           title: title || product.title || 'Subscription',
-          description: desc,
+          description: desc || product.description,
           priceString: priceStr,
+          localizedPrice: product.localizedPrice || priceStr,
+          rawPrice: product.price,
+          currency: product.currency,
         }
       };
     });
@@ -260,7 +285,7 @@ export const syncSubscriptionStatusWithStoreKit = async (userId: string, token: 
     
     // Filter for our weekly subscription SKUs
     const activeSubscription = purchases?.find((p: any) => 
-      p.productId === 'com.applydesk.monthly' || p.productId === 'com.applydesk.weekly' || p.productId === 'com.resume.starter' || p.productId === 'com.resume.pro'
+      p.productId === 'com.applydesk.mn' || p.productId === 'com.applydesk.wk' || p.productId === 'com.applydesk.monthly' || p.productId === 'com.applydesk.weekly' || p.productId === 'com.resume.starter' || p.productId === 'com.resume.pro'
     );
 
     if (activeSubscription) {

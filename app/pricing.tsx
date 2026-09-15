@@ -26,10 +26,9 @@ export default function Pricing() {
     async function load() {
       try {
         const pkgs = await getPackages();
-        // Sort so Monthly (com.applydesk.monthly) comes first
         const sorted = [...pkgs].sort((a, b) => {
           const idA = a.product.identifier || '';
-          if (idA.includes('monthly')) return -1;
+          if (idA === 'com.applydesk.mn' || idA.includes('mn') || idA.includes('monthly')) return -1;
           return 1;
         });
         setPackages(sorted);
@@ -119,10 +118,10 @@ export default function Pricing() {
               try {
                 const mockSku = selectedPack.product.identifier;
                 let payloadB64 = '';
-                if (mockSku === 'com.applydesk.monthly') {
-                  payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20uYXBwbHlkZXNrLm1vbnRobHkiLCJ0cmFuc2FjdGlvbklkIjoibW9ja18xMjMifQ==';
+                if (mockSku === 'com.applydesk.mn' || mockSku === 'com.applydesk.monthly') {
+                  payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20uYXBwbHlkZXNrLm1uIiwidHJhbnNhY3Rpb25JZCI6Im1vY2tfMTIzIn0=';
                 } else {
-                  payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20uYXBwbHlkZXNrLndlZWtseSIsInRyYW5zYWN0aW9uSWQiOiJtb2NrXzEyMyJ9';
+                  payloadB64 = 'eyJwcm9kdWN0SWQiOiJjb20uYXBwbHlkZXNrLndrIiwidHJhbnNhY3Rpb25JZCI6Im1vY2tfMTIzIn0=';
                 }
 
                 const mockReceipt = `eyJhbGciOiJSUzI1NiJ9.${payloadB64}.mock_signature`;
@@ -243,10 +242,14 @@ export default function Pricing() {
             <View style={styles.packagesContainer}>
               {packages.map((pkg, idx) => {
                 const isSelected = selectedPack?.product.identifier === pkg.product.identifier;
-                const rawPrice = pkg.product.priceString || '$9.99';
+                const rawPrice = pkg.product.priceString || pkg.product.localizedPrice || '$9.99';
+                const id = pkg.product.identifier || '';
+                const isMonthly = id === 'com.applydesk.mn' || id.includes('mn') || id.includes('monthly');
                 const formattedPrice = (rawPrice.toLowerCase().includes('week') || rawPrice.toLowerCase().includes('month'))
                   ? rawPrice
-                  : `${rawPrice}/Week`;
+                  : isMonthly
+                    ? `${rawPrice}/Month`
+                    : `${rawPrice}/Week`;
 
                 return (
                   <TouchableOpacity
