@@ -896,15 +896,16 @@
         </div>
       `;
 
-      const autofillBtn = shadow.getElementById('ad-results-autofill-btn');
-      const autofillMsg = shadow.getElementById('ad-results-autofill-msg');
-      if (autofillBtn) {
-        autofillBtn.addEventListener('click', () => {
-          const fillRes = runAutofill(currentProfile);
-          if (autofillMsg) autofillMsg.innerText = `✅ Autofilled ${fillRes.count || 'form'} fields!`;
-        });
-      }
-    });
+        const autofillBtn = shadow.getElementById('ad-results-autofill-btn');
+        const autofillMsg = shadow.getElementById('ad-results-autofill-msg');
+        if (autofillBtn) {
+          autofillBtn.addEventListener('click', () => {
+            const fillRes = runAutofill(currentProfile);
+            if (autofillMsg) autofillMsg.innerText = `✅ Autofilled ${fillRes.count || 'form'} fields!`;
+          });
+        }
+      });
+    }
   }
 
   // Inject dock tab & drawer widget on web pages automatically
