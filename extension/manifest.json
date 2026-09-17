@@ -7,6 +7,7 @@
     "storage",
     "activeTab",
     "scripting",
+    "sidePanel",
     "tabs"
   ],
   "host_permissions": [
@@ -25,8 +26,9 @@
     "http://127.0.0.1/*",
     "http://188.166.164.115/*"
   ],
-  "action": {
-    "default_popup": "popup/popup.html"
+  "action": {},
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
   },
   "background": {
     "service_worker": "background/service-worker.js"

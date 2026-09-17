@@ -1,25 +1,54 @@
 // ApplyDesk Chrome Extension Background Service Worker
 
-// Listener for messages from popup or content script
+// Configure Chrome Native Side Panel behavior to open on action click
+function configureSidePanel() {
+  if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
+    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((err) => {
+      console.log('SidePanel behavior set error:', err);
+    });
+  }
+}
+
+// Set behavior immediately on worker load
+configureSidePanel();
+
+chrome.runtime.onInstalled.addListener(() => {
+  configureSidePanel();
+});
+
+// Explicit action click fallback to guarantee side panel opens on right side
+if (chrome.action && chrome.action.onClicked) {
+  chrome.action.onClicked.addListener(async (tab) => {
+    try {
+      if (chrome.sidePanel && chrome.sidePanel.open) {
+        if (tab && tab.id) {
+          await chrome.sidePanel.open({ tabId: tab.id });
+        } else if (tab && tab.windowId) {
+          await chrome.sidePanel.open({ windowId: tab.windowId });
+        }
+      }
+    } catch (err) {
+      if (tab && tab.id) {
+        chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_DRAWER' });
+      }
+    }
+  });
+}
+
+// Listener for messages from sidepanel or content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       if (message.type === 'OPEN_SIDE_PANEL' || message.type === 'TOGGLE_DRAWER') {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tab && tab.id) {
-          chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_DRAWER' }, () => {
-            if (chrome.runtime.lastError) {
-              // Inject content script if not loaded
-              chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                files: ['content/content-script.js']
-              }).then(() => {
-                setTimeout(() => {
-                  chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_DRAWER' });
-                }, 200);
-              }).catch(() => {});
-            }
-          });
+          if (chrome.sidePanel && chrome.sidePanel.open) {
+            chrome.sidePanel.open({ tabId: tab.id }).catch(() => {
+              chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_DRAWER' });
+            });
+          } else {
+            chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_DRAWER' });
+          }
           sendResponse({ success: true });
         }
       } else if (message.type === 'SAVE_PROFILE_STORAGE') {
