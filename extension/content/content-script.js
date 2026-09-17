@@ -926,7 +926,17 @@
         const drawerPanel = shadow?.getElementById('ad-drawer-panel');
         const dockTab = shadow?.getElementById('ad-dock-tab');
 
-        if (request.type === 'TOGGLE_DRAWER') {
+        if (request.type === 'SHOW_DOCK_TAB' || request.type === 'COLLAPSE_DRAWER') {
+          if (!document.getElementById('applydesk-inpage-host')) {
+            injectInPageFloatingDockAndDrawer();
+          }
+          const shadow = document.getElementById('applydesk-inpage-host')?.shadowRoot;
+          const drawerPanel = shadow?.getElementById('ad-drawer-panel');
+          const dockTab = shadow?.getElementById('ad-dock-tab');
+          if (drawerPanel) drawerPanel.classList.remove('open');
+          if (dockTab) dockTab.style.display = 'flex';
+          sendResponse({ success: true });
+        } else if (request.type === 'TOGGLE_DRAWER') {
           if (!document.getElementById('applydesk-inpage-host')) {
             injectInPageFloatingDockAndDrawer();
           }

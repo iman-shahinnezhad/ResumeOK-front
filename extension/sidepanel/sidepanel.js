@@ -6,7 +6,37 @@ document.addEventListener('DOMContentLoaded', async () => {
   const mainContent = document.getElementById('sidepanel-main-content');
   const tokenCountEl = document.getElementById('token-count');
   const resumeScoreVal = document.getElementById('resume-score-val');
-  const resumeFileNameVal = document.getElementById('resume-filename-val');
+  const collapseBtn = document.getElementById('collapse-btn');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', async () => {
+      try {
+        const tab = await getActiveTab();
+        if (tab && tab.id) {
+          chrome.tabs.sendMessage(tab.id, { type: 'SHOW_DOCK_TAB' }, () => {
+            if (chrome.runtime.lastError) {
+              chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ['content/content-script.js']
+              }).then(() => {
+                setTimeout(() => {
+                  chrome.tabs.sendMessage(tab.id, { type: 'SHOW_DOCK_TAB' });
+                  window.close();
+                }, 150);
+              }).catch(() => {
+                window.close();
+              });
+            } else {
+              window.close();
+            }
+          });
+        } else {
+          window.close();
+        }
+      } catch(e) {
+        window.close();
+      }
+    });
+  }
 
   let currentProfile = null;
 
