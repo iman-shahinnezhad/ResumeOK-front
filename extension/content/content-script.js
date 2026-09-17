@@ -66,7 +66,79 @@
     const descEl = document.querySelector('#job-description, .job-description, [class*="description" i], article, main');
     if (descEl) description = descEl.innerText.substring(0, 3000);
 
-    return { title, company, description, url: window.location.href };
+    return {
+      title: title || 'Software Engineer',
+      company: company || 'Company',
+      location: location || 'Kota',
+      industry: industry || 'Computer Software',
+      description,
+      url: window.location.href
+    };
+  }
+
+  // Real Job & Resume Match Scoring Calculation Algorithm
+  function calculateRealJobMatch(job, profile) {
+    const jobText = `${job.title} ${job.description} ${job.industry || ''}`.toLowerCase();
+    
+    // User skills array
+    let userSkills = [];
+    if (typeof profile.skills === 'string') {
+      userSkills = profile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    } else if (Array.isArray(profile.skills)) {
+      userSkills = profile.skills.map(s => String(s).trim().toLowerCase()).filter(Boolean);
+    }
+
+    const userTitle = (profile.jobTitle || '').toLowerCase();
+    const userSummary = (profile.workSummary || '').toLowerCase();
+    const userFullText = `${userTitle} ${userSummary} ${userSkills.join(' ')}`.toLowerCase();
+
+    // Extract key technical/domain keywords from job description
+    const commonKeywords = [
+      'react', 'react native', 'javascript', 'typescript', 'node.js', 'node', 'express',
+      'python', 'java', 'c++', 'sql', 'postgresql', 'mongodb', 'docker', 'kubernetes',
+      'aws', 'git', 'html', 'css', 'tailwind', 'ui/ux', 'design', 'figma', 'agile',
+      'scrum', 'testing', 'cypress', 'jest', 'graphql', 'rest', 'api', 'frontend', 'backend', 'fullstack', 'web developer'
+    ];
+
+    const jobKeywords = commonKeywords.filter(k => jobText.includes(k));
+
+    let matchedSkillsCount = 0;
+    jobKeywords.forEach(k => {
+      if (userFullText.includes(k)) {
+        matchedSkillsCount++;
+      }
+    });
+
+    const totalJobKeywords = Math.max(1, jobKeywords.length);
+    const skillsRatio = matchedSkillsCount / totalJobKeywords;
+    const skillsScore = Math.min(98, Math.max(30, Math.round(skillsRatio * 100)));
+
+    // Role / Title Alignment
+    const titleWords = job.title.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    let titleMatches = 0;
+    titleWords.forEach(w => {
+      if (userFullText.includes(w)) titleMatches++;
+    });
+    const titleScore = titleWords.length > 0 ? Math.round((titleMatches / titleWords.length) * 100) : 60;
+
+    // Resume Quality Score
+    let rawResume = 30;
+    if (profile.resumeFileName || profile.resumeFile || profile.resumeBase64) rawResume += 25;
+    if (userSkills.length > 3) rawResume += 20;
+    if (profile.firstName && profile.email && profile.phone) rawResume += 15;
+    if (profile.workSummary && profile.workSummary.length > 20) rawResume += 10;
+    const resumeScore = Math.min(98, Math.max(20, rawResume));
+
+    // Combined Job Match Score
+    const jobMatch = Math.min(98, Math.max(25, Math.round(skillsScore * 0.40 + titleScore * 0.40 + resumeScore * 0.20)));
+
+    return {
+      jobMatch,
+      skillsScore,
+      resumeScore,
+      matchedSkillsCount,
+      totalJobKeywords
+    };
   }
 
   // Perform 1-Click Autofill
@@ -759,6 +831,82 @@
         opacity: 0.9;
         transform: translateY(-1px);
       }
+
+      /* Loading Screen CSS (Image 1 & Image 2) */
+      .loading-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 70vh;
+        gap: 24px;
+        padding: 20px;
+      }
+
+      .spinner-ring {
+        width: 52px;
+        height: 52px;
+        border: 4.5px solid #cbd5e1;
+        border-top-color: #0f172a;
+        border-radius: 50%;
+        animation: spinRing 0.85s linear infinite;
+      }
+
+      @keyframes spinRing {
+        to { transform: rotate(360deg); }
+      }
+
+      .loading-title {
+        font-size: 26px;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.02em;
+        text-align: center;
+      }
+
+      /* Image 3 Metric Pills Grid */
+      .metric-pills-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+        margin: 14px 0 16px 0;
+      }
+
+      .pill-box {
+        border-radius: 16px;
+        padding: 12px 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .pill-box-green {
+        background: #e6f9f0;
+        border: 1px solid #c6f6d5;
+        color: #059669;
+      }
+
+      .pill-box-gray {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        color: #0f172a;
+      }
+
+      .pill-score-val {
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.1;
+      }
+
+      .pill-score-lbl {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        margin-top: 4px;
+        opacity: 0.85;
+      }
     `;
 
     const widget = document.createElement('div');
@@ -1275,16 +1423,164 @@
     if (jobTitleEl && jobInfo.title) jobTitleEl.innerText = jobInfo.title;
     if (jobCompEl && jobInfo.company) jobCompEl.innerText = jobInfo.company;
 
-    autofillAction.addEventListener('click', () => {
-      autofillMsg.innerText = '⚡ Injecting fields...';
-      try {
-        chrome.storage.local.get('resumeok_profile', (res) => {
-          const profile = (res && res.resumeok_profile) ? res.resumeok_profile : {};
-          const fillRes = runAutofill(profile);
-          autofillMsg.innerText = `✅ Autofilled ${fillRes.count || 'form'} fields!`;
-          updateWidgetChecklist();
-        });
-      } catch(e) {}
+    autofillAction.addEventListener('click', async () => {
+      chrome.storage.local.get('resumeok_profile', async (res) => {
+        let p = (res && res.resumeok_profile) ? res.resumeok_profile : null;
+
+        // Try fetching from Express Server Mongo DB if local storage is empty
+        if (!p || (!p.firstName && !p.resumeFile && !p.skills)) {
+          const apiUrls = [
+            'https://applydesk.io/api/user/default_user/profile',
+            'http://188.166.164.115:3030/api/user/default_user/profile',
+            'http://localhost:3000/api/user/default_user/profile'
+          ];
+          for (const url of apiUrls) {
+            try {
+              const dbRes = await fetch(url);
+              if (dbRes.ok) {
+                const dbData = await dbRes.json();
+                if (dbData && dbData.profile) {
+                  p = dbData.profile;
+                  break;
+                }
+              }
+            } catch(e) {}
+          }
+        }
+
+        const profile = p || {};
+
+        // 1. Check if user has uploaded / provided a resume
+        const hasResume = profile.resumeFileName || profile.resumeFile || profile.resumeBase64 || (profile.skills && profile.skills.length > 3) || profile.firstName;
+        if (!hasResume) {
+          autofillMsg.innerHTML = '<span style="color:#ef4444;font-weight:700;">⚠️ Please upload or enter your candidate resume first.</span>';
+          modalOverlay.classList.add('open');
+          loadProfileIntoModal();
+          return;
+        }
+
+        const drawerBody = shadow.querySelector('.drawer-body');
+        if (!drawerBody) return;
+
+        // 2. STEP 1: Show Loading Screen 1 (Scanning Job... - Image 1)
+        drawerBody.innerHTML = `
+          <div class="loading-screen">
+            <div class="spinner-ring"></div>
+            <div class="loading-title">Scanning Job...</div>
+          </div>
+        `;
+
+        const jobInfo = extractJobDetails();
+
+        // Wait 1.3s for Scanning Job animation
+        await new Promise(r => setTimeout(r, 1300));
+
+        // 3. STEP 2: Show Loading Screen 2 (Score Matching... - Image 2)
+        drawerBody.innerHTML = `
+          <div class="loading-screen">
+            <div class="spinner-ring"></div>
+            <div class="loading-title">Score Matching...</div>
+          </div>
+        `;
+
+        // Calculate REAL Match Scores & Form Scan Result
+        const matchResult = calculateRealJobMatch(jobInfo, profile);
+        const scanResult = scanFormFields(profile);
+
+        // Wait 1.3s for Score Matching animation
+        await new Promise(r => setTimeout(r, 1300));
+
+        // 4. STEP 3: Show Image 3 Scanned Job & Real Match Results View
+        const resumeFileName = profile.resumeFileName || (profile.firstName ? `${profile.firstName}_25jun.PDF` : 'OmidMoradi_25jun.PDF');
+        
+        drawerBody.innerHTML = `
+          <!-- Card 1: Scanned Job & Real Match Details (Image 3) -->
+          <div class="card-white">
+            <div style="font-size:17px;font-weight:800;color:#0f172a;line-height:1.3;margin-bottom:4px;">${jobInfo.title}</div>
+            <div style="font-size:13px;font-weight:500;color:#64748b;margin-bottom:12px;">${jobInfo.location ? jobInfo.location + ' • ' : ''}${jobInfo.industry || jobInfo.company}</div>
+            <div style="border-bottom: 1px solid #f1f5f9; margin-bottom: 14px;"></div>
+            
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:16px;font-weight:800;color:#0f172a;">Job Match</span>
+              <span style="font-size:17px;font-weight:800;color:#0f172a;">${matchResult.jobMatch}/100</span>
+            </div>
+
+            <!-- 3 Metric Pills -->
+            <div class="metric-pills-grid">
+              <div class="pill-box pill-box-green">
+                <div class="pill-score-val">${matchResult.jobMatch}%</div>
+                <div class="pill-score-lbl">JOB MATCH</div>
+              </div>
+              <div class="pill-box pill-box-gray">
+                <div class="pill-score-val">${matchResult.skillsScore}%</div>
+                <div class="pill-score-lbl">SKILLS</div>
+              </div>
+              <div class="pill-box pill-box-gray">
+                <div class="pill-score-val">${matchResult.resumeScore}%</div>
+                <div class="pill-score-lbl">RESUME</div>
+              </div>
+            </div>
+
+            <button id="ad-results-autofill-btn" class="btn-black-pill">
+              Autofill Form
+            </button>
+            <div id="ad-results-autofill-msg" style="font-size:12px;color:#10b981;text-align:center;margin-top:6px;font-weight:700;"></div>
+          </div>
+
+          <!-- Card 2: Resume Score -->
+          <div class="card-white">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-size:16px;font-weight:800;color:#0f172a;">Resume Score</div>
+              <div style="font-size:16px;font-weight:700;color:#0f172a;">${matchResult.resumeScore}/100</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+              <span style="font-size:20px;">📁</span>
+              <span style="font-size:13px;font-weight:600;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${resumeFileName}</span>
+            </div>
+            <button id="ad-fix-resume-btn-2" class="btn-outline-pill">
+              <span style="color:#eab308;">⚡</span> Fix resume issues
+            </button>
+          </div>
+
+          <!-- Card 3: Your Coverletter -->
+          <div class="card-white">
+            <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:12px;">Your Coverletter</div>
+            <button id="ad-generate-cl-btn" class="btn-outline-pill" style="margin-top:0;">
+              <span style="color:#eab308;">⚡</span> Generate cover letter
+            </button>
+          </div>
+
+          <!-- Card 4: Edit Your information -->
+          <div id="ad-trigger-autofill-info-2" class="edit-info-row">
+            <div class="edit-info-text">Edit Your information</div>
+            <div style="font-size:15px;font-weight:700;color:#64748b;">❯</div>
+          </div>
+
+          <!-- Card 5: Fields Progress -->
+          <div class="edit-info-row" style="cursor:default;">
+            <div class="edit-info-text">Fields</div>
+            <div style="font-size:15px;font-weight:800;color:#0f172a;">${scanResult.percentage || 0}%</div>
+          </div>
+        `;
+
+        // Re-attach event listeners for Results View Buttons
+        const autofillBtn = shadow.getElementById('ad-results-autofill-btn');
+        const autofillMsg = shadow.getElementById('ad-results-autofill-msg');
+        if (autofillBtn) {
+          autofillBtn.addEventListener('click', () => {
+            const fillRes = runAutofill(profile);
+            if (autofillMsg) autofillMsg.innerText = `✅ Autofilled ${fillRes.count || 'form'} fields!`;
+          });
+        }
+
+        const editInfoRow = shadow.getElementById('ad-trigger-autofill-info-2');
+        if (editInfoRow) {
+          editInfoRow.addEventListener('click', () => {
+            modalOverlay.classList.add('open');
+            loadProfileIntoModal();
+          });
+        }
+      });
     });
   }
 
