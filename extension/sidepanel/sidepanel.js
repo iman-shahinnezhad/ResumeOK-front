@@ -22,13 +22,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch(e) {}
 
   if (!currentProfile) {
-    try {
-      const res = await fetch('http://localhost:3000/api/user/default_user/profile');
-      const dbData = await res.json();
-      if (dbData && dbData.profile) {
-        currentProfile = dbData.profile;
-      }
-    } catch(e) {}
+    const apiUrls = [
+      'https://applydesk.io/api/user/default_user/profile',
+      'http://188.166.164.115:3030/api/user/default_user/profile',
+      'http://localhost:3000/api/user/default_user/profile'
+    ];
+    for (const url of apiUrls) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const dbData = await res.json();
+          if (dbData && dbData.profile) {
+            currentProfile = dbData.profile;
+            break;
+          }
+        }
+      } catch(e) {}
+    }
   }
   if (!currentProfile) {
     currentProfile = {};
@@ -126,7 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               <span class="check-icon">⚠️</span>
               <span class="check-label">${field.label}</span>
             </div>
-            <a href="http://localhost:5173/#/profile" target="_blank" class="missing-notice-btn">+ Add in Profile</a>
+            <a href="https://applydesk.io/#/profile" target="_blank" class="missing-notice-btn">+ Add in Profile</a>
           </div>
         `;
       } else {

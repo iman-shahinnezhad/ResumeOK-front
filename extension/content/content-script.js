@@ -1037,13 +1037,23 @@
 
         // Try fetching from Express Server Mongo DB if local storage is empty
         if (!p || !p.firstName) {
-          try {
-            const dbRes = await fetch('http://localhost:3000/api/user/default_user/profile');
-            const dbData = await dbRes.json();
-            if (dbData && dbData.profile) {
-              p = dbData.profile;
-            }
-          } catch(e) {}
+          const apiUrls = [
+            'https://applydesk.io/api/user/default_user/profile',
+            'http://188.166.164.115:3030/api/user/default_user/profile',
+            'http://localhost:3000/api/user/default_user/profile'
+          ];
+          for (const url of apiUrls) {
+            try {
+              const dbRes = await fetch(url);
+              if (dbRes.ok) {
+                const dbData = await dbRes.json();
+                if (dbData && dbData.profile) {
+                  p = dbData.profile;
+                  break;
+                }
+              }
+            } catch(e) {}
+          }
         }
 
         const finalProfile = p || {};
@@ -1135,14 +1145,22 @@
       // 1. Save to Chrome Local Storage
       chrome.storage.local.set({ resumeok_profile: updatedProfile }, async () => {
         // 2. Sync to Mongo Database via Express Server Endpoint
-        try {
-          await fetch('http://localhost:3000/api/user/default_user/profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ profile: updatedProfile })
-          });
-        } catch(e) {
-          console.log('Database sync error:', e);
+        const saveUrls = [
+          'https://applydesk.io/api/user/default_user/profile',
+          'http://188.166.164.115:3030/api/user/default_user/profile',
+          'http://localhost:3000/api/user/default_user/profile'
+        ];
+        for (const url of saveUrls) {
+          try {
+            const saveRes = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ profile: updatedProfile })
+            });
+            if (saveRes.ok) break;
+          } catch(e) {
+            console.log('Database sync error on', url, e);
+          }
         }
 
         saveProfileBtn.innerText = '✅ Saved & Synced!';
