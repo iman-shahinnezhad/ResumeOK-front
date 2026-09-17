@@ -747,184 +747,210 @@
     const addJobBtn = shadow.getElementById('ad-add-job-action');
     const drawerMain = shadow.getElementById('ad-drawer-main-content');
 
-    // Load Candidate Profile & Resume filename
-    let currentProfile = {};
-    chrome.storage.local.get('resumeok_profile', (res) => {
-      if (res && res.resumeok_profile) {
-        currentProfile = res.resumeok_profile;
-        const filename = currentProfile.resumeFileName || (currentProfile.firstName ? `${currentProfile.firstName}_25jun.PDF` : 'OmidMoradi_25jun.PDF');
-        const fnEl = shadow.getElementById('ad-resume-filename-val');
-        if (fnEl) fnEl.innerText = filename;
-      }
-    });
+  // Helper to check if extension context is valid
+  function isExtensionValid() {
+    try {
+      return Boolean(typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id);
+    } catch(e) {
+      return false;
+    }
+  }
 
-    // 1. CLICK COLLAPSE ARROW > (Image 1) -> Hides Panel & Shows Dock Tab (Image 2)
-    collapseBtn.addEventListener('click', () => {
-      drawerPanel.classList.remove('open');
-      setTimeout(() => {
-        dockTab.style.display = 'flex';
-      }, 220);
-    });
-
-    // 2. CLICK DOCK TAB (Image 2) -> Hides Dock Tab & Shows Panel
-    dockTab.addEventListener('click', () => {
-      dockTab.style.display = 'none';
-      drawerPanel.classList.add('open');
-    });
-
-    // 3. Click "+Add this job to Applydesk" -> 2-Stage Loaders & Results View
-    if (addJobBtn) {
-      addJobBtn.addEventListener('click', async () => {
-        const storageData = await chrome.storage.local.get('resumeok_profile');
-        if (storageData && storageData.resumeok_profile) {
-          currentProfile = storageData.resumeok_profile;
-        }
-
-        const hasResume = currentProfile.resumeFileName || currentProfile.resumeFile || currentProfile.resumeBase64 || (currentProfile.skills && currentProfile.skills.length > 3) || currentProfile.firstName;
-        if (!hasResume) {
-          const msg = shadow.getElementById('ad-add-job-msg');
-          if (msg) msg.innerHTML = '<span style="color:#ef4444;font-weight:700;">⚠️ Please upload or enter your candidate resume in Applydesk first.</span>';
-          window.open('https://applydesk.io/#/profile', '_blank');
-          return;
-        }
-
-        // STEP 1: Scanning Job...
-        drawerMain.innerHTML = `
-          <div class="loading-screen">
-            <div class="spinner-ring"></div>
-            <div class="loading-title">Scanning Job...</div>
-          </div>
-        `;
-
-        const jobInfo = extractJobDetails();
-        await new Promise(r => setTimeout(r, 1300));
-
-        // STEP 2: Score Matching...
-        drawerMain.innerHTML = `
-          <div class="loading-screen">
-            <div class="spinner-ring"></div>
-            <div class="loading-title">Score Matching...</div>
-          </div>
-        `;
-
-        const matchResult = calculateRealJobMatch(jobInfo, currentProfile);
-        const scanResult = scanFormFields(currentProfile);
-        await new Promise(r => setTimeout(r, 1300));
-
-        const resumeFileName = currentProfile.resumeFileName || (currentProfile.firstName ? `${currentProfile.firstName}_25jun.PDF` : 'OmidMoradi_25jun.PDF');
-
-        // STEP 3: Results View
-        drawerMain.innerHTML = `
-          <div class="card-white">
-            <div style="font-size:17px;font-weight:800;color:#0f172a;line-height:1.3;margin-bottom:4px;">${jobInfo.title}</div>
-            <div style="font-size:13px;font-weight:500;color:#64748b;margin-bottom:12px;">${jobInfo.location ? jobInfo.location + ' • ' : ''}${jobInfo.industry || jobInfo.company}</div>
-            <div style="border-bottom: 1px solid #f1f5f9; margin-bottom: 14px;"></div>
-            
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:16px;font-weight:800;color:#0f172a;">Job Match</span>
-              <span style="font-size:17px;font-weight:800;color:#0f172a;">${matchResult.jobMatch}/100</span>
-            </div>
-
-            <div class="metric-pills-grid">
-              <div class="pill-box pill-box-green">
-                <div class="pill-score-val">${matchResult.jobMatch}%</div>
-                <div class="pill-score-lbl">JOB MATCH</div>
-              </div>
-              <div class="pill-box pill-box-gray">
-                <div class="pill-score-val">${matchResult.skillsScore}%</div>
-                <div class="pill-score-lbl">SKILLS</div>
-              </div>
-              <div class="pill-box pill-box-gray">
-                <div class="pill-score-val">${matchResult.resumeScore}%</div>
-                <div class="pill-score-lbl">RESUME</div>
-              </div>
-            </div>
-
-            <button id="ad-results-autofill-btn" class="btn-black-pill">
-              Autofill Form
-            </button>
-            <div id="ad-results-autofill-msg" style="font-size:12px;color:#10b981;text-align:center;margin-top:6px;font-weight:700;"></div>
-          </div>
-
-          <div class="card-white">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-              <div style="font-size:16px;font-weight:800;color:#0f172a;">Resume Score</div>
-              <div style="font-size:16px;font-weight:700;color:#0f172a;">${matchResult.resumeScore}/100</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-              <span style="font-size:20px;">📁</span>
-              <span style="font-size:13px;font-weight:600;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${resumeFileName}</span>
-            </div>
-            <button id="ad-fix-resume-btn-2" class="btn-outline-pill">
-              <span style="color:#eab308;">⚡</span> Fix resume issues
-            </button>
-          </div>
-
-          <div class="card-white">
-            <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:12px;">Your Coverletter</div>
-            <button id="ad-generate-cl-btn" class="btn-outline-pill" style="margin-top:0;">
-              <span style="color:#eab308;">⚡</span> Generate cover letter
-            </button>
-          </div>
-
-          <a href="https://applydesk.io/#/profile" target="_blank" class="edit-info-row" style="text-decoration:none;">
-            <div class="edit-info-text">Edit Your information</div>
-            <div style="font-size:15px;font-weight:700;color:#64748b;">❯</div>
-          </a>
-
-          <div class="edit-info-row" style="cursor:default;">
-            <div class="edit-info-text">Fields</div>
-            <div style="font-size:15px;font-weight:800;color:#0f172a;">${scanResult.percentage || 0}%</div>
-          </div>
-        `;
-
-        const autofillBtn = shadow.getElementById('ad-results-autofill-btn');
-        const autofillMsg = shadow.getElementById('ad-results-autofill-msg');
-        if (autofillBtn) {
-          autofillBtn.addEventListener('click', () => {
-            const fillRes = runAutofill(currentProfile);
-            if (autofillMsg) autofillMsg.innerText = `✅ Autofilled ${fillRes.count || 'form'} fields!`;
-          });
+  // Load Candidate Profile & Resume filename
+  let currentProfile = {};
+  if (isExtensionValid()) {
+    try {
+      chrome.storage.local.get('resumeok_profile', (res) => {
+        if (!isExtensionValid() || chrome.runtime.lastError) return;
+        if (res && res.resumeok_profile) {
+          currentProfile = res.resumeok_profile;
+          const filename = currentProfile.resumeFileName || (currentProfile.firstName ? `${currentProfile.firstName}_25jun.PDF` : 'OmidMoradi_25jun.PDF');
+          const fnEl = shadow.getElementById('ad-resume-filename-val');
+          if (fnEl) fnEl.innerText = filename;
         }
       });
-    }
+    } catch(e) {}
+  }
+
+  // 1. CLICK COLLAPSE ARROW > (Image 1) -> Hides Panel & Shows Dock Tab (Image 2)
+  collapseBtn.addEventListener('click', () => {
+    drawerPanel.classList.remove('open');
+    setTimeout(() => {
+      dockTab.style.display = 'flex';
+    }, 220);
+  });
+
+  // 2. CLICK DOCK TAB (Image 2) -> Hides Dock Tab & Shows Panel
+  dockTab.addEventListener('click', () => {
+    dockTab.style.display = 'none';
+    drawerPanel.classList.add('open');
+  });
+
+  // 3. Click "+Add this job to Applydesk" -> 2-Stage Loaders & Results View
+  if (addJobBtn) {
+    addJobBtn.addEventListener('click', async () => {
+      if (isExtensionValid()) {
+        try {
+          const storageData = await chrome.storage.local.get('resumeok_profile');
+          if (storageData && storageData.resumeok_profile) {
+            currentProfile = storageData.resumeok_profile;
+          }
+        } catch(e) {}
+      }
+
+      const hasResume = currentProfile.resumeFileName || currentProfile.resumeFile || currentProfile.resumeBase64 || (currentProfile.skills && currentProfile.skills.length > 3) || currentProfile.firstName;
+      if (!hasResume) {
+        const msg = shadow.getElementById('ad-add-job-msg');
+        if (msg) msg.innerHTML = '<span style="color:#ef4444;font-weight:700;">⚠️ Please upload or enter your candidate resume in Applydesk first.</span>';
+        window.open('https://applydesk.io/#/profile', '_blank');
+        return;
+      }
+
+      // STEP 1: Scanning Job...
+      drawerMain.innerHTML = `
+        <div class="loading-screen">
+          <div class="spinner-ring"></div>
+          <div class="loading-title">Scanning Job...</div>
+        </div>
+      `;
+
+      const jobInfo = extractJobDetails();
+      await new Promise(r => setTimeout(r, 1300));
+
+      // STEP 2: Score Matching...
+      drawerMain.innerHTML = `
+        <div class="loading-screen">
+          <div class="spinner-ring"></div>
+          <div class="loading-title">Score Matching...</div>
+        </div>
+      `;
+
+      const matchResult = calculateRealJobMatch(jobInfo, currentProfile);
+      const scanResult = scanFormFields(currentProfile);
+      await new Promise(r => setTimeout(r, 1300));
+
+      const resumeFileName = currentProfile.resumeFileName || (currentProfile.firstName ? `${currentProfile.firstName}_25jun.PDF` : 'OmidMoradi_25jun.PDF');
+
+      // STEP 3: Results View
+      drawerMain.innerHTML = `
+        <div class="card-white">
+          <div style="font-size:17px;font-weight:800;color:#0f172a;line-height:1.3;margin-bottom:4px;">${jobInfo.title}</div>
+          <div style="font-size:13px;font-weight:500;color:#64748b;margin-bottom:12px;">${jobInfo.location ? jobInfo.location + ' • ' : ''}${jobInfo.industry || jobInfo.company}</div>
+          <div style="border-bottom: 1px solid #f1f5f9; margin-bottom: 14px;"></div>
+          
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:16px;font-weight:800;color:#0f172a;">Job Match</span>
+            <span style="font-size:17px;font-weight:800;color:#0f172a;">${matchResult.jobMatch}/100</span>
+          </div>
+
+          <div class="metric-pills-grid">
+            <div class="pill-box pill-box-green">
+              <div class="pill-score-val">${matchResult.jobMatch}%</div>
+              <div class="pill-score-lbl">JOB MATCH</div>
+            </div>
+            <div class="pill-box pill-box-gray">
+              <div class="pill-score-val">${matchResult.skillsScore}%</div>
+              <div class="pill-score-lbl">SKILLS</div>
+            </div>
+            <div class="pill-box pill-box-gray">
+              <div class="pill-score-val">${matchResult.resumeScore}%</div>
+              <div class="pill-score-lbl">RESUME</div>
+            </div>
+          </div>
+
+          <button id="ad-results-autofill-btn" class="btn-black-pill">
+            Autofill Form
+          </button>
+          <div id="ad-results-autofill-msg" style="font-size:12px;color:#10b981;text-align:center;margin-top:6px;font-weight:700;"></div>
+        </div>
+
+        <div class="card-white">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-size:16px;font-weight:800;color:#0f172a;">Resume Score</div>
+            <div style="font-size:16px;font-weight:700;color:#0f172a;">${matchResult.resumeScore}/100</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+            <span style="font-size:20px;">📁</span>
+            <span style="font-size:13px;font-weight:600;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${resumeFileName}</span>
+          </div>
+          <button id="ad-fix-resume-btn-2" class="btn-outline-pill">
+            <span style="color:#eab308;">⚡</span> Fix resume issues
+          </button>
+        </div>
+
+        <div class="card-white">
+          <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:12px;">Your Coverletter</div>
+          <button id="ad-generate-cl-btn" class="btn-outline-pill" style="margin-top:0;">
+            <span style="color:#eab308;">⚡</span> Generate cover letter
+          </button>
+        </div>
+
+        <a href="https://applydesk.io/#/profile" target="_blank" class="edit-info-row" style="text-decoration:none;">
+          <div class="edit-info-text">Edit Your information</div>
+          <div style="font-size:15px;font-weight:700;color:#64748b;">❯</div>
+        </a>
+
+        <div class="edit-info-row" style="cursor:default;">
+          <div class="edit-info-text">Fields</div>
+          <div style="font-size:15px;font-weight:800;color:#0f172a;">${scanResult.percentage || 0}%</div>
+        </div>
+      `;
+
+      const autofillBtn = shadow.getElementById('ad-results-autofill-btn');
+      const autofillMsg = shadow.getElementById('ad-results-autofill-msg');
+      if (autofillBtn) {
+        autofillBtn.addEventListener('click', () => {
+          const fillRes = runAutofill(currentProfile);
+          if (autofillMsg) autofillMsg.innerText = `✅ Autofilled ${fillRes.count || 'form'} fields!`;
+        });
+      }
+    });
   }
 
   // Inject dock tab & drawer widget on web pages automatically
   try {
     injectInPageFloatingDockAndDrawer();
-    chrome.runtime.sendMessage({ type: 'FORM_DETECTED' });
+    if (isExtensionValid()) {
+      chrome.runtime.sendMessage({ type: 'FORM_DETECTED' }, () => {
+        if (chrome.runtime.lastError) { /* ignore silently */ }
+      });
+    }
   } catch(e) {}
 
   // Message listener from extension action, popup, or background
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    const shadow = document.getElementById('applydesk-inpage-host')?.shadowRoot;
-    const drawerPanel = shadow?.getElementById('ad-drawer-panel');
-    const dockTab = shadow?.getElementById('ad-dock-tab');
+  if (isExtensionValid()) {
+    try {
+      chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (!isExtensionValid()) return false;
+        const shadow = document.getElementById('applydesk-inpage-host')?.shadowRoot;
+        const drawerPanel = shadow?.getElementById('ad-drawer-panel');
+        const dockTab = shadow?.getElementById('ad-dock-tab');
 
-    if (request.type === 'TOGGLE_DRAWER') {
-      if (!document.getElementById('applydesk-inpage-host')) {
-        injectInPageFloatingDockAndDrawer();
-      }
-      if (drawerPanel) {
-        if (drawerPanel.classList.contains('open')) {
-          drawerPanel.classList.remove('open');
-          if (dockTab) setTimeout(() => { dockTab.style.display = 'flex'; }, 200);
-        } else {
-          if (dockTab) dockTab.style.display = 'none';
-          drawerPanel.classList.add('open');
+        if (request.type === 'TOGGLE_DRAWER') {
+          if (!document.getElementById('applydesk-inpage-host')) {
+            injectInPageFloatingDockAndDrawer();
+          }
+          if (drawerPanel) {
+            if (drawerPanel.classList.contains('open')) {
+              drawerPanel.classList.remove('open');
+              if (dockTab) setTimeout(() => { dockTab.style.display = 'flex'; }, 200);
+            } else {
+              if (dockTab) dockTab.style.display = 'none';
+              drawerPanel.classList.add('open');
+            }
+          }
+          sendResponse({ success: true });
+        } else if (request.type === 'GET_JOB_DETAILS') {
+          sendResponse(extractJobDetails());
+        } else if (request.type === 'GET_FORM_FIELDS_STATUS') {
+          sendResponse(scanFormFields(request.profile));
+        } else if (request.type === 'TRIGGER_AUTOFILL') {
+          const res = runAutofill(request.profile);
+          const scanRes = scanFormFields(request.profile);
+          sendResponse({ success: true, count: res.count, scan: scanRes });
         }
-      }
-      sendResponse({ success: true });
-    } else if (request.type === 'GET_JOB_DETAILS') {
-      sendResponse(extractJobDetails());
-    } else if (request.type === 'GET_FORM_FIELDS_STATUS') {
-      sendResponse(scanFormFields(request.profile));
-    } else if (request.type === 'TRIGGER_AUTOFILL') {
-      const res = runAutofill(request.profile);
-      const scanRes = scanFormFields(request.profile);
-      sendResponse({ success: true, count: res.count, scan: scanRes });
-    }
-    return true;
-  });
+        return true;
+      });
+    } catch(e) {}
+  }
 })();
