@@ -376,8 +376,17 @@
     };
   }
 
-  // Inject In-Page Floating Edge Dock Tab & Light Drawer Widget matching Design Images 1 & 2
-  function injectInPageFloatingDockAndDrawer() {
+  // Helper to check if extension context is valid
+  function isExtensionValid() {
+    try {
+      return Boolean(typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id);
+    } catch(e) {
+      return false;
+    }
+  }
+
+  // Inject Right-Edge Floating Dock Tab connected to Chrome Extension Side Panel
+  function injectInPageFloatingDockTab() {
     if (document.getElementById('applydesk-inpage-host')) return;
 
     const host = document.createElement('div');
@@ -391,7 +400,7 @@
     style.textContent = `
       * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 
-      /* Floating Right Edge Dock Tab (Image 2 - Light Pill with Green Paperplane Circle) */
+      /* Floating Right Edge Dock Tab (Light Semi-Circle Pill with Green Circle & Paperplane Icon) */
       .dock-tab {
         position: fixed;
         right: 0;
@@ -403,7 +412,7 @@
         border: 1.5px solid #cbd5e1;
         border-right: none;
         border-radius: 29px 0 0 29px;
-        display: flex;
+        display: none; /* Hidden by default until user collapses extension sidepanel */
         align-items: center;
         justify-content: center;
         cursor: pointer;
@@ -435,305 +444,15 @@
         margin-left: -2px;
         margin-top: 1px;
       }
-
-      /* Sliding Drawer Panel (Pixel-Perfect Light UI matching screenshot) */
-      .drawer-panel {
-        position: fixed;
-        top: 0;
-        right: 0;
-        width: 385px;
-        height: 100vh;
-        background: #f4f4f6;
-        color: #0f172a;
-        border-left: 1px solid #e2e8f0;
-        box-shadow: -10px 0 40px rgba(0, 0, 0, 0.08);
-        transform: translateX(100%);
-        transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
-        pointer-events: auto;
-        display: flex;
-        flex-direction: column;
-        z-index: 2147483647;
-      }
-
-      .drawer-panel.open {
-        transform: translateX(0);
-      }
-
-      /* Header */
-      .drawer-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 20px 20px 14px 20px;
-        background: #f4f4f6;
-      }
-
-      .brand { display: flex; align-items: center; gap: 12px; }
-
-      .brand-logo-box {
-        width: 44px;
-        height: 44px;
-        background: #fbf5e8;
-        border: 1.5px solid #e8dfc8;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .brand-title { font-size: 15px; font-weight: 800; color: #0f172a; letter-spacing: -0.01em; margin-bottom: 2px; }
-      .brand-sub { font-size: 12px; color: #64748b; font-weight: 500; }
-
-      .header-controls { display: flex; align-items: center; gap: 8px; }
-
-      .token-pill {
-        background: #ffffff;
-        color: #0f172a;
-        border-radius: 20px;
-        padding: 6px 14px;
-        font-size: 14px;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-      }
-
-      /* Circular Collapse Arrow Button (Image 1) */
-      .collapse-btn-circle {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        background: #ffffff;
-        color: #0f172a;
-        border: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        transition: transform 0.2s ease, background 0.2s ease;
-      }
-
-      .collapse-btn-circle:hover {
-        background: #f1f5f9;
-        transform: scale(1.06);
-      }
-
-      /* Drawer Body */
-      .drawer-body {
-        flex: 1;
-        overflow-y: auto;
-        padding: 4px 16px 24px 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      /* White Cards */
-      .card-white {
-        background: #ffffff;
-        border-radius: 20px;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
-        display: flex;
-        flex-direction: column;
-      }
-
-      .card-title-lg {
-        font-size: 16px;
-        font-weight: 800;
-        color: #0f172a;
-        line-height: 1.35;
-        margin-bottom: 16px;
-      }
-
-      .btn-black-pill {
-        width: 100%;
-        height: 52px;
-        background: #000000;
-        color: #ffffff;
-        border-radius: 26px;
-        font-size: 15px;
-        font-weight: 700;
-        border: none;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: opacity 0.2s ease, transform 0.15s ease;
-      }
-
-      .btn-black-pill:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
-      }
-
-      .btn-outline-pill {
-        width: 100%;
-        height: 48px;
-        background: #ffffff;
-        color: #000000;
-        border: 1.8px solid #000000;
-        border-radius: 24px;
-        font-size: 14px;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        cursor: pointer;
-        margin-top: 14px;
-        transition: background 0.2s ease, transform 0.15s ease;
-      }
-
-      .btn-outline-pill:hover {
-        background: #f8fafc;
-        transform: translateY(-1px);
-      }
-
-      .edit-info-row {
-        background: #ffffff;
-        border-radius: 20px;
-        padding: 18px 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        cursor: pointer;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
-        transition: background 0.2s ease;
-      }
-
-      .edit-info-row:hover { background: #f8fafc; }
-      .edit-info-text { font-size: 15px; font-weight: 800; color: #0f172a; }
-
-      .loading-screen {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 80px 20px;
-        gap: 20px;
-      }
-
-      .spinner-ring {
-        width: 50px;
-        height: 50px;
-        border: 3.5px solid #e2e8f0;
-        border-top-color: #000000;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-
-      @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-
-      .loading-title {
-        font-size: 16px;
-        font-weight: 800;
-        color: #0f172a;
-      }
-
-      .metric-pills-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
-        margin: 14px 0 18px 0;
-      }
-
-      .pill-box {
-        border-radius: 14px;
-        padding: 12px 8px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-      }
-
-      .pill-box-green { background: #f0fdf4; border: 1px solid #bbf7d0; }
-      .pill-box-green .pill-score-val { color: #16a34a; }
-      .pill-box-green .pill-score-lbl { color: #16a34a; }
-
-      .pill-box-gray { background: #f8fafc; border: 1px solid #e2e8f0; }
-      .pill-box-gray .pill-score-val { color: #0f172a; }
-      .pill-box-gray .pill-score-lbl { color: #64748b; }
-
-      .pill-score-val { font-size: 18px; font-weight: 800; line-height: 1.2; }
-      .pill-score-lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.04em; margin-top: 4px; }
     `;
 
     const widget = document.createElement('div');
     widget.innerHTML = `
-      <!-- Floating Right Edge Dock Tab (Image 2) -->
       <div id="ad-dock-tab" class="dock-tab" title="Open ApplyDesk Copilot">
         <div class="dock-green-circle">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
           </svg>
-        </div>
-      </div>
-
-      <!-- Sliding Overlay Drawer Panel (Image 1 Light Header & Layout) -->
-      <div id="ad-drawer-panel" class="drawer-panel">
-        <header class="drawer-header">
-          <div class="brand">
-            <div class="brand-logo-box">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 18V10C4 6.68629 6.68629 4 10 4H14C17.3137 4 20 6.68629 20 10V18"></path>
-              </svg>
-            </div>
-            <div>
-              <div class="brand-title">Applydesk.io</div>
-              <div class="brand-sub">Auto-Apply with confidence.</div>
-            </div>
-          </div>
-          <div class="header-controls">
-            <div class="token-pill">
-              <span id="ad-token-count">0</span>
-              <span style="color:#f97316;">✦</span>
-            </div>
-            <!-- Collapse Button (Image 1) -->
-            <button id="ad-collapse-btn" class="collapse-btn-circle" title="Collapse Panel">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </button>
-          </div>
-        </header>
-
-        <div id="ad-drawer-main-content" class="drawer-body">
-          <!-- Card 1: Add to match score and autofill forms -->
-          <div class="card-white">
-            <div class="card-title-lg">Add to match score and autofill forms</div>
-            <button id="ad-add-job-action" class="btn-black-pill">
-              +Add this job to Applydesk
-            </button>
-            <div id="ad-add-job-msg" style="font-size:12px;color:#64748b;text-align:center;margin-top:8px;"></div>
-          </div>
-
-          <!-- Card 2: Resume Score -->
-          <div class="card-white">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-              <div style="font-size:16px;font-weight:800;color:#0f172a;">Resume Score</div>
-              <div id="ad-resume-score-val" style="font-size:16px;font-weight:700;color:#94a3b8;">0/100</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-              <span style="font-size:20px;">📁</span>
-              <span id="ad-resume-filename-val" style="font-size:13px;font-weight:600;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">OmidMoradi_25jun.PDF</span>
-            </div>
-            <button id="ad-fix-resume-btn" class="btn-outline-pill">
-              <span style="color:#eab308;">⚡</span> Fix resume issues
-            </button>
-          </div>
-
-          <!-- Card 3: Edit Your information -->
-          <a href="https://applydesk.io/#/profile" target="_blank" class="edit-info-row" style="text-decoration:none;">
-            <div class="edit-info-text">Edit Your information</div>
-            <div style="font-size:15px;font-weight:700;color:#64748b;">❯</div>
-          </a>
         </div>
       </div>
     `;
@@ -742,175 +461,21 @@
     shadow.appendChild(widget);
 
     const dockTab = shadow.getElementById('ad-dock-tab');
-    const drawerPanel = shadow.getElementById('ad-drawer-panel');
-    const collapseBtn = shadow.getElementById('ad-collapse-btn');
-    const addJobBtn = shadow.getElementById('ad-add-job-action');
-    const drawerMain = shadow.getElementById('ad-drawer-main-content');
-
-  // Helper to check if extension context is valid
-  function isExtensionValid() {
-    try {
-      return Boolean(typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id);
-    } catch(e) {
-      return false;
-    }
-  }
-
-  // Load Candidate Profile & Resume filename
-  let currentProfile = {};
-  if (isExtensionValid()) {
-    try {
-      chrome.storage.local.get('resumeok_profile', (res) => {
-        if (!isExtensionValid() || chrome.runtime.lastError) return;
-        if (res && res.resumeok_profile) {
-          currentProfile = res.resumeok_profile;
-          const filename = currentProfile.resumeFileName || (currentProfile.firstName ? `${currentProfile.firstName}_25jun.PDF` : 'OmidMoradi_25jun.PDF');
-          const fnEl = shadow.getElementById('ad-resume-filename-val');
-          if (fnEl) fnEl.innerText = filename;
-        }
-      });
-    } catch(e) {}
-  }
-
-  // 1. CLICK COLLAPSE ARROW > (Image 1) -> Hides Panel & Shows Dock Tab (Image 2)
-  collapseBtn.addEventListener('click', () => {
-    drawerPanel.classList.remove('open');
-    setTimeout(() => {
-      dockTab.style.display = 'flex';
-    }, 220);
-  });
-
-  // 2. CLICK DOCK TAB (Image 2) -> Hides Dock Tab & Shows Panel
-  dockTab.addEventListener('click', () => {
-    dockTab.style.display = 'none';
-    drawerPanel.classList.add('open');
-  });
-
-  // 3. Click "+Add this job to Applydesk" -> 2-Stage Loaders & Results View
-  if (addJobBtn) {
-    addJobBtn.addEventListener('click', async () => {
-      if (isExtensionValid()) {
-        try {
-          const storageData = await chrome.storage.local.get('resumeok_profile');
-          if (storageData && storageData.resumeok_profile) {
-            currentProfile = storageData.resumeok_profile;
-          }
-        } catch(e) {}
-      }
-
-      const hasResume = currentProfile.resumeFileName || currentProfile.resumeFile || currentProfile.resumeBase64 || (currentProfile.skills && currentProfile.skills.length > 3) || currentProfile.firstName;
-      if (!hasResume) {
-        const msg = shadow.getElementById('ad-add-job-msg');
-        if (msg) msg.innerHTML = '<span style="color:#ef4444;font-weight:700;">⚠️ Please upload or enter your candidate resume in Applydesk first.</span>';
-        window.open('https://applydesk.io/#/profile', '_blank');
-        return;
-      }
-
-      // STEP 1: Scanning Job...
-      drawerMain.innerHTML = `
-        <div class="loading-screen">
-          <div class="spinner-ring"></div>
-          <div class="loading-title">Scanning Job...</div>
-        </div>
-      `;
-
-      const jobInfo = extractJobDetails();
-      await new Promise(r => setTimeout(r, 1300));
-
-      // STEP 2: Score Matching...
-      drawerMain.innerHTML = `
-        <div class="loading-screen">
-          <div class="spinner-ring"></div>
-          <div class="loading-title">Score Matching...</div>
-        </div>
-      `;
-
-      const matchResult = calculateRealJobMatch(jobInfo, currentProfile);
-      const scanResult = scanFormFields(currentProfile);
-      await new Promise(r => setTimeout(r, 1300));
-
-      const resumeFileName = currentProfile.resumeFileName || (currentProfile.firstName ? `${currentProfile.firstName}_25jun.PDF` : 'OmidMoradi_25jun.PDF');
-
-      // STEP 3: Results View
-      drawerMain.innerHTML = `
-        <div class="card-white">
-          <div style="font-size:17px;font-weight:800;color:#0f172a;line-height:1.3;margin-bottom:4px;">${jobInfo.title}</div>
-          <div style="font-size:13px;font-weight:500;color:#64748b;margin-bottom:12px;">${jobInfo.location ? jobInfo.location + ' • ' : ''}${jobInfo.industry || jobInfo.company}</div>
-          <div style="border-bottom: 1px solid #f1f5f9; margin-bottom: 14px;"></div>
-          
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:16px;font-weight:800;color:#0f172a;">Job Match</span>
-            <span style="font-size:17px;font-weight:800;color:#0f172a;">${matchResult.jobMatch}/100</span>
-          </div>
-
-          <div class="metric-pills-grid">
-            <div class="pill-box pill-box-green">
-              <div class="pill-score-val">${matchResult.jobMatch}%</div>
-              <div class="pill-score-lbl">JOB MATCH</div>
-            </div>
-            <div class="pill-box pill-box-gray">
-              <div class="pill-score-val">${matchResult.skillsScore}%</div>
-              <div class="pill-score-lbl">SKILLS</div>
-            </div>
-            <div class="pill-box pill-box-gray">
-              <div class="pill-score-val">${matchResult.resumeScore}%</div>
-              <div class="pill-score-lbl">RESUME</div>
-            </div>
-          </div>
-
-          <button id="ad-results-autofill-btn" class="btn-black-pill">
-            Autofill Form
-          </button>
-          <div id="ad-results-autofill-msg" style="font-size:12px;color:#10b981;text-align:center;margin-top:6px;font-weight:700;"></div>
-        </div>
-
-        <div class="card-white">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <div style="font-size:16px;font-weight:800;color:#0f172a;">Resume Score</div>
-            <div style="font-size:16px;font-weight:700;color:#0f172a;">${matchResult.resumeScore}/100</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-            <span style="font-size:20px;">📁</span>
-            <span style="font-size:13px;font-weight:600;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${resumeFileName}</span>
-          </div>
-          <button id="ad-fix-resume-btn-2" class="btn-outline-pill">
-            <span style="color:#eab308;">⚡</span> Fix resume issues
-          </button>
-        </div>
-
-        <div class="card-white">
-          <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:12px;">Your Coverletter</div>
-          <button id="ad-generate-cl-btn" class="btn-outline-pill" style="margin-top:0;">
-            <span style="color:#eab308;">⚡</span> Generate cover letter
-          </button>
-        </div>
-
-        <a href="https://applydesk.io/#/profile" target="_blank" class="edit-info-row" style="text-decoration:none;">
-          <div class="edit-info-text">Edit Your information</div>
-          <div style="font-size:15px;font-weight:700;color:#64748b;">❯</div>
-        </a>
-
-        <div class="edit-info-row" style="cursor:default;">
-          <div class="edit-info-text">Fields</div>
-          <div style="font-size:15px;font-weight:800;color:#0f172a;">${scanResult.percentage || 0}%</div>
-        </div>
-      `;
-
-        const autofillBtn = shadow.getElementById('ad-results-autofill-btn');
-        const autofillMsg = shadow.getElementById('ad-results-autofill-msg');
-        if (autofillBtn) {
-          autofillBtn.addEventListener('click', () => {
-            const fillRes = runAutofill(currentProfile);
-            if (autofillMsg) autofillMsg.innerText = `✅ Autofilled ${fillRes.count || 'form'} fields!`;
+    if (dockTab) {
+      dockTab.addEventListener('click', () => {
+        dockTab.style.display = 'none';
+        if (isExtensionValid()) {
+          chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' }, () => {
+            if (chrome.runtime.lastError) { /* ignore */ }
           });
         }
       });
     }
   }
 
-  // Inject dock tab & drawer widget on web pages automatically
+  // Inject dock tab container on page load
   try {
-    injectInPageFloatingDockAndDrawer();
+    injectInPageFloatingDockTab();
     if (isExtensionValid()) {
       chrome.runtime.sendMessage({ type: 'FORM_DETECTED' }, () => {
         if (chrome.runtime.lastError) { /* ignore silently */ }
@@ -918,36 +483,33 @@
     }
   } catch(e) {}
 
-  // Message listener from extension action, popup, or background
+  // Message listener from extension action, popup, sidepanel, or background
   if (isExtensionValid()) {
     try {
       chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (!isExtensionValid()) return false;
+
+        if (!document.getElementById('applydesk-inpage-host')) {
+          injectInPageFloatingDockTab();
+        }
         const shadow = document.getElementById('applydesk-inpage-host')?.shadowRoot;
-        const drawerPanel = shadow?.getElementById('ad-drawer-panel');
         const dockTab = shadow?.getElementById('ad-dock-tab');
 
         if (request.type === 'SHOW_DOCK_TAB' || request.type === 'COLLAPSE_DRAWER') {
-          if (!document.getElementById('applydesk-inpage-host')) {
-            injectInPageFloatingDockAndDrawer();
-          }
-          const shadow = document.getElementById('applydesk-inpage-host')?.shadowRoot;
-          const drawerPanel = shadow?.getElementById('ad-drawer-panel');
-          const dockTab = shadow?.getElementById('ad-dock-tab');
-          if (drawerPanel) drawerPanel.classList.remove('open');
           if (dockTab) dockTab.style.display = 'flex';
           sendResponse({ success: true });
+        } else if (request.type === 'HIDE_DOCK_TAB') {
+          if (dockTab) dockTab.style.display = 'none';
+          sendResponse({ success: true });
         } else if (request.type === 'TOGGLE_DRAWER') {
-          if (!document.getElementById('applydesk-inpage-host')) {
-            injectInPageFloatingDockAndDrawer();
-          }
-          if (drawerPanel) {
-            if (drawerPanel.classList.contains('open')) {
-              drawerPanel.classList.remove('open');
-              if (dockTab) setTimeout(() => { dockTab.style.display = 'flex'; }, 200);
+          if (dockTab) {
+            if (dockTab.style.display === 'none') {
+              dockTab.style.display = 'flex';
             } else {
-              if (dockTab) dockTab.style.display = 'none';
-              drawerPanel.classList.add('open');
+              dockTab.style.display = 'none';
+              chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' }, () => {
+                if (chrome.runtime.lastError) { /* ignore */ }
+              });
             }
           }
           sendResponse({ success: true });
