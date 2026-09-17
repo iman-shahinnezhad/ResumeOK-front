@@ -403,7 +403,7 @@
         border: 1.5px solid #cbd5e1;
         border-right: none;
         border-radius: 29px 0 0 29px;
-        display: none;
+        display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
@@ -677,7 +677,7 @@
       </div>
 
       <!-- Sliding Overlay Drawer Panel (Image 1 Light Header & Layout) -->
-      <div id="ad-drawer-panel" class="drawer-panel open">
+      <div id="ad-drawer-panel" class="drawer-panel">
         <header class="drawer-header">
           <div class="brand">
             <div class="brand-logo-box">
