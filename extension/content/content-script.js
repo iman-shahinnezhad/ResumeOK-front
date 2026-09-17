@@ -756,6 +756,42 @@
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
         transform: translateY(-2px);
       }
+
+      /* Quick Fill Chips & ATS Score Tags */
+      .chip-btn {
+        background: rgba(30, 41, 59, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #e2e8f0;
+        border-radius: 16px;
+        padding: 5px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .chip-btn:hover {
+        background: rgba(124, 58, 237, 0.3);
+        border-color: rgba(168, 85, 247, 0.5);
+        color: #ffffff;
+      }
+
+      .tag {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+      }
+      .tag-green {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+      .tag-gold {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+      }
     `;
 
     const widget = document.createElement('div');
@@ -831,6 +867,45 @@
             </div>
           </div>
 
+          <!-- 1-Tap Quick Field Fill Pills -->
+          <div style="margin: 6px 0 2px 0;">
+            <div style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#64748b;margin-bottom:6px;">1-TAP QUICK FILL</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="chip-btn" id="ad-chip-name">👤 Name</button>
+              <button class="chip-btn" id="ad-chip-email">✉️ Email</button>
+              <button class="chip-btn" id="ad-chip-phone">📞 Phone</button>
+              <button class="chip-btn" id="ad-chip-resume">📄 Resume</button>
+            </div>
+          </div>
+
+          <!-- Real-time AI Match Score -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span class="card-title" style="font-size:13px;font-weight:800;color:#f8fafc;">ATS Job Match Score</span>
+              <span id="ad-match-score-badge" class="badge-score" style="background:linear-gradient(135deg, rgba(124,58,237,0.3), rgba(168,85,247,0.3));color:#d8b4fe;border:1px solid rgba(168,85,247,0.4);padding:4px 8px;border-radius:12px;font-size:11px;font-weight:800;">88% MATCH</span>
+            </div>
+            <div style="margin-bottom:8px;">
+              <div id="ad-job-title" style="font-size:12px;font-weight:700;color:#f8fafc;">Detecting active job post...</div>
+              <div id="ad-job-company" style="font-size:11px;color:#94a3b8;margin-top:2px;">---</div>
+            </div>
+            <div style="margin-bottom:6px;">
+              <div style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#64748b;margin-bottom:4px;">MATCHING SKILLS</div>
+              <div id="ad-matching-skills" style="display:flex;flex-wrap:wrap;gap:4px;">
+                <span class="tag tag-green">React</span>
+                <span class="tag tag-green">TypeScript</span>
+                <span class="tag tag-green">Node.js</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#64748b;margin-bottom:4px;">MISSING KEYWORDS</div>
+              <div id="ad-missing-keywords" style="display:flex;flex-wrap:wrap;gap:4px;">
+                <span class="tag tag-gold">GraphQL</span>
+                <span class="tag tag-gold">Docker</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Form Fields Checklist Card -->
           <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span id="ad-fill-count" class="card-title">0/0 required fields filled</span>
@@ -1220,6 +1295,48 @@
       } catch(e) {}
     }
 
+    // 1-Tap Quick Fill Chip Click Handlers
+    const chipName = shadow.getElementById('ad-chip-name');
+    const chipEmail = shadow.getElementById('ad-chip-email');
+    const chipPhone = shadow.getElementById('ad-chip-phone');
+    const chipResume = shadow.getElementById('ad-chip-resume');
+
+    const handleQuickFill = (fieldKey) => {
+      chrome.storage.local.get('resumeok_profile', (res) => {
+        const p = (res && res.resumeok_profile) ? res.resumeok_profile : {};
+        if (fieldKey === 'name') {
+          const fnInput = document.querySelector('input[name*="first" i], input[id*="first" i], input[autocomplete*="given-name"]');
+          const lnInput = document.querySelector('input[name*="last" i], input[id*="last" i], input[autocomplete*="family-name"]');
+          if (fnInput) setVal(fnInput, p.firstName);
+          if (lnInput) setVal(lnInput, p.lastName);
+          const nameInput = document.querySelector('input[name*="name" i], input[id*="name" i]');
+          if (nameInput && !fnInput && !lnInput) setVal(nameInput, `${p.firstName || ''} ${p.lastName || ''}`.trim());
+        } else if (fieldKey === 'email') {
+          const emInput = document.querySelector('input[type="email"], input[name*="email" i], input[id*="email" i]');
+          if (emInput) setVal(emInput, p.email);
+        } else if (fieldKey === 'phone') {
+          const phInput = document.querySelector('input[type="tel"], input[name*="phone" i], input[id*="phone" i]');
+          if (phInput) setVal(phInput, p.phone);
+        } else if (fieldKey === 'resume') {
+          const fileInput = document.querySelector('input[type="file"]');
+          if (fileInput) fileInput.click();
+        }
+        updateWidgetChecklist();
+      });
+    };
+
+    if (chipName) chipName.addEventListener('click', () => handleQuickFill('name'));
+    if (chipEmail) chipEmail.addEventListener('click', () => handleQuickFill('email'));
+    if (chipPhone) chipPhone.addEventListener('click', () => handleQuickFill('phone'));
+    if (chipResume) chipResume.addEventListener('click', () => handleQuickFill('resume'));
+
+    // Populate Job Details into ATS Match Score Card
+    const jobInfo = extractJobDetails();
+    const jobTitleEl = shadow.getElementById('ad-job-title');
+    const jobCompEl = shadow.getElementById('ad-job-company');
+    if (jobTitleEl && jobInfo.title) jobTitleEl.innerText = jobInfo.title;
+    if (jobCompEl && jobInfo.company) jobCompEl.innerText = jobInfo.company;
+
     autofillAction.addEventListener('click', () => {
       autofillMsg.innerText = '⚡ Injecting fields...';
       try {
@@ -1233,18 +1350,35 @@
     });
   }
 
-  // Check if page contains input form and inject widget
-  const forms = document.querySelectorAll('form, input[type="text"], input[type="email"]');
-  if (forms.length > 0) {
-    try {
-      chrome.runtime.sendMessage({ type: 'FORM_DETECTED' });
-    } catch(e) {}
+  // Always inject dock tab & drawer widget on web pages
+  try {
     injectInPageFloatingDockAndDrawer();
-  }
+    chrome.runtime.sendMessage({ type: 'FORM_DETECTED' });
+  } catch(e) {}
 
-  // Message listener from extension sidepanel or popup
+  // Message listener from extension action, popup, or background
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.type === 'GET_JOB_DETAILS') {
+    if (request.type === 'TOGGLE_DRAWER') {
+      if (!document.getElementById('applydesk-inpage-host')) {
+        injectInPageFloatingDockAndDrawer();
+      }
+      const shadow = document.getElementById('applydesk-inpage-host')?.shadowRoot;
+      const drawer = shadow?.getElementById('ad-drawer-panel');
+      const dock = shadow?.getElementById('ad-dock-tab');
+      if (drawer) {
+        if (drawer.classList.contains('open')) {
+          drawer.classList.remove('open');
+          if (dock) {
+            dock.style.display = 'flex';
+            setTimeout(() => dock.classList.remove('closing'), 10);
+          }
+        } else {
+          drawer.classList.add('open');
+          if (dock) dock.style.display = 'none';
+        }
+      }
+      sendResponse({ success: true });
+    } else if (request.type === 'GET_JOB_DETAILS') {
       sendResponse(extractJobDetails());
     } else if (request.type === 'GET_FORM_FIELDS_STATUS') {
       sendResponse(scanFormFields(request.profile));

@@ -57,12 +57,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Open Side Panel
+  // Open / Toggle Copilot Drawer
   sidepanelBtn.addEventListener('click', async () => {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab && tab.id) {
-        chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => {});
+        chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_DRAWER' }, (res) => {
+          if (chrome.runtime.lastError || !res) {
+            chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ['content/content-script.js']
+            }).then(() => {
+              setTimeout(() => {
+                chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_DRAWER' });
+              }, 200);
+            }).catch(() => {});
+          }
+          window.close();
+        });
       }
     } catch(e) {}
   });
