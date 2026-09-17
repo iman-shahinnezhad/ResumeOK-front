@@ -319,35 +319,33 @@
     style.textContent = `
       * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 
-      /* Floating Right Edge Dock Tab (Jobright Style White Pill) */
+      /* Floating Right Edge Dock Tab (Clean Light Pill Badge) */
       .dock-tab {
         position: fixed;
         right: 0;
         top: 38%;
         transform: translateY(-50%);
-        width: 52px;
-        height: 60px;
+        width: 54px;
+        height: 54px;
         background: #ffffff;
-        border: 1.5px solid rgba(226, 232, 240, 0.9);
+        border: 1.5px solid #e2e8f0;
         border-right: none;
-        border-radius: 30px 0 0 30px;
+        border-radius: 27px 0 0 27px;
         display: flex;
         align-items: center;
-        justify-content: flex-start;
-        padding-left: 6px;
+        justify-content: center;
         cursor: pointer;
         pointer-events: auto;
-        box-shadow: -6px 8px 24px rgba(15, 23, 42, 0.18);
-        transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, opacity 0.25s ease;
+        box-shadow: -4px 6px 20px rgba(15, 23, 42, 0.12);
+        transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, opacity 0.25s ease;
         z-index: 2147483646;
         opacity: 1;
         overflow: hidden;
       }
 
-      /* Hover micro-animation: expands width outwards to left while right edge stays 100% flush to screen wall */
       .dock-tab:hover {
-        width: 66px;
-        box-shadow: -10px 14px 32px rgba(15, 23, 42, 0.25), 0 0 20px rgba(0, 230, 153, 0.35);
+        width: 64px;
+        box-shadow: -6px 10px 28px rgba(15, 23, 42, 0.18);
       }
 
       .dock-tab.closing {
@@ -356,34 +354,28 @@
         pointer-events: none;
       }
 
-      .dock-logo-badge {
-        width: 44px;
-        height: 44px;
-        background: linear-gradient(135deg, #00e699, #10b981);
-        border-radius: 50%;
+      .dock-logo-box-sm {
+        width: 38px;
+        height: 38px;
+        background: #fbf5e8;
+        border: 1.5px solid #e8dfc8;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #0f172a;
-        box-shadow: 0 4px 14px rgba(0, 230, 153, 0.4);
-        transition: transform 0.3s ease;
       }
 
-      .dock-tab:hover .dock-logo-badge {
-        transform: rotate(-8deg) scale(1.08);
-      }
-
-      /* Sliding Overlay Drawer Panel */
+      /* Sliding Overlay Drawer Panel (Light Clean UI matching screenshot) */
       .drawer-panel {
         position: fixed;
         top: 0;
         right: 0;
         width: 380px;
         height: 100vh;
-        background: #0f172a;
-        color: #f8fafc;
-        border-left: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: -12px 0 50px rgba(0, 0, 0, 0.65);
+        background: #f4f4f6;
+        color: #0f172a;
+        border-left: 1px solid #e2e8f0;
+        box-shadow: -10px 0 40px rgba(0, 0, 0, 0.08);
         transform: translateX(100%);
         transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         pointer-events: auto;
@@ -401,199 +393,212 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 16px 20px;
-        background: rgba(30, 41, 59, 0.85);
-        backdrop-filter: blur(12px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 20px 20px 14px 20px;
+        background: #f4f4f6;
       }
 
-      .brand { display: flex; align-items: center; gap: 10px; }
-      .brand-title { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
-      .brand-sub { font-size: 11px; color: #94a3b8; font-weight: 500; }
+      .brand { display: flex; align-items: center; gap: 12px; }
 
-      .header-controls { display: flex; align-items: center; gap: 6px; }
-
-      .icon-btn-text {
-        background: rgba(255, 255, 255, 0.08);
-        color: #e2e8f0;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        padding: 6px 12px;
-        border-radius: 16px;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.15s ease;
+      .brand-logo-box {
+        width: 44px;
+        height: 44px;
+        background: #fbf5e8;
+        border: 1.5px solid #e8dfc8;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
-      .icon-btn-text:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+      .brand-title { font-size: 15px; font-weight: 800; color: #0f172a; letter-spacing: -0.01em; margin-bottom: 2px; }
+      .brand-sub { font-size: 12px; color: #64748b; font-weight: 500; }
 
-      .icon-btn-round {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.08);
-        color: #e2e8f0;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        font-size: 13px;
+      .header-controls { display: flex; align-items: center; gap: 8px; }
+
+      .token-pill {
+        background: #ffffff;
+        color: #0f172a;
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 14px;
         font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      }
+
+      .collapse-btn-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: #ffffff;
+        color: #0f172a;
+        border: none;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        transition: transform 0.2s ease, background 0.2s ease;
       }
 
-      .icon-btn-round:hover {
-        background: rgba(124, 58, 237, 0.3);
-        border-color: rgba(168, 85, 247, 0.5);
-        color: #ffffff;
-        transform: scale(1.1);
+      .collapse-btn-circle:hover {
+        background: #f1f5f9;
+        transform: scale(1.05);
       }
 
-      .icon-btn-collapse {
-        background: rgba(255, 255, 255, 0.1);
-        color: #ffffff;
-      }
-
-      .icon-btn-collapse:hover {
-        background: rgba(0, 230, 153, 0.25);
-        border-color: rgba(0, 230, 153, 0.6);
-        transform: translateX(2px) scale(1.1);
-      }
-
-      /* Drawer Content Body */
+      /* Drawer Body */
       .drawer-body {
         flex: 1;
         overflow-y: auto;
-        padding: 18px 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
-
-      .btn-autofill {
-        width: 100%;
-        height: 48px;
-        background: linear-gradient(135deg, #00e699, #059669);
-        color: #0f172a;
-        border: none;
-        border-radius: 12px;
-        font-size: 15px;
-        font-weight: 800;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        box-shadow: 0 6px 20px rgba(0, 230, 153, 0.35);
-        transition: transform 0.15s ease, box-shadow 0.2s ease;
-      }
-      .btn-autofill:hover {
-        box-shadow: 0 8px 26px rgba(0, 230, 153, 0.5);
-        transform: translateY(-1px);
-      }
-      .btn-autofill:active { transform: scale(0.98); }
-
-      /* Accordion Items (Jobright Style) */
-      .accordion-card {
-        background: rgba(30, 41, 59, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        overflow: hidden;
-      }
-
-      .accordion-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 14px 16px;
-        cursor: pointer;
-        font-size: 13px;
-        font-weight: 700;
-        color: #f8fafc;
-        transition: background 0.15s ease;
-      }
-
-      .accordion-row:hover { background: rgba(255, 255, 255, 0.06); }
-      .accordion-row-title { display: flex; align-items: center; gap: 10px; }
-      .accordion-chevron { font-size: 12px; color: #94a3b8; transition: transform 0.2s ease; }
-
-      .accordion-subcontent {
-        padding: 0 16px 14px 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-      }
-
-      .file-name-tag {
-        font-size: 11px;
-        font-family: monospace;
-        color: #94a3b8;
-        background: rgba(0,0,0,0.3);
-        padding: 6px 10px;
-        border-radius: 6px;
-        word-break: break-all;
-      }
-
-      .btn-secondary-action {
-        width: 100%;
-        padding: 8px 12px;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: #f1f5f9;
-        border-radius: 8px;
-        font-size: 12px;
-        font-weight: 700;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        transition: all 0.2s ease;
-      }
-
-      .btn-secondary-action:hover {
-        background: rgba(0, 230, 153, 0.15);
-        border-color: rgba(0, 230, 153, 0.4);
-        color: #34d399;
-      }
-
-      /* Cards */
-      .card {
-        background: rgba(30, 41, 59, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 14px;
-        padding: 16px;
+        padding: 4px 16px 24px 16px;
         display: flex;
         flex-direction: column;
         gap: 12px;
       }
 
-      .card-title { font-size: 14px; font-weight: 700; color: #f1f5f9; }
-      .badge-score { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+      /* Pixel Perfect White Cards */
+      .card-white {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        display: flex;
+        flex-direction: column;
+      }
 
-      .progress-bar-track { width: 100%; height: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 10px; overflow: hidden; margin-top: 4px; }
-      .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #00e699, #34d399); border-radius: 10px; transition: width 0.4s ease; }
+      .card-title-lg {
+        font-size: 16px;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.35;
+        margin-bottom: 16px;
+      }
+
+      .btn-black-pill {
+        width: 100%;
+        height: 52px;
+        background: #000000;
+        color: #ffffff;
+        border-radius: 26px;
+        font-size: 15px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.2s ease, transform 0.15s ease;
+      }
+
+      .btn-black-pill:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+
+      .btn-black-pill:active { transform: scale(0.98); }
+
+      .btn-outline-pill {
+        width: 100%;
+        height: 48px;
+        background: #ffffff;
+        color: #000000;
+        border: 1.8px solid #000000;
+        border-radius: 24px;
+        font-size: 14px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        cursor: pointer;
+        margin-top: 14px;
+        transition: background 0.2s ease, transform 0.15s ease;
+      }
+
+      .btn-outline-pill:hover {
+        background: #f8fafc;
+        transform: translateY(-1px);
+      }
+
+      .edit-info-row {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 18px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        transition: background 0.2s ease;
+      }
+
+      .edit-info-row:hover {
+        background: #f8fafc;
+      }
+
+      .edit-info-text {
+        font-size: 15px;
+        font-weight: 800;
+        color: #0f172a;
+      }
+
+      /* Quick Fill Chips & ATS Score Tags */
+      .chip-btn {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        color: #1e293b;
+        border-radius: 16px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+      }
+      .chip-btn:hover {
+        background: #f1f5f9;
+        border-color: #000000;
+        color: #000000;
+      }
+
+      .tag {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+      }
+      .tag-green {
+        background: #ecfdf5;
+        color: #059669;
+        border: 1px solid #a7f3d0;
+      }
+      .tag-gold {
+        background: #fffbeb;
+        color: #d97706;
+        border: 1px solid #fde68a;
+      }
 
       .checklist-items { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; }
-      .check-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06); }
-      .check-item-success { color: #34d399; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.2); }
-      .check-item-warning { color: #fbbf24; background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.25); justify-content: space-between; }
-      .check-item-unfilled { color: #94a3b8; background: rgba(255, 255, 255, 0.03); }
+      .check-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; background: #f8fafc; border: 1px solid #e2e8f0; }
+      .check-item-success { color: #059669; background: #ecfdf5; border-color: #a7f3d0; }
+      .check-item-warning { color: #d97706; background: #fffbeb; border-color: #fde68a; justify-content: space-between; }
+      .check-item-unfilled { color: #64748b; background: #f8fafc; }
 
       .check-icon { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; }
-      .check-item-success .check-icon { background: #10b981; color: #0f172a; }
-      .check-item-warning .check-icon { background: #f59e0b; color: #0f172a; }
-      .check-item-unfilled .check-icon { background: rgba(255, 255, 255, 0.15); color: #94a3b8; }
-      .missing-notice-btn { font-size: 10px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 3px 8px; border-radius: 6px; text-decoration: none; font-weight: 700; }
+      .check-item-success .check-icon { background: #10b981; color: #ffffff; }
+      .check-item-warning .check-icon { background: #f59e0b; color: #ffffff; }
+      .check-item-unfilled .check-icon { background: #cbd5e1; color: #ffffff; }
+      .missing-notice-btn { font-size: 10px; background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-weight: 700; }
 
-      /* MODAL POPUP DIALOG (ApplyDesk Custom Glassmorphic Dark Theme) */
+      /* MODAL POPUP DIALOG (ApplyDesk Custom Light Glassmorphic Theme) */
       .modal-overlay {
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(15, 23, 42, 0.85);
-        backdrop-filter: blur(12px);
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(8px);
         z-index: 2147483648;
         display: flex;
         align-items: center;
@@ -612,11 +617,11 @@
         width: 820px;
         max-width: 94vw;
         max-height: 90vh;
-        background: rgba(15, 23, 42, 0.95);
-        color: #f8fafc;
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: #ffffff;
+        color: #0f172a;
+        border: 1px solid #e2e8f0;
         border-radius: 20px;
-        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), 0 0 40px rgba(124, 58, 237, 0.2);
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.2);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -633,22 +638,22 @@
         justify-content: space-between;
         align-items: center;
         padding: 20px 24px;
-        background: rgba(30, 41, 59, 0.8);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
       }
 
       .modal-title-group { display: flex; align-items: center; gap: 10px; }
-      .modal-title { font-size: 18px; font-weight: 800; color: #ffffff; letter-spacing: -0.01em; }
-      .modal-badge { background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(99, 102, 241, 0.2)); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+      .modal-title { font-size: 18px; font-weight: 800; color: #0f172a; letter-spacing: -0.01em; }
+      .modal-badge { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
 
       .modal-close-btn {
-        background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); font-size: 18px; color: #94a3b8; cursor: pointer; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;
+        background: #f1f5f9; border: 1px solid #cbd5e1; font-size: 18px; color: #64748b; cursor: pointer; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;
       }
-      .modal-close-btn:hover { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; transform: scale(1.1); }
+      .modal-close-btn:hover { background: #fee2e2; border-color: #fca5a5; color: #ef4444; transform: scale(1.1); }
 
       .modal-banner {
-        background: rgba(30, 41, 59, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-radius: 12px;
         margin: 16px 24px 0 24px;
         padding: 12px 16px;
@@ -661,14 +666,14 @@
         flex: 1;
         display: flex;
         overflow: hidden;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid #e2e8f0;
         margin-top: 16px;
       }
 
       .modal-sidebar {
         width: 230px;
-        background: rgba(15, 23, 42, 0.6);
-        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        background: #f8fafc;
+        border-right: 1px solid #e2e8f0;
         padding: 16px 12px;
         display: flex;
         flex-direction: column;
@@ -680,7 +685,7 @@
         border-radius: 10px;
         font-size: 13px;
         font-weight: 700;
-        color: #94a3b8;
+        color: #64748b;
         background: none;
         border: none;
         text-align: left;
@@ -688,8 +693,8 @@
         transition: all 0.2s ease;
       }
 
-      .sidebar-tab:hover { background: rgba(255, 255, 255, 0.06); color: #f8fafc; }
-      .sidebar-tab.active { background: linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(99, 102, 241, 0.2)); color: #ffffff; border-left: 3px solid #a855f7; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25); }
+      .sidebar-tab:hover { background: #f1f5f9; color: #0f172a; }
+      .sidebar-tab.active { background: #ffffff; color: #000000; border-left: 3px solid #000000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); }
 
       .modal-content-area {
         flex: 1;
@@ -698,7 +703,7 @@
         display: flex;
         flex-direction: column;
         gap: 16px;
-        background: rgba(15, 23, 42, 0.4);
+        background: #ffffff;
       }
 
       .tab-panel { display: none; flex-direction: column; gap: 16px; }
@@ -708,33 +713,32 @@
       .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
       .form-group { display: flex; flex-direction: column; gap: 6px; }
-      .form-group label { font-size: 12px; font-weight: 700; color: #cbd5e1; }
+      .form-group label { font-size: 12px; font-weight: 700; color: #334155; }
       .form-group label .req { color: #f43f5e; margin-right: 2px; }
 
       .form-group input, .form-group select, .form-group textarea {
-        background: rgba(30, 41, 59, 0.7);
-        border: 1.5px solid rgba(255, 255, 255, 0.12);
+        background: #ffffff;
+        border: 1.5px solid #cbd5e1;
         border-radius: 10px;
         padding: 10px 14px;
         font-size: 13px;
         font-weight: 600;
-        color: #f8fafc;
+        color: #0f172a;
         outline: none;
         transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
       }
 
       .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-        border-color: #a855f7;
-        box-shadow: 0 0 16px rgba(168, 85, 247, 0.4);
-        background: rgba(30, 41, 59, 0.95);
+        border-color: #000000;
+        box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
       }
 
       .modal-footer {
         padding: 16px 24px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid #e2e8f0;
         display: flex;
         justify-content: center;
-        background: rgba(15, 23, 42, 0.9);
+        background: #f8fafc;
       }
 
       .btn-modal-update {
@@ -742,134 +746,95 @@
         height: 46px;
         background: #000000;
         color: #ffffff;
-        border: 1px solid #334155;
+        border: none;
         border-radius: 24px;
         font-size: 14px;
         font-weight: 800;
         cursor: pointer;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        transition: transform 0.2s ease, opacity 0.2s ease;
       }
 
       .btn-modal-update:hover {
-        background: #0f172a;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
-        transform: translateY(-2px);
-      }
-
-      /* Quick Fill Chips & ATS Score Tags */
-      .chip-btn {
-        background: rgba(30, 41, 59, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: #e2e8f0;
-        border-radius: 16px;
-        padding: 5px 10px;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-      .chip-btn:hover {
-        background: rgba(124, 58, 237, 0.3);
-        border-color: rgba(168, 85, 247, 0.5);
-        color: #ffffff;
-      }
-
-      .tag {
-        display: inline-block;
-        font-size: 10px;
-        font-weight: 700;
-        padding: 3px 8px;
-        border-radius: 6px;
-      }
-      .tag-green {
-        background: rgba(16, 185, 129, 0.15);
-        color: #34d399;
-        border: 1px solid rgba(16, 185, 129, 0.3);
-      }
-      .tag-gold {
-        background: rgba(245, 158, 11, 0.15);
-        color: #fbbf24;
-        border: 1px solid rgba(245, 158, 11, 0.3);
+        opacity: 0.9;
+        transform: translateY(-1px);
       }
     `;
 
     const widget = document.createElement('div');
     widget.innerHTML = `
-      <!-- Floating Right Edge Dock Tab (Jobright Style) -->
+      <!-- Floating Right Edge Dock Tab (Clean Light Badge) -->
       <div id="ad-dock-tab" class="dock-tab" title="Open ApplyDesk Copilot">
-        <div class="dock-logo-badge">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 2L11 13"></path>
-            <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+        <div class="dock-logo-box-sm">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 18V10C4 6.68629 6.68629 4 10 4H14C17.3137 4 20 6.68629 20 10V18"></path>
           </svg>
         </div>
       </div>
 
-      <!-- Sliding Overlay Drawer Panel -->
+      <!-- Sliding Overlay Drawer Panel (Matching user screenshot 100%) -->
       <div id="ad-drawer-panel" class="drawer-panel">
+        <!-- Drawer Header -->
         <div class="drawer-header">
           <div class="brand">
-            <div class="dock-logo-badge" style="width:32px;height:32px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 2L11 13"></path>
-                <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+            <div class="brand-logo-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 18V10C4 6.68629 6.68629 4 10 4H14C17.3137 4 20 6.68629 20 10V18"></path>
               </svg>
             </div>
             <div>
-              <div class="brand-title">ApplyDesk</div>
-              <div class="brand-sub">AI Job Copilot</div>
+              <div class="brand-title">Applydesk.io</div>
+              <div class="brand-sub">Auto-Apply with confidence.</div>
             </div>
           </div>
           <div class="header-controls">
-            <button class="icon-btn-text">💬 Feedback</button>
-            <button class="icon-btn-round" title="Settings">⚙️</button>
-            <button id="ad-collapse-btn" class="icon-btn-round icon-btn-collapse" title="Collapse Panel">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <div class="token-pill">
+              <span id="ad-token-count">0</span>
+              <span style="color:#f97316;">✦</span>
+            </div>
+            <button id="ad-collapse-btn" class="collapse-btn-circle" title="Collapse Panel">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
             </button>
           </div>
         </div>
 
+        <!-- Drawer Body -->
         <div class="drawer-body">
-          <button id="ad-autofill-action" class="btn-autofill">
-            <span>⚡</span> 1-Click Autofill Form
-          </button>
-          <div id="ad-autofill-msg" style="font-size:12px;color:#94a3b8;text-align:center;">Click to autofill form fields</div>
-
-          <!-- Accordion Cards -->
-          <div class="accordion-card">
-            <div id="ad-trigger-autofill-info" class="accordion-row">
-              <div class="accordion-row-title">📁 Candidate Autofill Profile</div>
-              <div class="accordion-chevron">❯</div>
-            </div>
+          <!-- Card 1: Add to match score and autofill forms -->
+          <div class="card-white">
+            <div class="card-title-lg">Add to match score and autofill forms</div>
+            <button id="ad-autofill-action" class="btn-black-pill">
+              +Add this job to Applydesk
+            </button>
+            <div id="ad-autofill-msg" style="font-size:12px;color:#64748b;text-align:center;margin-top:6px;"></div>
           </div>
 
-          <div class="accordion-card">
-            <div class="accordion-row">
-              <div class="accordion-row-title">📄 Upload Resume</div>
-              <div class="accordion-chevron">❯</div>
+          <!-- Card 2: Resume Score -->
+          <div class="card-white">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-size:16px;font-weight:800;color:#0f172a;">Resume Score</div>
+              <div id="ad-resume-score" style="font-size:16px;font-weight:700;color:#94a3b8;">0/100</div>
             </div>
-            <div class="accordion-subcontent">
-              <div class="file-name-tag" id="ad-resume-filename">Resume.pdf (Uploaded)</div>
-              <button class="btn-secondary-action">✨ Generate Custom Resume</button>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+              <span style="font-size:20px;">📁</span>
+              <span id="ad-resume-filename" style="font-size:13px;font-weight:600;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">OmidMoradi_25jun.PDF</span>
             </div>
+            <button id="ad-fix-resume-btn" class="btn-outline-pill">
+              <span style="color:#eab308;">⚡</span> Fix resume issues
+            </button>
           </div>
 
-          <div class="accordion-card">
-            <div class="accordion-row">
-              <div class="accordion-row-title">✉️ Upload Cover Letter</div>
-              <div class="accordion-chevron">❯</div>
-            </div>
-            <div class="accordion-subcontent">
-              <button class="btn-secondary-action">✨ Generate Cover Letter</button>
-            </div>
+          <!-- Card 3: Edit Your information -->
+          <div id="ad-trigger-autofill-info" class="edit-info-row">
+            <div class="edit-info-text">Edit Your information</div>
+            <div style="font-size:15px;font-weight:700;color:#64748b;">❯</div>
           </div>
 
           <!-- 1-Tap Quick Field Fill Pills -->
-          <div style="margin: 6px 0 2px 0;">
-            <div style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#64748b;margin-bottom:6px;">1-TAP QUICK FILL</div>
+          <div style="margin-top: 4px;">
+            <div style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#94a3b8;margin-bottom:6px;padding-left:4px;">1-TAP QUICK FILL</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
               <button class="chip-btn" id="ad-chip-name">👤 Name</button>
               <button class="chip-btn" id="ad-chip-email">✉️ Email</button>
@@ -878,45 +843,18 @@
             </div>
           </div>
 
-          <!-- Real-time AI Match Score -->
-          <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-              <span class="card-title" style="font-size:13px;font-weight:800;color:#f8fafc;">ATS Job Match Score</span>
-              <span id="ad-match-score-badge" class="badge-score" style="background:linear-gradient(135deg, rgba(124,58,237,0.3), rgba(168,85,247,0.3));color:#d8b4fe;border:1px solid rgba(168,85,247,0.4);padding:4px 8px;border-radius:12px;font-size:11px;font-weight:800;">88% MATCH</span>
-            </div>
-            <div style="margin-bottom:8px;">
-              <div id="ad-job-title" style="font-size:12px;font-weight:700;color:#f8fafc;">Detecting active job post...</div>
-              <div id="ad-job-company" style="font-size:11px;color:#94a3b8;margin-top:2px;">---</div>
-            </div>
-            <div style="margin-bottom:6px;">
-              <div style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#64748b;margin-bottom:4px;">MATCHING SKILLS</div>
-              <div id="ad-matching-skills" style="display:flex;flex-wrap:wrap;gap:4px;">
-                <span class="tag tag-green">React</span>
-                <span class="tag tag-green">TypeScript</span>
-                <span class="tag tag-green">Node.js</span>
-              </div>
-            </div>
-            <div>
-              <div style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#64748b;margin-bottom:4px;">MISSING KEYWORDS</div>
-              <div id="ad-missing-keywords" style="display:flex;flex-wrap:wrap;gap:4px;">
-                <span class="tag tag-gold">GraphQL</span>
-                <span class="tag tag-gold">Docker</span>
-              </div>
-            </div>
-          </div>
-
           <!-- Form Fields Checklist Card -->
-          <div class="card">
+          <div class="card-white">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span id="ad-fill-count" class="card-title">0/0 required fields filled</span>
-              <span id="ad-fill-percent" class="badge-score">0%</span>
+              <span id="ad-fill-count" style="font-size:13px;font-weight:800;color:#0f172a;">0/0 required fields filled</span>
+              <span id="ad-fill-percent" style="font-size:12px;font-weight:800;color:#10b981;background:#ecfdf5;padding:2px 8px;border-radius:10px;">0%</span>
             </div>
-            <div class="progress-bar-track">
-              <div id="ad-progress-bar" class="progress-bar-fill" style="width: 0%"></div>
+            <div class="progress-bar-track" style="margin-top:8px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
+              <div id="ad-progress-bar" class="progress-bar-fill" style="width: 0%;height:100%;background:#10b981;transition:width 0.3s ease;"></div>
             </div>
-            <div style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#64748b;margin:6px 0 4px 0;">FORM FIELDS CHECKLIST</div>
+            <div style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#94a3b8;margin:10px 0 6px 0;">FORM FIELDS CHECKLIST</div>
             <div id="ad-checklist" class="checklist-items">
-              <div class="check-item check-item-unfilled"><span class="check-icon">-</span> Detecting form fields...</div>
+              <div class="check-item check-item-unfilled" style="font-size:12px;color:#64748b;"><span class="check-icon">-</span> Detecting form fields...</div>
             </div>
           </div>
         </div>
