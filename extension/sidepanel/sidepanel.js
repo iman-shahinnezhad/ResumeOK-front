@@ -356,6 +356,23 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
         });
       }
+
+      // Attach click handlers to open Edit Your Information Modal Overlay
+      document.querySelectorAll('.edit-info-row').forEach(row => {
+        row.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const tab = await getActiveTab();
+          if (tab && tab.id) {
+            chrome.tabs.sendMessage(tab.id, { type: 'OPEN_EDIT_INFO_MODAL' }, (res) => {
+              if (chrome.runtime.lastError) {
+                window.open('https://applydesk.io/#/profile', '_blank');
+              }
+            });
+          } else {
+            window.open('https://applydesk.io/#/profile', '_blank');
+          }
+        });
+      });
     });
   }
 });

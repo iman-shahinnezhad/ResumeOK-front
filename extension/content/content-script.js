@@ -588,6 +588,349 @@
     }
   }
 
+  // Inject Pixel-Perfect "Edit Your Information" Modal Matching Design Images 1 & 2
+  function openEditInfoModal() {
+    let host = document.getElementById('applydesk-modal-host');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'applydesk-modal-host';
+      host.style.cssText = 'position: fixed; z-index: 2147483647; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: auto;';
+      document.body.appendChild(host);
+    }
+
+    const shadow = host.shadowRoot || host.attachShadow({ mode: 'open' });
+    shadow.innerHTML = '';
+
+    let currentProfile = {};
+    if (isExtensionValid()) {
+      try {
+        chrome.storage.local.get('resumeok_profile', (res) => {
+          if (res && res.resumeok_profile) currentProfile = res.resumeok_profile;
+          renderModal();
+        });
+      } catch(e) { renderModal(); }
+    } else {
+      renderModal();
+    }
+
+    function renderModal() {
+      const style = document.createElement('style');
+      style.textContent = `
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        
+        .modal-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.45);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2147483647;
+        }
+
+        .modal-card {
+          width: 860px;
+          max-width: 92vw;
+          height: 580px;
+          max-height: 90vh;
+          background: #ffffff;
+          border-radius: 28px;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          box-shadow: 0 25px 70px rgba(0, 0, 0, 0.3);
+          animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalPop {
+          from { opacity: 0; transform: scale(0.94); }
+          to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Header matching mockup */
+        .modal-header {
+          height: 72px;
+          padding: 0 24px;
+          background: #f4f4f6;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .brand-box { display: flex; align-items: center; gap: 12px; }
+
+        .logo-icon {
+          width: 44px;
+          height: 44px;
+          background: #fbf5e8;
+          border: 1.5px solid #e8dfc8;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .brand-title { font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
+        .brand-sub { font-size: 12px; color: #64748b; font-weight: 500; }
+
+        .close-btn {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          background: #ffffff;
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+          transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .close-btn:hover { background: #f1f5f9; transform: scale(1.06); }
+
+        /* Body Split Layout matching mockup */
+        .modal-body {
+          display: flex;
+          flex: 1;
+          overflow: hidden;
+        }
+
+        .modal-sidebar {
+          width: 220px;
+          border-right: 1px solid #e2e8f0;
+          padding: 20px 14px;
+          background: #ffffff;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .nav-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          border-radius: 14px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #475569;
+          cursor: pointer;
+          transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .nav-item:hover { background: #f8fafc; color: #0f172a; }
+        .nav-item.active { background: #e2e8f0; color: #0f172a; font-weight: 800; }
+
+        .modal-content {
+          flex: 1;
+          padding: 28px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          overflow-y: auto;
+          background: #ffffff;
+        }
+
+        /* Pill Input Grid matching mockup */
+        .input-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+        }
+
+        .input-pill-box {
+          background: #e5e5e5;
+          border-radius: 18px;
+          padding: 10px 18px;
+          display: flex;
+          flex-direction: column;
+          transition: background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .input-pill-box:focus-within {
+          background: #d4d4d4;
+          box-shadow: 0 0 0 2px #0f172a;
+        }
+
+        .input-label {
+          font-size: 11px;
+          font-weight: 600;
+          color: #737373;
+          margin-bottom: 2px;
+        }
+
+        .input-field {
+          background: transparent;
+          border: none;
+          outline: none;
+          font-size: 15px;
+          font-weight: 700;
+          color: #0f172a;
+          width: 100%;
+        }
+
+        /* Update Action Button matching mockup */
+        .modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          margin-top: 24px;
+        }
+
+        .btn-update-pill {
+          background: #b0b0b0;
+          color: #ffffff;
+          border-radius: 24px;
+          padding: 14px 44px;
+          font-size: 15px;
+          font-weight: 700;
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s ease, transform 0.15s ease;
+        }
+
+        .btn-update-pill:hover {
+          background: #0f172a;
+          transform: translateY(-1px);
+        }
+      `;
+
+      const fn = currentProfile.firstName || 'Donald';
+      const ln = currentProfile.lastName || 'Donald';
+      const em = currentProfile.email || 'Donald';
+      const ph = currentProfile.phone || 'Donald';
+      const ci = currentProfile.city || 'Donald';
+      const co = currentProfile.country || 'Donald';
+
+      const modalWrapper = document.createElement('div');
+      modalWrapper.innerHTML = `
+        <div class="modal-backdrop">
+          <div class="modal-card">
+            <header class="modal-header">
+              <div class="brand-box">
+                <div class="logo-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 18V10C4 6.68629 6.68629 4 10 4H14C17.3137 4 20 6.68629 20 10V18"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="brand-title">Applydesk.io</div>
+                  <div class="brand-sub">Auto-Apply with confidence.</div>
+                </div>
+              </div>
+              <button id="ad-modal-close" class="close-btn" title="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </header>
+
+            <div class="modal-body">
+              <aside class="modal-sidebar">
+                <div class="nav-item active" data-tab="personal">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  <span>Personal info</span>
+                </div>
+                <div class="nav-item" data-tab="education">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  <span>Personal info</span>
+                </div>
+                <div class="nav-item" data-tab="work">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  <span>Personal info</span>
+                </div>
+                <div class="nav-item" data-tab="skills">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  <span>Personal info</span>
+                </div>
+                <div class="nav-item" data-tab="eeo">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  <span>Personal info</span>
+                </div>
+              </aside>
+
+              <main class="modal-content">
+                <div class="input-grid">
+                  <div class="input-pill-box">
+                    <span class="input-label">First Name</span>
+                    <input id="inp-fn" class="input-field" type="text" value="${fn}" />
+                  </div>
+                  <div class="input-pill-box">
+                    <span class="input-label">First Name</span>
+                    <input id="inp-ln" class="input-field" type="text" value="${ln}" />
+                  </div>
+                  <div class="input-pill-box">
+                    <span class="input-label">First Name</span>
+                    <input id="inp-em" class="input-field" type="text" value="${em}" />
+                  </div>
+                  <div class="input-pill-box">
+                    <span class="input-label">First Name</span>
+                    <input id="inp-ph" class="input-field" type="text" value="${ph}" />
+                  </div>
+                  <div class="input-pill-box">
+                    <span class="input-label">First Name</span>
+                    <input id="inp-ci" class="input-field" type="text" value="${ci}" />
+                  </div>
+                  <div class="input-pill-box">
+                    <span class="input-label">First Name</span>
+                    <input id="inp-co" class="input-field" type="text" value="${co}" />
+                  </div>
+                </div>
+
+                <div class="modal-footer">
+                  <button id="ad-modal-update-btn" class="btn-update-pill">Update</button>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
+      `;
+
+      shadow.appendChild(style);
+      shadow.appendChild(modalWrapper);
+
+      const closeBtn = shadow.getElementById('ad-modal-close');
+      const updateBtn = shadow.getElementById('ad-modal-update-btn');
+
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          host.remove();
+        });
+      }
+
+      if (updateBtn) {
+        updateBtn.addEventListener('click', async () => {
+          const updatedProfile = {
+            ...currentProfile,
+            firstName: shadow.getElementById('inp-fn')?.value || fn,
+            lastName: shadow.getElementById('inp-ln')?.value || ln,
+            email: shadow.getElementById('inp-em')?.value || em,
+            phone: shadow.getElementById('inp-ph')?.value || ph,
+            city: shadow.getElementById('inp-ci')?.value || ci,
+            country: shadow.getElementById('inp-co')?.value || co,
+            resumeFileName: `${shadow.getElementById('inp-fn')?.value || 'Omid'}_25jun.PDF`
+          };
+
+          updateBtn.innerText = 'Updating...';
+          if (isExtensionValid()) {
+            try {
+              await chrome.storage.local.set({ resumeok_profile: updatedProfile });
+              chrome.runtime.sendMessage({ type: 'SAVE_PROFILE_STORAGE', profile: updatedProfile });
+            } catch(e) {}
+          }
+          updateBtn.innerText = '✅ Saved!';
+          setTimeout(() => {
+            host.remove();
+          }, 450);
+        });
+      }
+    }
+  }
+
   // Inject dock tab container on page load
   try {
     injectInPageFloatingDockTab();
@@ -615,6 +958,9 @@
           sendResponse({ success: true });
         } else if (request.type === 'HIDE_DOCK_TAB') {
           if (dockTab) dockTab.style.display = 'none';
+          sendResponse({ success: true });
+        } else if (request.type === 'OPEN_EDIT_INFO_MODAL') {
+          openEditInfoModal();
           sendResponse({ success: true });
         } else if (request.type === 'TOGGLE_DRAWER') {
           if (dockTab) {
