@@ -205,11 +205,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       await new Promise(r => setTimeout(r, 1300));
 
-      // STEP 3: Show Image 3 Scanned Job & Real Match Results View
+      // STEP 3: Show Scanned Job & Real Match Results View
       const resumeFileName = currentProfile.resumeFileName || (currentProfile.firstName ? `${currentProfile.firstName}_25jun.PDF` : 'OmidMoradi_25jun.PDF');
 
       mainContent.innerHTML = `
-        <!-- Card 1: Scanned Job & Real Match Details (Image 3) -->
+        <!-- Card 1: Scanned Job & Real Match Details -->
         <div class="card-white">
           <div style="font-size:17px;font-weight:800;color:#0f172a;line-height:1.3;margin-bottom:4px;">${jobInfo.title}</div>
           <div style="font-size:13px;font-weight:500;color:#64748b;margin-bottom:12px;">${jobInfo.location ? jobInfo.location + ' • ' : ''}${jobInfo.industry || jobInfo.company}</div>
@@ -243,50 +243,115 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
 
         <!-- Card 2: Resume Score -->
-        <div class="card-white">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <div style="font-size:16px;font-weight:800;color:#0f172a;">Resume Score</div>
-            <div style="font-size:16px;font-weight:700;color:#0f172a;">${matchResult.resumeScore}/100</div>
+        <div class="card-white" style="margin-top:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="const el=document.getElementById('resume-score-details'); el.style.display=el.style.display==='none'?'block':'none';">
+            <div style="font-size:15px;font-weight:800;color:#0f172a;">Resume Score</div>
+            <div style="font-size:14px;font-weight:700;color:#64748b;">❯</div>
           </div>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-            <span style="font-size:20px;">📁</span>
-            <span style="font-size:13px;font-weight:600;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${resumeFileName}</span>
+          <div id="resume-score-details" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div style="font-size:14px;font-weight:700;color:#0f172a;">Score</div>
+              <div style="font-size:14px;font-weight:800;color:#0f172a;">${matchResult.resumeScore}/100</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <span style="font-size:18px;">📁</span>
+              <span style="font-size:13px;font-weight:600;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${resumeFileName}</span>
+            </div>
+            <button id="fix-resume-btn-2" class="btn-outline-pill" style="margin-top:0;">
+              <span style="color:#eab308;">⚡</span> Fix resume issues
+            </button>
           </div>
-          <button id="fix-resume-btn-2" class="btn-outline-pill">
-            <span style="color:#eab308;">⚡</span> Fix resume issues
-          </button>
         </div>
 
         <!-- Card 3: Your Coverletter -->
-        <div class="card-white">
-          <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:12px;">Your Coverletter</div>
-          <button id="generate-cl-btn" class="btn-outline-pill" style="margin-top:0;">
-            <span style="color:#eab308;">⚡</span> Generate cover letter
-          </button>
+        <div class="card-white" style="margin-top:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="const el=document.getElementById('cl-details'); el.style.display=el.style.display==='none'?'block':'none';">
+            <div style="font-size:15px;font-weight:800;color:#0f172a;">Your Coverletter</div>
+            <div style="font-size:14px;font-weight:700;color:#64748b;">❯</div>
+          </div>
+          <div id="cl-details" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;">
+            <button id="generate-cl-btn" class="btn-outline-pill" style="margin-top:0;">
+              <span style="color:#eab308;">⚡</span> Generate cover letter
+            </button>
+          </div>
         </div>
 
         <!-- Card 4: Edit Your information -->
-        <a href="https://applydesk.io/#/profile" target="_blank" class="edit-info-row" style="text-decoration:none;">
+        <a href="https://applydesk.io/#/profile" target="_blank" class="edit-info-row" style="margin-top:10px;text-decoration:none;">
           <div class="edit-info-text">Edit Your information</div>
           <div style="font-size:15px;font-weight:700;color:#64748b;">❯</div>
         </a>
 
-        <!-- Card 5: Fields Progress -->
-        <div class="edit-info-row" style="cursor:default;">
-          <div class="edit-info-text">Fields</div>
-          <div style="font-size:15px;font-weight:800;color:#0f172a;">${scanResult.percentage || 0}%</div>
-        </div>
+        <!-- Container for Auto filling Fields loading checklist (Appears ONLY when Autofill Form is clicked) -->
+        <div id="autofill-progress-container"></div>
       `;
 
-      // Event listener for Autofill Form button in Results view
+      // Event listener for Autofill Form button -> Triggers Loading Checklist Card
       const autofillBtn = document.getElementById('results-autofill-btn');
       const autofillMsg = document.getElementById('results-autofill-msg');
+      const progressContainer = document.getElementById('autofill-progress-container');
+
       if (autofillBtn) {
         autofillBtn.addEventListener('click', async () => {
+          autofillBtn.innerText = 'Autofilling...';
+          autofillBtn.disabled = true;
+
+          const fieldsList = [
+            { label: 'First name', key: 'firstName' },
+            { label: 'Last name', key: 'lastName' },
+            { label: 'Phone number', key: 'phone' },
+            { label: 'Email', key: 'email' },
+            { label: 'Resume / CV File', key: 'resume' },
+            { label: 'Cover letter', key: 'coverLetter' },
+            { label: 'Work Authorization', key: 'auth' }
+          ];
+
+          // Render Auto filling Fields loading card (matching design screenshot)
+          progressContainer.innerHTML = `
+            <div class="card-white" style="margin-top:12px;padding:20px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div style="font-size:16px;font-weight:800;color:#0f172a;">Auto filling Fields</div>
+                <div id="autofill-percent-val" style="font-size:16px;font-weight:800;color:#0f172a;">0%</div>
+              </div>
+              <div id="autofill-checklist-items" style="display:flex;flex-direction:column;gap:12px;">
+                ${fieldsList.map((f, i) => `
+                  <div id="check-item-${i}" style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#475569;">
+                    <div class="check-circle-icon" style="width:18px;height:18px;border-radius:50%;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center;"></div>
+                    <span>${f.label}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+
           const tab = await getActiveTab();
           if (tab && tab.id) {
-            chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: currentProfile }, (res) => {
-              if (autofillMsg) autofillMsg.innerText = `✅ Autofilled ${res?.count || 'form'} fields!`;
+            chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: currentProfile }, async (res) => {
+              // Animate checklist progress step-by-step
+              const percentEl = document.getElementById('autofill-percent-val');
+              const total = fieldsList.length;
+
+              for (let i = 0; i < total; i++) {
+                await new Promise(r => setTimeout(r, 220));
+                const itemEl = document.getElementById(`check-item-${i}`);
+                if (itemEl) {
+                  itemEl.style.color = '#16a34a';
+                  itemEl.innerHTML = `
+                    <div style="width:18px;height:18px;display:flex;align-items:center;justify-content:center;">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <span>${fieldsList[i].label}</span>
+                  `;
+                }
+                const currentPercent = Math.round(((i + 1) / total) * 100);
+                if (percentEl) percentEl.innerText = `${currentPercent}%`;
+              }
+
+              autofillBtn.innerText = '✅ Form Autofilled!';
+              autofillBtn.disabled = false;
+              if (autofillMsg) autofillMsg.innerText = `✅ Autofilled ${res?.count || total} fields!`;
             });
           }
         });
