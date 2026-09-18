@@ -6,18 +6,40 @@
 
   // Helper: Set native input value with synthetic events
   function setVal(el, val) {
-    if (!el || !val) return;
+    if (!el || val === undefined || val === null) return;
     try {
+      if (el.type === 'radio' || el.type === 'checkbox') {
+        el.checked = true;
+        el.dispatchEvent(new Event('click', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        return;
+      }
+
       if (el.tagName === 'SELECT') {
         const opts = Array.from(el.options || []);
-        const vLower = String(val).toLowerCase();
-        const match = opts.find(o => (o.value || '').toLowerCase().includes(vLower) || (o.text || '').toLowerCase().includes(vLower));
-        if (match) {
-          el.value = match.value;
+        const terms = Array.isArray(val) ? val : [val];
+        
+        let matchIdx = -1;
+        for (const term of terms) {
+          if (!term) continue;
+          const tLower = String(term).toLowerCase();
+          matchIdx = opts.findIndex(o => {
+            const txt = (o.text || '').toLowerCase();
+            const v = (o.value || '').toLowerCase();
+            return txt === tLower || v === tLower || txt.includes(tLower) || v.includes(tLower);
+          });
+          if (matchIdx !== -1) break;
+        }
+
+        if (matchIdx !== -1) {
+          el.selectedIndex = matchIdx;
+          el.value = opts[matchIdx].value;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
           el.dispatchEvent(new Event('change', { bubbles: true }));
         }
         return;
       }
+
       const proto = Object.getPrototypeOf(el);
       const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set || Object.getOwnPropertyDescriptor(el, 'value')?.set;
       if (setter) setter.call(el, val);
@@ -265,28 +287,80 @@
         if (!ta.value) { setVal(ta, clText); filled++; }
       });
 
-      // Demographics & EEO Questions
-      if (gen) {
-        doc.querySelectorAll('select[name*="gender" i], select[id*="gender" i], select[name*="sex" i]').forEach(s => setVal(s, gen));
-      } else {
-        doc.querySelectorAll('select[name*="gender" i], select[id*="gender" i]').forEach(s => setVal(s, 'Decline'));
-      }
+      // Demographics & EEO Questions (Gender, Sex)
+      const genderTerms = gen ? [gen, 'man', 'male', 'decline', 'prefer not', 'choose not'] : ['man', 'male', 'decline', 'prefer not', 'choose not'];
+      doc.querySelectorAll('select[name*="gender" i], select[id*="gender" i], select[name*="sex" i], select[aria-label*="gender" i], select[data-qa*="gender" i]').forEach(s => {
+        setVal(s, genderTerms);
+        filled++;
+      });
+      doc.querySelectorAll('input[type="radio"][name*="gender" i], input[type="radio"][id*="gender" i], input[type="radio"][value*="gender" i]').forEach(r => {
+        const valStr = `${r.value} ${r.id} ${r.name} ${r.labels?.[0]?.innerText || ''}`.toLowerCase();
+        if (genderTerms.some(t => valStr.includes(t.toLowerCase()))) {
+          setVal(r, true);
+          filled++;
+        }
+      });
 
-      if (race) {
-        doc.querySelectorAll('select[name*="race" i], select[name*="ethnicity" i]').forEach(s => setVal(s, race));
-      } else {
-        doc.querySelectorAll('select[name*="race" i], select[name*="ethnicity" i]').forEach(s => setVal(s, 'Decline'));
-      }
+      // Race & Ethnicity
+      const raceTerms = race ? [race, 'decline', 'prefer not', 'choose not', 'white', 'asian'] : ['decline', 'prefer not', 'choose not', 'white'];
+      doc.querySelectorAll('select[name*="race" i], select[id*="race" i], select[name*="ethnicity" i], select[id*="ethnicity" i]').forEach(s => {
+        setVal(s, raceTerms);
+        filled++;
+      });
+      doc.querySelectorAll('input[type="radio"][name*="race" i], input[type="radio"][name*="ethnicity" i]').forEach(r => {
+        const valStr = `${r.value} ${r.id} ${r.name} ${r.labels?.[0]?.innerText || ''}`.toLowerCase();
+        if (raceTerms.some(t => valStr.includes(t.toLowerCase()))) {
+          setVal(r, true);
+          filled++;
+        }
+      });
 
-      // Veteran & Disability Status Selects
-      doc.querySelectorAll('select[name*="veteran" i], select[id*="veteran" i]').forEach(s => setVal(s, 'Not a veteran'));
-      doc.querySelectorAll('select[name*="disability" i], select[id*="disability" i]').forEach(s => setVal(s, 'No'));
+      // Veteran Status
+      const vetTerms = vet ? [vet, 'not a veteran', 'am not', 'no', 'decline'] : ['not a veteran', 'am not', 'no', 'decline'];
+      doc.querySelectorAll('select[name*="veteran" i], select[id*="veteran" i]').forEach(s => {
+        setVal(s, vetTerms);
+        filled++;
+      });
+      doc.querySelectorAll('input[type="radio"][name*="veteran" i]').forEach(r => {
+        const valStr = `${r.value} ${r.id} ${r.name} ${r.labels?.[0]?.innerText || ''}`.toLowerCase();
+        if (vetTerms.some(t => valStr.includes(t.toLowerCase()))) {
+          setVal(r, true);
+          filled++;
+        }
+      });
 
-      // Work Authorization & Sponsorship Selects
-      doc.querySelectorAll('select[name*="authorized" i], select[name*="sponsor" i], select[id*="sponsor" i]').forEach(s => setVal(s, 'Yes'));
+      // Disability Status
+      const disabTerms = disab ? [disab, 'no', 'dont have', 'don\'t have', 'decline'] : ['no', 'dont have', 'don\'t have', 'decline'];
+      doc.querySelectorAll('select[name*="disability" i], select[id*="disability" i]').forEach(s => {
+        setVal(s, disabTerms);
+        filled++;
+      });
+      doc.querySelectorAll('input[type="radio"][name*="disability" i]').forEach(r => {
+        const valStr = `${r.value} ${r.id} ${r.name} ${r.labels?.[0]?.innerText || ''}`.toLowerCase();
+        if (disabTerms.some(t => valStr.includes(t.toLowerCase()))) {
+          setVal(r, true);
+          filled++;
+        }
+      });
+
+      // Work Authorization & Visa Sponsorship Questions
+      doc.querySelectorAll('select[name*="authorized" i], select[name*="sponsor" i], select[id*="sponsor" i], select[id*="authorized" i]').forEach(s => {
+        setVal(s, ['yes', 'authorized', 'legally', 'no']);
+        filled++;
+      });
+      doc.querySelectorAll('input[type="radio"][name*="authorized" i], input[type="radio"][name*="sponsor" i]').forEach(r => {
+        const valStr = `${r.value} ${r.id} ${r.name} ${r.labels?.[0]?.innerText || ''}`.toLowerCase();
+        if (valStr.includes('yes') || valStr.includes('authorized')) {
+          setVal(r, true);
+          filled++;
+        }
+      });
 
       // How did you hear about us / Source
-      doc.querySelectorAll('select[name*="source" i], select[name*="hear" i], select[id*="source" i]').forEach(s => setVal(s, 'LinkedIn'));
+      doc.querySelectorAll('select[name*="source" i], select[name*="hear" i], select[id*="source" i]').forEach(s => {
+        setVal(s, ['LinkedIn', 'Website', 'Other']);
+        filled++;
+      });
 
       // File attachments (PDF Resume & PDF Cover Letter)
       try {
