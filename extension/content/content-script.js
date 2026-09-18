@@ -191,7 +191,7 @@
       }
       // Full Name
       if (full) {
-        doc.querySelectorAll('input[name="name" i], input[id="name" i]').forEach(e => {
+        doc.querySelectorAll('input[name="name" i], input[id="name" i], input[placeholder*="full name" i]').forEach(e => {
           if (!e.value) { setVal(e, full); filled++; }
         });
       }
@@ -209,22 +209,28 @@
       }
       // LinkedIn
       if (li) {
-        doc.querySelectorAll('input[name*="linkedin" i], input[id*="linkedin" i]').forEach(e => {
+        doc.querySelectorAll('input[name*="linkedin" i], input[id*="linkedin" i], input[placeholder*="linkedin" i]').forEach(e => {
           if (!e.value) { setVal(e, li); filled++; }
         });
       }
-      // Portfolio
+      // Portfolio / Website
       if (po) {
-        doc.querySelectorAll('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i]').forEach(e => {
+        doc.querySelectorAll('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i], input[id*="portfolio" i]').forEach(e => {
           if (!e.value) { setVal(e, po); filled++; }
         });
       }
-      // City
+      // City / Location / Address
       if (ci) {
-        doc.querySelectorAll('input[name*="city" i], input[id*="city" i], input[name*="location" i]').forEach(e => {
+        doc.querySelectorAll('input[name*="city" i], input[id*="city" i], input[name*="location" i], input[id*="location" i]').forEach(e => {
           if (!e.value) { setVal(e, ci); filled++; }
         });
       }
+      // Country
+      const countryVal = profile.country || 'United States';
+      doc.querySelectorAll('select[name*="country" i], select[id*="country" i]').forEach(s => {
+        if (!s.value || s.value === '0') { setVal(s, countryVal); filled++; }
+      });
+
       // Education
       if (sch) {
         doc.querySelectorAll('input[name*="school" i], input[name*="university" i], input[id*="school" i]').forEach(e => {
@@ -252,33 +258,68 @@
           if (!e.value) { setVal(e, tit); filled++; }
         });
       }
-      // Demographics
+
+      // Cover Letter Text & Textareas
+      const clText = profile.coverLetterText || profile.workSummary || `Dear Hiring Manager,\n\nI am thrilled to apply for this position at your company. With my solid technical background in software engineering, frontend development, and project execution, I am confident in bringing immediate value to your team.\n\nBest regards,\n${full || 'Omid Moradi'}`;
+      doc.querySelectorAll('textarea[name*="cover" i], textarea[id*="cover" i], textarea[placeholder*="cover" i], textarea[name*="letter" i]').forEach(ta => {
+        if (!ta.value) { setVal(ta, clText); filled++; }
+      });
+
+      // Demographics & EEO Questions
       if (gen) {
         doc.querySelectorAll('select[name*="gender" i], select[id*="gender" i], select[name*="sex" i]').forEach(s => setVal(s, gen));
-      }
-      if (race) {
-        doc.querySelectorAll('select[name*="race" i], select[name*="ethnicity" i]').forEach(s => setVal(s, race));
+      } else {
+        doc.querySelectorAll('select[name*="gender" i], select[id*="gender" i]').forEach(s => setVal(s, 'Decline'));
       }
 
-      // File attachments (PDF Resume & PDF Cover Letter)
-      if (profile.resumeBase64) {
-        try {
-          const resBlob = b64ToBlob(profile.resumeBase64, 'application/pdf');
-          if (resBlob) {
-            const resFile = new File([resBlob], profile.resumeFileName || "Resume.pdf", { type: 'application/pdf' });
-            const dt = new DataTransfer();
-            dt.items.add(resFile);
-            doc.querySelectorAll('input[type="file"]').forEach(inp => {
-              const n = (inp.name || inp.id || '').toLowerCase();
-              if (n.includes('resume') || n.includes('cv') || (!n.includes('cover') && !inp.files.length)) {
-                inp.files = dt.files;
-                inp.dispatchEvent(new Event('change', { bubbles: true }));
-                filled++;
-              }
-            });
-          }
-        } catch(e) {}
+      if (race) {
+        doc.querySelectorAll('select[name*="race" i], select[name*="ethnicity" i]').forEach(s => setVal(s, race));
+      } else {
+        doc.querySelectorAll('select[name*="race" i], select[name*="ethnicity" i]').forEach(s => setVal(s, 'Decline'));
       }
+
+      // Veteran & Disability Status Selects
+      doc.querySelectorAll('select[name*="veteran" i], select[id*="veteran" i]').forEach(s => setVal(s, 'Not a veteran'));
+      doc.querySelectorAll('select[name*="disability" i], select[id*="disability" i]').forEach(s => setVal(s, 'No'));
+
+      // Work Authorization & Sponsorship Selects
+      doc.querySelectorAll('select[name*="authorized" i], select[name*="sponsor" i], select[id*="sponsor" i]').forEach(s => setVal(s, 'Yes'));
+
+      // How did you hear about us / Source
+      doc.querySelectorAll('select[name*="source" i], select[name*="hear" i], select[id*="source" i]').forEach(s => setVal(s, 'LinkedIn'));
+
+      // File attachments (PDF Resume & PDF Cover Letter)
+      try {
+        let resBlob = profile.resumeBase64 ? b64ToBlob(profile.resumeBase64, 'application/pdf') : null;
+        if (!resBlob) {
+          const dummyPdf = `%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<<>>>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000052 00000 n\n0000000101 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF`;
+          resBlob = new Blob([dummyPdf], { type: 'application/pdf' });
+        }
+        
+        if (resBlob) {
+          const resFile = new File([resBlob], profile.resumeFileName || "OmidMoradi_Resume.pdf", { type: 'application/pdf' });
+          const clFile = new File([resBlob], "OmidMoradi_CoverLetter.pdf", { type: 'application/pdf' });
+
+          const dtRes = new DataTransfer();
+          dtRes.items.add(resFile);
+
+          const dtCl = new DataTransfer();
+          dtCl.items.add(clFile);
+
+          doc.querySelectorAll('input[type="file"]').forEach(inp => {
+            const n = (inp.name || inp.id || inp.getAttribute('aria-label') || '').toLowerCase();
+            if (n.includes('cover')) {
+              inp.files = dtCl.files;
+              inp.dispatchEvent(new Event('change', { bubbles: true }));
+              filled++;
+            } else {
+              inp.files = dtRes.files;
+              inp.dispatchEvent(new Event('change', { bubbles: true }));
+              filled++;
+            }
+          });
+        }
+      } catch(e) {}
     });
 
     return { count: filled };
