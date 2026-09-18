@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const mainContent = document.getElementById('sidepanel-main-content');
   const tokenCountEl = document.getElementById('token-count');
   const resumeScoreVal = document.getElementById('resume-score-val');
+  const resumeFileNameVal = document.getElementById('resume-filename-val');
   const collapseBtn = document.getElementById('collapse-btn');
   if (collapseBtn) {
     collapseBtn.addEventListener('click', async () => {
@@ -69,7 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    if (!currentProfile) currentProfile = {};
+    if (!currentProfile) currentProfile = { firstName: 'Omid', resumeFileName: 'OmidMoradi_25jun.PDF' };
 
     // Populate resume filename if available
     const filename = currentProfile.resumeFileName || (currentProfile.firstName ? `${currentProfile.firstName}_25jun.PDF` : 'OmidMoradi_25jun.PDF');
@@ -81,8 +82,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Helper: Get Active Tab
   async function getActiveTab() {
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      return tab;
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      if (tab) return tab;
+      const [tabFallback] = await chrome.tabs.query({ active: true, currentWindow: true });
+      return tabFallback || null;
     } catch(e) { return null; }
   }
 
