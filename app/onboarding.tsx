@@ -344,7 +344,7 @@ export default function OnboardingScreen() {
 
   // Navigation Flow Steps
   const [step, _setStep] = useState<
-    'intro' | 'welcome' | 'referral' | 'engineered' | 'name' | 'email' | 'jobs' | 'interests' | 'challenge' | 'location' | 'experience' | 'salary' | 'hearAbout' | 'rateUs' | 'notifications' | 'upload' | 'loading'
+    'intro' | 'welcome' | 'referral' | 'engineered' | 'name' | 'email' | 'jobs' | 'interests' | 'challenge' | 'location' | 'experience' | 'salary' | 'hearAbout' | 'notifications' | 'upload' | 'loading'
   >('intro');
   const [loading, setLoading] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<number>(0);
@@ -565,17 +565,7 @@ export default function OnboardingScreen() {
   const displayedCities = citySearch.trim().length >= 2 ? citySearchResults : [];
 
   useEffect(() => {
-    let rateTimer: any = null;
     let notifTimer: any = null;
-
-    if (step === 'rateUs') {
-      setShowIRated(false);
-      rateTimer = setTimeout(() => {
-        setShowIRated(true);
-      }, 2000);
-    } else {
-      setShowIRated(false);
-    }
 
     if (step === 'notifications') {
       setShowIEnabled(false);
@@ -587,7 +577,6 @@ export default function OnboardingScreen() {
     }
 
     return () => {
-      if (rateTimer) clearTimeout(rateTimer);
       if (notifTimer) clearTimeout(notifTimer);
     };
   }, [step]);
@@ -1372,8 +1361,7 @@ export default function OnboardingScreen() {
     else if (step === 'salary') setStep('location');
     else if (step === 'challenge') setStep('salary');
     else if (step === 'hearAbout') setStep('challenge');
-    else if (step === 'rateUs') setStep('hearAbout');
-    else if (step === 'notifications') setStep('rateUs');
+    else if (step === 'notifications') setStep('hearAbout');
     else if (step === 'referral') setStep('notifications');
   };
 
@@ -1453,9 +1441,8 @@ export default function OnboardingScreen() {
                     : step === 'salary' ? 9
                       : step === 'challenge' ? 10
                         : step === 'hearAbout' ? 11
-                          : step === 'rateUs' ? 12
-                            : step === 'notifications' ? 13
-                              : 14;
+                          : step === 'notifications' ? 12
+                            : 13;
   const progressPercentage = (currentProgressStep / totalSteps) * 100;
 
   const isNameValid = (typeof firstName === 'string' ? firstName : '').trim().length > 0 && (typeof lastName === 'string' ? lastName : '').trim().length > 0;
@@ -2258,7 +2245,7 @@ export default function OnboardingScreen() {
                   <AppleNativeButton
                     style={[styles.actionBtnBlack, !isHearAboutValid ? styles.actionBtnDisabled : null]}
                     disabled={!isHearAboutValid}
-                    onPress={() => setStep('rateUs')}
+                    onPress={() => setStep('notifications')}
                   >
                     <Text style={styles.actionBtnTextWhite}>Continue</Text>
                   </AppleNativeButton>
@@ -2266,43 +2253,6 @@ export default function OnboardingScreen() {
               </View>
             </TouchableWithoutFeedback>
           </KeyboardAvoidingView>
-        )}
-
-        {step === 'rateUs' && (
-          <View style={[styles.questionInner, { paddingBottom: insets.bottom + 30 }]}>
-            <View style={styles.questionHeadingContainer}>
-              <Text style={styles.questionTitle}>Help us grow!</Text>
-              <Text style={styles.questionSubtitle}>{"We’re a small team, we'd really appreciate\na quick rating."}</Text>
-            </View>
-
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-              <Image
-                source={require('../assets/images/onboarding/rate.png')}
-                style={styles.ratingImage}
-                resizeMode="contain"
-              />
-            </View>
-
-            <View style={styles.ratingActionsContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.iRatedLink,
-                  { opacity: showIRated ? 1 : 0 }
-                ]}
-                disabled={!showIRated}
-                onPress={() => setStep('notifications')}
-              >
-                <Text style={styles.iRatedLinkText}>I rated!</Text>
-              </TouchableOpacity>
-
-              <AppleNativeButton
-                style={styles.actionBtnBlack}
-                onPress={() => handleRateApp()}
-              >
-                <Text style={styles.actionBtnTextWhite}>Leave a rating!</Text>
-              </AppleNativeButton>
-            </View>
-          </View>
         )}
 
         {step === 'notifications' && (

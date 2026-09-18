@@ -10,12 +10,9 @@ const profileIcon = require('../../assets/images/bottom-nav/profile.png');
 export default function TabLayout() {
   const isPad = Platform.OS === 'ios' && Platform.isPad;
 
-  if (isPad) {
-    return <NativeTabs hidden />;
-  }
-
   return (
     <NativeTabs
+      hidden={isPad}
       tintColor="#000000"
       iconColor={{ default: '#000000', selected: '#000000' }}
       backgroundColor="#FFFFFF"

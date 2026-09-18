@@ -1872,10 +1872,10 @@ export default function JobsScreen() {
           resumeBase64: base64Data,
           jobData: {
             id: selectedJob.id,
-            title: selectedJob.title || selectedJob.role,
-            company: selectedJob.company || selectedJob.companyName,
-            description: selectedJob.description || selectedJob.snippet || selectedJob.title,
-            requirements: selectedJob.requirements || selectedJob.skills
+            title: selectedJob.title || (selectedJob as any).role || '',
+            company: (selectedJob as any).company || (selectedJob as any).companyName || '',
+            description: (selectedJob as any).description || (selectedJob as any).snippet || selectedJob.title || '',
+            requirements: (selectedJob as any).requirements || (selectedJob as any).skills || ''
           }
         })
       });
