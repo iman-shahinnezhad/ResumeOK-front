@@ -912,7 +912,7 @@
             phone: shadow.getElementById('inp-ph')?.value || ph,
             city: shadow.getElementById('inp-ci')?.value || ci,
             country: shadow.getElementById('inp-co')?.value || co,
-            resumeFileName: `${shadow.getElementById('inp-fn')?.value || 'Omid'}_25jun.PDF`
+            resumeFileName: `${shadow.getElementById('inp-fn')?.value || 'Resume'}_CV.PDF`
           };
 
           updateBtn.innerText = 'Updating...';
@@ -931,6 +931,32 @@
     }
   }
 
+  // Automatic Web App Authentication Sync
+  function checkAndSyncWebAuth() {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const userStr = localStorage.getItem('auth_user');
+      if (token && userStr) {
+        const user = JSON.parse(userStr);
+        if (isExtensionValid()) {
+          chrome.runtime.sendMessage({ type: 'SYNC_WEB_AUTH', token, user }, () => {
+            if (chrome.runtime.lastError) { /* ignore */ }
+          });
+        }
+      }
+    } catch(e) {}
+  }
+
+  // Run auth check on page load & listen for local storage changes
+  try {
+    checkAndSyncWebAuth();
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'auth_token' || e.key === 'auth_user') {
+        checkAndSyncWebAuth();
+      }
+    });
+  } catch(e) {}
+
   // Inject dock tab container on page load
   try {
     injectInPageFloatingDockTab();
@@ -946,6 +972,12 @@
     try {
       chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (!isExtensionValid()) return false;
+
+        if (request.type === 'CHECK_WEB_AUTH') {
+          checkAndSyncWebAuth();
+          sendResponse({ success: true });
+          return true;
+        }
 
         if (!document.getElementById('applydesk-inpage-host')) {
           injectInPageFloatingDockTab();

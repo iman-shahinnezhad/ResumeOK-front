@@ -1,13 +1,36 @@
-// ApplyDesk Native Chrome Side Panel Logic (Pixel-Perfect Matching Mockups)
+// ApplyDesk Native Chrome Side Panel Logic — Connected to Real MongoDB & Web Authentication
+
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:3030'
+  : 'http://188.166.164.115:3030';
+
+const WEB_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:3000'
+  : 'http://188.166.164.115:3030';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const addJobBtn = document.getElementById('add-job-action');
   const addJobMsg = document.getElementById('add-job-msg');
   const mainContent = document.getElementById('sidepanel-main-content');
+  const loginRequiredView = document.getElementById('login-required-view');
   const tokenCountEl = document.getElementById('token-count');
   const resumeScoreVal = document.getElementById('resume-score-val');
   const resumeFileNameVal = document.getElementById('resume-filename-val');
   const collapseBtn = document.getElementById('collapse-btn');
+
+  const userNameDisplay = document.getElementById('user-name-display');
+  const userEmailDisplay = document.getElementById('user-email-display');
+  const userAvatarBadge = document.getElementById('user-avatar-badge');
+  const logoutBtn = document.getElementById('logout-btn');
+  const loginWebBtn = document.getElementById('login-web-btn');
+  const refreshAuthBtn = document.getElementById('refresh-auth-btn');
+
+  let activeToken = null;
+  let activeUser = null;
+  let currentProfile = null;
+  let userResumes = [];
+
+  // Handle Collapse Button
   if (collapseBtn) {
     collapseBtn.addEventListener('click', async () => {
       try {
@@ -23,9 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                   chrome.tabs.sendMessage(tab.id, { type: 'SHOW_DOCK_TAB' });
                   window.close();
                 }, 150);
-              }).catch(() => {
-                window.close();
-              });
+              }).catch(() => { window.close(); });
             } else {
               window.close();
             }
@@ -39,47 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  let currentProfile = null;
-
-  // Read candidate profile from local storage or database API
-  async function loadProfile() {
-    try {
-      const storageData = await chrome.storage.local.get('resumeok_profile');
-      if (storageData && storageData.resumeok_profile) {
-        currentProfile = storageData.resumeok_profile;
-      }
-    } catch(e) {}
-
-    if (!currentProfile || (!currentProfile.firstName && !currentProfile.resumeFile && !currentProfile.skills)) {
-      const apiUrls = [
-        'https://applydesk.io/api/user/default_user/profile',
-        'http://188.166.164.115:3030/api/user/default_user/profile',
-        'http://localhost:3000/api/user/default_user/profile'
-      ];
-      for (const url of apiUrls) {
-        try {
-          const res = await fetch(url);
-          if (res.ok) {
-            const dbData = await res.json();
-            if (dbData && dbData.profile) {
-              currentProfile = dbData.profile;
-              break;
-            }
-          }
-        } catch(e) {}
-      }
-    }
-
-    if (!currentProfile) currentProfile = { firstName: 'Omid', resumeFileName: 'OmidMoradi_25jun.PDF' };
-
-    // Populate resume filename if available
-    const filename = currentProfile.resumeFileName || (currentProfile.firstName ? `${currentProfile.firstName}_25jun.PDF` : 'OmidMoradi_25jun.PDF');
-    if (resumeFileNameVal) resumeFileNameVal.innerText = filename;
-  }
-
-  await loadProfile();
-
-  // Helper: Get Active Tab
+  // Get Active Browser Tab Helper
   async function getActiveTab() {
     try {
       const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
@@ -87,6 +68,151 @@ document.addEventListener('DOMContentLoaded', async () => {
       const [tabFallback] = await chrome.tabs.query({ active: true, currentWindow: true });
       return tabFallback || null;
     } catch(e) { return null; }
+  }
+
+  // Check Web App Auth & Load Real User Data from MongoDB
+  async function checkAuthAndLoadData() {
+    try {
+      const storage = await chrome.storage.local.get(['resumeok_token', 'resumeok_user', 'resumeok_profile']);
+      activeToken = storage.resumeok_token || null;
+      activeUser = storage.resumeok_user || null;
+      if (storage.resumeok_profile) currentProfile = storage.resumeok_profile;
+    } catch(e) {}
+
+    // If token not in extension storage, check active web tab for localStorage auth
+    if (!activeToken || !activeUser) {
+      try {
+        const tab = await getActiveTab();
+        if (tab && tab.id) {
+          await new Promise((resolve) => {
+            chrome.tabs.sendMessage(tab.id, { type: 'CHECK_WEB_AUTH' }, () => {
+              if (chrome.runtime.lastError) resolve(null);
+              else resolve(true);
+            });
+          });
+          // Re-check storage after content script sync attempt
+          const storage = await chrome.storage.local.get(['resumeok_token', 'resumeok_user']);
+          if (storage.resumeok_token && storage.resumeok_user) {
+            activeToken = storage.resumeok_token;
+            activeUser = storage.resumeok_user;
+          }
+        }
+      } catch(e) {}
+    }
+
+    // IF NOT LOGGED IN: Show Login Required View
+    if (!activeToken || !activeUser) {
+      if (loginRequiredView) loginRequiredView.style.display = 'block';
+      if (mainContent) mainContent.style.display = 'none';
+      if (tokenCountEl) tokenCountEl.innerText = '0';
+      return false;
+    }
+
+    // USER IS LOGGED IN: Show Main Content Area
+    if (loginRequiredView) loginRequiredView.style.display = 'none';
+    if (mainContent) mainContent.style.display = 'block';
+
+    // Fetch REAL User Details & Credits from MongoDB API
+    try {
+      const authRes = await fetch(`${API_BASE}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${activeToken}` }
+      });
+      if (authRes.ok) {
+        const authData = await authRes.json();
+        if (authData && authData.user) {
+          activeUser = authData.user;
+          await chrome.storage.local.set({ resumeok_user: activeUser });
+        }
+      }
+    } catch(e) {}
+
+    // Update Token Count in Header
+    if (tokenCountEl) {
+      tokenCountEl.innerText = String(activeUser.credit !== undefined ? activeUser.credit : 0);
+    }
+
+    // Fetch REAL Profile from MongoDB API
+    try {
+      const profRes = await fetch(`${API_BASE}/api/user/${activeUser.id}/profile`, {
+        headers: { 'Authorization': `Bearer ${activeToken}` }
+      });
+      if (profRes.ok) {
+        const profData = await profRes.json();
+        if (profData && profData.profile) {
+          currentProfile = profData.profile;
+          await chrome.storage.local.set({ resumeok_profile: currentProfile });
+        }
+      }
+    } catch(e) {}
+
+    // Fetch REAL User Documents (Resumes) from MongoDB API
+    try {
+      const docRes = await fetch(`${API_BASE}/api/user/${activeUser.id}/documents`, {
+        headers: { 'Authorization': `Bearer ${activeToken}` }
+      });
+      if (docRes.ok) {
+        const docData = await docRes.json();
+        if (docData && docData.resumes) {
+          userResumes = docData.resumes;
+        }
+      }
+    } catch(e) {}
+
+    if (!currentProfile) currentProfile = {};
+
+    // Update Profile Card Display
+    const fullName = currentProfile.firstName
+      ? `${currentProfile.firstName} ${currentProfile.lastName || ''}`.trim()
+      : (activeUser.name || 'Candidate User');
+    const userEmail = currentProfile.email || activeUser.email || 'User Account';
+
+    if (userNameDisplay) userNameDisplay.innerText = fullName;
+    if (userEmailDisplay) userEmailDisplay.innerText = userEmail;
+    if (userAvatarBadge) userAvatarBadge.innerText = (fullName[0] || 'U').toUpperCase();
+
+    // Populate Resume Filename
+    let resumeName = 'No resume uploaded';
+    if (userResumes && userResumes.length > 0 && userResumes[0].fileName) {
+      resumeName = userResumes[0].fileName;
+    } else if (currentProfile.resumeFileName) {
+      resumeName = currentProfile.resumeFileName;
+    } else if (currentProfile.firstName) {
+      resumeName = `${currentProfile.firstName}_CV.PDF`;
+    }
+    if (resumeFileNameVal) resumeFileNameVal.innerText = resumeName;
+
+    return true;
+  }
+
+  // Initial Auth & Data Load
+  await checkAuthAndLoadData();
+
+  // Login Button Click -> Opens Web App Login Page
+  if (loginWebBtn) {
+    loginWebBtn.addEventListener('click', () => {
+      window.open(`${WEB_URL}/#/login`, '_blank');
+    });
+  }
+
+  // Refresh Login Status Click -> Re-syncs & loads immediately
+  if (refreshAuthBtn) {
+    refreshAuthBtn.addEventListener('click', async () => {
+      refreshAuthBtn.innerText = 'Checking...';
+      const success = await checkAuthAndLoadData();
+      refreshAuthBtn.innerText = '🔄 Check Login Status';
+      if (!success && addJobMsg) {
+        addJobMsg.innerHTML = '<span style="color:#ef4444;font-weight:700;">⚠️ Please log in on the web page first.</span>';
+      }
+    });
+  }
+
+  // Log Out Click
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      chrome.runtime.sendMessage({ type: 'LOGOUT' }, () => {
+        checkAuthAndLoadData();
+      });
+    });
   }
 
   // Real Job & Resume Match Scoring Calculation Algorithm
@@ -130,7 +256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const titleScore = titleWords.length > 0 ? Math.round((titleMatches / titleWords.length) * 100) : 60;
 
     let rawResume = 30;
-    if (profile.resumeFileName || profile.resumeFile || profile.resumeBase64) rawResume += 25;
+    if (profile.resumeFileName || profile.resumeFile || (userResumes && userResumes.length > 0)) rawResume += 25;
     if (userSkills.length > 3) rawResume += 20;
     if (profile.firstName && profile.email && profile.phone) rawResume += 15;
     if (profile.workSummary && profile.workSummary.length > 20) rawResume += 10;
@@ -144,17 +270,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Handle "+Add this job to Applydesk" button click
   if (addJobBtn) {
     addJobBtn.addEventListener('click', async () => {
-      await loadProfile();
-
-      // Check if candidate resume exists
-      const hasResume = currentProfile.resumeFileName || currentProfile.resumeFile || currentProfile.resumeBase64 || (currentProfile.skills && currentProfile.skills.length > 3) || currentProfile.firstName;
-      if (!hasResume) {
-        if (addJobMsg) addJobMsg.innerHTML = '<span style="color:#ef4444;font-weight:700;">⚠️ Please upload or enter your candidate resume in Applydesk first.</span>';
-        window.open('https://applydesk.io/#/profile', '_blank');
+      const isAuthed = await checkAuthAndLoadData();
+      if (!isAuthed) {
+        if (addJobMsg) addJobMsg.innerHTML = '<span style="color:#ef4444;font-weight:700;">⚠️ Please log in to ApplyDesk first.</span>';
+        window.open(`${WEB_URL}/#/login`, '_blank');
         return;
       }
 
-      // STEP 1: Show Loading Screen 1 (Scanning Job... - Image 1)
+      // STEP 1: Show Loading Screen 1 (Scanning Job...)
       mainContent.innerHTML = `
         <div class="loading-screen">
           <div class="spinner-ring"></div>
@@ -163,7 +286,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
 
       const tab = await getActiveTab();
-      let jobInfo = { title: 'Junior web developer - storyteller', company: 'Computer Software', location: 'Kota' };
+      let jobInfo = { title: 'Software Engineer', company: 'Tech Company', location: 'Remote', url: window.location.href };
 
       if (tab && tab.id) {
         try {
@@ -177,9 +300,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch(e) {}
       }
 
-      await new Promise(r => setTimeout(r, 1300));
+      await new Promise(r => setTimeout(r, 1000));
 
-      // STEP 2: Show Loading Screen 2 (Score Matching... - Image 2)
+      // STEP 2: Show Loading Screen 2 (Score Matching...)
       mainContent.innerHTML = `
         <div class="loading-screen">
           <div class="spinner-ring"></div>
@@ -187,32 +310,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
       `;
 
-      const matchResult = calculateRealJobMatch(jobInfo, currentProfile);
+      const matchResult = calculateRealJobMatch(jobInfo, currentProfile || {});
 
-      // Scan form fields status via content script
-      let scanResult = { percentage: 0 };
-      if (tab && tab.id) {
-        try {
-          const res = await new Promise((resolve) => {
-            chrome.tabs.sendMessage(tab.id, { type: 'GET_FORM_FIELDS_STATUS', profile: currentProfile }, (r) => {
-              if (chrome.runtime.lastError || !r) resolve(null);
-              else resolve(r);
-            });
-          });
-          if (res) scanResult = res;
-        } catch(e) {}
-      }
+      // SAVE JOB DIRECTLY TO MONGO DATABASE FOR THIS LOGGED IN USER
+      chrome.runtime.sendMessage({
+        type: 'SAVE_JOB_TO_DB',
+        jobId: encodeURIComponent(`${jobInfo.title}_${jobInfo.company}`).replace(/%/g, '_'),
+        jobData: {
+          title: jobInfo.title,
+          companyName: jobInfo.company,
+          location: jobInfo.location,
+          url: jobInfo.url,
+          description: jobInfo.description || '',
+          timestamp: Date.now()
+        }
+      });
 
-      await new Promise(r => setTimeout(r, 1300));
+      await new Promise(r => setTimeout(r, 1000));
 
       // STEP 3: Show Scanned Job & Real Match Results View
-      const resumeFileName = currentProfile.resumeFileName || (currentProfile.firstName ? `${currentProfile.firstName}_25jun.PDF` : 'OmidMoradi_25jun.PDF');
+      const displayResumeName = (userResumes && userResumes[0] && userResumes[0].fileName) || currentProfile.resumeFileName || (currentProfile.firstName ? `${currentProfile.firstName}_CV.PDF` : 'Candidate_Resume.PDF');
 
       mainContent.innerHTML = `
         <!-- Card 1: Scanned Job & Real Match Details -->
         <div class="card-white">
           <div style="font-size:17px;font-weight:800;color:#0f172a;line-height:1.3;margin-bottom:4px;">${jobInfo.title}</div>
-          <div style="font-size:13px;font-weight:500;color:#64748b;margin-bottom:12px;">${jobInfo.location ? jobInfo.location + ' • ' : ''}${jobInfo.industry || jobInfo.company}</div>
+          <div style="font-size:13px;font-weight:500;color:#64748b;margin-bottom:12px;">${jobInfo.location ? jobInfo.location + ' • ' : ''}${jobInfo.company}</div>
           <div style="border-bottom: 1px solid #f1f5f9; margin-bottom: 14px;"></div>
           
           <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -239,7 +362,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           <button id="results-autofill-btn" class="btn-black-pill">
             Autofill Form
           </button>
-          <div id="results-autofill-msg" style="font-size:12px;color:#10b981;text-align:center;margin-top:6px;font-weight:700;"></div>
+          <div id="results-autofill-msg" style="font-size:12px;color:#10b981;text-align:center;margin-top:6px;font-weight:700;">
+            ✅ Saved to your ApplyDesk database!
+          </div>
         </div>
 
         <!-- Card 2: Resume Score -->
@@ -255,7 +380,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
               <span style="font-size:18px;">📁</span>
-              <span style="font-size:13px;font-weight:600;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${resumeFileName}</span>
+              <span style="font-size:13px;font-weight:600;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${displayResumeName}</span>
             </div>
             <button id="fix-resume-btn-2" class="btn-outline-pill" style="margin-top:0;">
               <span style="color:#eab308;">⚡</span> Fix resume issues
@@ -263,26 +388,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </div>
 
-        <!-- Card 3: Your Coverletter -->
-        <div class="card-white" style="margin-top:10px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="const el=document.getElementById('cl-details'); el.style.display=el.style.display==='none'?'block':'none';">
-            <div style="font-size:15px;font-weight:800;color:#0f172a;">Your Coverletter</div>
-            <div style="font-size:14px;font-weight:700;color:#64748b;">❯</div>
-          </div>
-          <div id="cl-details" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;">
-            <button id="generate-cl-btn" class="btn-outline-pill" style="margin-top:0;">
-              <span style="color:#eab308;">⚡</span> Generate cover letter
-            </button>
-          </div>
-        </div>
-
-        <!-- Card 4: Edit Your information -->
-        <a href="https://applydesk.io/#/profile" target="_blank" class="edit-info-row" style="margin-top:10px;text-decoration:none;">
+        <!-- Card 3: Edit Your Information -->
+        <a id="edit-info-link-2" href="${WEB_URL}/#/profile" target="_blank" class="edit-info-row" style="margin-top:10px;text-decoration:none;">
           <div class="edit-info-text">Edit Your information</div>
           <div style="font-size:15px;font-weight:700;color:#64748b;">❯</div>
         </a>
 
-        <!-- Container for Auto filling Fields loading checklist (Appears ONLY when Autofill Form is clicked) -->
+        <!-- Container for Auto filling Fields loading checklist -->
         <div id="autofill-progress-container"></div>
       `;
 
@@ -306,7 +418,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             { label: 'Work Authorization', key: 'auth' }
           ];
 
-          // Render Auto filling Fields loading card (matching design screenshot)
+          // Render Auto filling Fields loading card
           progressContainer.innerHTML = `
             <div class="card-white" style="margin-top:12px;padding:20px;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -326,7 +438,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           const tab = await getActiveTab();
           if (tab && tab.id) {
-            chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: currentProfile }, async (res) => {
+            chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: currentProfile || {} }, async (res) => {
               // Animate checklist progress step-by-step
               const percentEl = document.getElementById('autofill-percent-val');
               const total = fieldsList.length;
@@ -357,22 +469,41 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       }
 
-      // Attach click handlers to open Edit Your Information Modal Overlay
-      document.querySelectorAll('.edit-info-row').forEach(row => {
-        row.addEventListener('click', async (e) => {
+      // Attach click handlers to open Edit Your Information Modal Overlay or Web Profile Page
+      const editLink = document.getElementById('edit-info-link-2');
+      if (editLink) {
+        editLink.addEventListener('click', async (e) => {
           e.preventDefault();
           const tab = await getActiveTab();
           if (tab && tab.id) {
             chrome.tabs.sendMessage(tab.id, { type: 'OPEN_EDIT_INFO_MODAL' }, (res) => {
               if (chrome.runtime.lastError) {
-                window.open('https://applydesk.io/#/profile', '_blank');
+                window.open(`${WEB_URL}/#/profile`, '_blank');
               }
             });
           } else {
-            window.open('https://applydesk.io/#/profile', '_blank');
+            window.open(`${WEB_URL}/#/profile`, '_blank');
           }
         });
-      });
+      }
+    });
+  }
+
+  // Edit Your Information Link Handler for Default View
+  const defaultEditLink = document.getElementById('edit-info-link');
+  if (defaultEditLink) {
+    defaultEditLink.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const tab = await getActiveTab();
+      if (tab && tab.id) {
+        chrome.tabs.sendMessage(tab.id, { type: 'OPEN_EDIT_INFO_MODAL' }, (res) => {
+          if (chrome.runtime.lastError) {
+            window.open(`${WEB_URL}/#/profile`, '_blank');
+          }
+        });
+      } else {
+        window.open(`${WEB_URL}/#/profile`, '_blank');
+      }
     });
   }
 });
