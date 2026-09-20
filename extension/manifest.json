@@ -1,16 +1,19 @@
 {
   "manifest_version": 3,
   "name": "ApplyDesk - Auto Apply & Resume Tailor",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "1-Click ATS Job Application Autofill, Real-time Match Analyzer, AI Q&A Copilot, and Application Tracker.",
   "permissions": [
     "storage",
     "activeTab",
     "scripting",
-    "sidePanel",
     "tabs"
   ],
   "host_permissions": [
+    "https://applydesk.io/*",
+    "https://*.applydesk.io/*",
+    "https://applydesk.app/*",
+    "https://*.applydesk.app/*",
     "*://*.greenhouse.io/*",
     "*://*.lever.co/*",
     "*://*.workday.com/*",
@@ -26,9 +29,8 @@
     "http://127.0.0.1/*",
     "http://188.166.164.115/*"
   ],
-  "action": {},
-  "side_panel": {
-    "default_path": "sidepanel/sidepanel.html"
+  "action": {
+    "default_popup": "popup/popup.html"
   },
   "background": {
     "service_worker": "background/service-worker.js"
@@ -36,6 +38,8 @@
   "content_scripts": [
     {
       "matches": [
+        "https://applydesk.io/*",
+        "https://*.applydesk.io/*",
         "*://*.greenhouse.io/*",
         "*://*.lever.co/*",
         "*://*.workday.com/*",

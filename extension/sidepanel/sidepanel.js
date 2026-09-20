@@ -4,9 +4,8 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
   ? 'http://localhost:3030'
   : 'http://188.166.164.115:3030';
 
-const WEB_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:3000'
-  : 'http://188.166.164.115:3030';
+const WEB_URL = 'https://applydesk.io';
+const WEB_LOGIN_URL = 'https://applydesk.io/login';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const addJobBtn = document.getElementById('add-job-action');
@@ -30,36 +29,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   let currentProfile = null;
   let userResumes = [];
 
-  // Handle Collapse Button
-  if (collapseBtn) {
-    collapseBtn.addEventListener('click', async () => {
-      try {
-        const tab = await getActiveTab();
-        if (tab && tab.id) {
-          chrome.tabs.sendMessage(tab.id, { type: 'SHOW_DOCK_TAB' }, () => {
-            if (chrome.runtime.lastError) {
-              chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                files: ['content/content-script.js']
-              }).then(() => {
-                setTimeout(() => {
-                  chrome.tabs.sendMessage(tab.id, { type: 'SHOW_DOCK_TAB' });
-                  window.close();
-                }, 150);
-              }).catch(() => { window.close(); });
-            } else {
-              window.close();
-            }
-          });
-        } else {
-          window.close();
-        }
-      } catch(e) {
-        window.close();
-      }
-    });
-  }
-
   // Get Active Browser Tab Helper
   async function getActiveTab() {
     try {
@@ -79,23 +48,25 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (storage.resumeok_profile) currentProfile = storage.resumeok_profile;
     } catch(e) {}
 
-    // If token not in extension storage, check active web tab for localStorage auth
+    // If token not in extension storage, check active web tab & any applydesk tabs for localStorage auth
     if (!activeToken || !activeUser) {
       try {
-        const tab = await getActiveTab();
-        if (tab && tab.id) {
-          await new Promise((resolve) => {
-            chrome.tabs.sendMessage(tab.id, { type: 'CHECK_WEB_AUTH' }, () => {
-              if (chrome.runtime.lastError) resolve(null);
-              else resolve(true);
+        const tabs = await chrome.tabs.query({});
+        for (const tab of tabs) {
+          if (tab.id && tab.url && (tab.url.includes('applydesk.io') || tab.url.includes('188.166.164.115') || tab.url.includes('localhost'))) {
+            await new Promise((resolve) => {
+              chrome.tabs.sendMessage(tab.id, { type: 'CHECK_WEB_AUTH' }, () => {
+                if (chrome.runtime.lastError) resolve(null);
+                else resolve(true);
+              });
             });
-          });
-          // Re-check storage after content script sync attempt
-          const storage = await chrome.storage.local.get(['resumeok_token', 'resumeok_user']);
-          if (storage.resumeok_token && storage.resumeok_user) {
-            activeToken = storage.resumeok_token;
-            activeUser = storage.resumeok_user;
           }
+        }
+        // Re-check storage after content script sync attempt
+        const storage = await chrome.storage.local.get(['resumeok_token', 'resumeok_user']);
+        if (storage.resumeok_token && storage.resumeok_user) {
+          activeToken = storage.resumeok_token;
+          activeUser = storage.resumeok_user;
         }
       } catch(e) {}
     }
@@ -187,10 +158,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initial Auth & Data Load
   await checkAuthAndLoadData();
 
-  // Login Button Click -> Opens Web App Login Page
+  // Login Button Click -> Opens Web App Login Page (https://applydesk.io/login)
   if (loginWebBtn) {
     loginWebBtn.addEventListener('click', () => {
-      window.open(`${WEB_URL}/#/login`, '_blank');
+      window.open(WEB_LOGIN_URL, '_blank');
     });
   }
 

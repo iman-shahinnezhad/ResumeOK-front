@@ -955,6 +955,12 @@
         checkAndSyncWebAuth();
       }
     });
+
+    // On applydesk web app domains, continuously check for login token every 1 second
+    const isApplyDeskHost = window.location.hostname.includes('applydesk') || window.location.hostname.includes('188.166.164.115') || window.location.hostname.includes('localhost');
+    if (isApplyDeskHost) {
+      setInterval(checkAndSyncWebAuth, 1000);
+    }
   } catch(e) {}
 
   // Inject dock tab container on page load

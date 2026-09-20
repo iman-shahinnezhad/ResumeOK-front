@@ -1,41 +1,6 @@
 // ApplyDesk Chrome Extension Background Service Worker
 
-// Configure Chrome Native Side Panel behavior to open on action click
-function configureSidePanel() {
-  if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
-    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((err) => {
-      console.log('SidePanel behavior set error:', err);
-    });
-  }
-}
-
-// Set behavior immediately on worker load
-configureSidePanel();
-
-chrome.runtime.onInstalled.addListener(() => {
-  configureSidePanel();
-});
-
-// Explicit action click fallback to guarantee side panel opens on right side
-if (chrome.action && chrome.action.onClicked) {
-  chrome.action.onClicked.addListener(async (tab) => {
-    try {
-      if (chrome.sidePanel && chrome.sidePanel.open) {
-        if (tab && tab.id) {
-          await chrome.sidePanel.open({ tabId: tab.id });
-        } else if (tab && tab.windowId) {
-          await chrome.sidePanel.open({ windowId: tab.windowId });
-        }
-      }
-    } catch (err) {
-      if (tab && tab.id) {
-        chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_DRAWER' });
-      }
-    }
-  });
-}
-
-// Listener for messages from sidepanel or content script
+// Listener for messages from popup, sidepanel, or content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
@@ -58,19 +23,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       } else if (message.type === 'LOGOUT') {
         await chrome.storage.local.remove(['resumeok_token', 'resumeok_user', 'resumeok_profile', 'resumeok_resumes']);
-        sendResponse({ success: true });
-      } else if (message.type === 'OPEN_SIDE_PANEL' || message.type === 'TOGGLE_DRAWER' || message.type === 'OPEN_NATIVE_SIDE_PANEL') {
-        const tabId = sender.tab ? sender.tab.id : null;
-        const windowId = sender.tab ? sender.tab.windowId : null;
-        if (chrome.sidePanel && chrome.sidePanel.open) {
-          if (tabId) {
-            await chrome.sidePanel.open({ tabId: tabId }).catch(async () => {
-              if (windowId) await chrome.sidePanel.open({ windowId: windowId }).catch(() => {});
-            });
-          } else if (windowId) {
-            await chrome.sidePanel.open({ windowId: windowId }).catch(() => {});
-          }
-        }
         sendResponse({ success: true });
       } else if (message.type === 'SAVE_PROFILE_STORAGE') {
         await chrome.storage.local.set({ resumeok_profile: message.profile });
@@ -163,4 +115,3 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   })();
   return true; // Keep response channel open
 });
-
