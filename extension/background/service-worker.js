@@ -113,6 +113,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ error: String(err) });
     }
   })();
+  return true;
+});
 // Action Click -> Toggle Floating Overlay Drawer on Active Tab
 if (chrome.action && chrome.action.onClicked) {
   chrome.action.onClicked.addListener(async (tab) => {
