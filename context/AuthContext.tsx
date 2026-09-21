@@ -87,6 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (info.exists) {
                 const content = await FileSystem.readAsStringAsync(GUEST_CREDIT_FILE);
                 setGuestCredit(parseInt(content, 10));
+              } else {
+                setGuestCredit(15);
+                await FileSystem.writeAsStringAsync(GUEST_CREDIT_FILE, '15');
               }
             }
           } catch (e) {
@@ -95,6 +98,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (info.exists) {
               const content = await FileSystem.readAsStringAsync(GUEST_CREDIT_FILE);
               setGuestCredit(parseInt(content, 10));
+            } else {
+              setGuestCredit(15);
+              await FileSystem.writeAsStringAsync(GUEST_CREDIT_FILE, '15');
             }
           }
 
