@@ -961,7 +961,62 @@
     if (isApplyDeskHost) {
       setInterval(checkAndSyncWebAuth, 1000);
     }
-  } catch(e) {}
+  // Jobright-Style In-Page Floating Right Overlay Drawer
+  function toggleFloatingRightOverlayDrawer() {
+    let host = document.getElementById('applydesk-floating-drawer-host');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'applydesk-floating-drawer-host';
+      host.style.cssText = 'position: fixed; top: 0; right: 0; width: 0; height: 0; z-index: 2147483647; pointer-events: auto;';
+      document.body.appendChild(host);
+
+      const shadow = host.attachShadow({ mode: 'open' });
+      const container = document.createElement('div');
+      container.id = 'ad-drawer-container';
+      container.style.cssText = `
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 420px;
+        max-width: 90vw;
+        height: 100vh;
+        z-index: 2147483647;
+        background: #ffffff;
+        box-shadow: -8px 0 36px rgba(15, 23, 42, 0.25);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        transform: translateX(100%);
+        border-left: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      `;
+
+      const iframe = document.createElement('iframe');
+      iframe.src = chrome.runtime.getURL('sidepanel/sidepanel.html');
+      iframe.style.cssText = 'width: 100%; height: 100%; border: none; background: #f4f4f6;';
+
+      container.appendChild(iframe);
+      shadow.appendChild(container);
+
+      // Trigger smooth slide in
+      requestAnimationFrame(() => {
+        container.style.transform = 'translateX(0)';
+      });
+    } else {
+      const shadow = host.shadowRoot;
+      const container = shadow?.getElementById('ad-drawer-container');
+      if (container) {
+        if (container.style.transform === 'translateX(0px)' || container.style.transform === 'translateX(0)') {
+          container.style.transform = 'translateX(100%)';
+          setTimeout(() => {
+            if (host && host.parentNode) host.parentNode.removeChild(host);
+          }, 320);
+        } else {
+          container.style.transform = 'translateX(0)';
+        }
+      }
+    }
+  }
 
   // Inject dock tab container on page load
   try {
@@ -985,6 +1040,12 @@
           return true;
         }
 
+        if (request.type === 'TOGGLE_FLOATING_PANEL' || request.type === 'TOGGLE_DRAWER' || request.type === 'OPEN_SIDE_PANEL') {
+          toggleFloatingRightOverlayDrawer();
+          sendResponse({ success: true });
+          return true;
+        }
+
         if (!document.getElementById('applydesk-inpage-host')) {
           injectInPageFloatingDockTab();
         }
@@ -999,18 +1060,6 @@
           sendResponse({ success: true });
         } else if (request.type === 'OPEN_EDIT_INFO_MODAL') {
           openEditInfoModal();
-          sendResponse({ success: true });
-        } else if (request.type === 'TOGGLE_DRAWER') {
-          if (dockTab) {
-            if (dockTab.style.display === 'none') {
-              dockTab.style.display = 'flex';
-            } else {
-              dockTab.style.display = 'none';
-              chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' }, () => {
-                if (chrome.runtime.lastError) { /* ignore */ }
-              });
-            }
-          }
           sendResponse({ success: true });
         } else if (request.type === 'GET_JOB_DETAILS') {
           sendResponse(extractJobDetails());

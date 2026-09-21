@@ -113,5 +113,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ error: String(err) });
     }
   })();
-  return true; // Keep response channel open
-});
+// Action Click -> Toggle Floating Overlay Drawer on Active Tab
+if (chrome.action && chrome.action.onClicked) {
+  chrome.action.onClicked.addListener(async (tab) => {
+    if (tab && tab.id) {
+      chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_FLOATING_PANEL' }, () => {
+        if (chrome.runtime.lastError) {
+          chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['content/content-script.js']
+          }).then(() => {
+            setTimeout(() => {
+              chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_FLOATING_PANEL' });
+            }, 150);
+          }).catch(() => {});
+        }
+      });
+    }
+  });
+}
+
