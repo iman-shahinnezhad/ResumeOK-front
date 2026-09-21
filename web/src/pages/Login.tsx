@@ -38,7 +38,7 @@ export default function Login({ onLogin, API_URL }: Props) {
     script.onload = () => {
       if (window.google?.accounts?.id) {
         window.google.accounts.id.initialize({
-          client_id: '435964893701-d0h1h949g8u52o90sffbkg8h272j6e2g.apps.googleusercontent.com', // Google OAuth Client ID fallback
+          client_id: '430649749710-b8mvmd6c5uu9ulr8j7bp12ae0br6pb86.apps.googleusercontent.com',
           callback: handleGoogleCredentialResponse,
         });
 

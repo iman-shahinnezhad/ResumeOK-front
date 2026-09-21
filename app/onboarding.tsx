@@ -908,7 +908,7 @@ export default function OnboardingScreen() {
     }, 1200);
   };
   const rawIosId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-  const rawWebId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '251783276638-rj2c7ntblcmfe7guo9pnvfjpib41d0qi.apps.googleusercontent.com';
+  const rawWebId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '430649749710-b8mvmd6c5uu9ulr8j7bp12ae0br6pb86.apps.googleusercontent.com';
   const validIosClientId = (rawIosId && !rawIosId.includes('your_google')) ? rawIosId : rawWebId;
 
   const redirectUri = AuthSession.makeRedirectUri({
