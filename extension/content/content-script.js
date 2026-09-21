@@ -961,6 +961,8 @@
     if (isApplyDeskHost) {
       setInterval(checkAndSyncWebAuth, 1000);
     }
+  } catch(e) {}
+
   // Jobright-Style In-Page Floating Right Overlay Drawer
   function toggleFloatingRightOverlayDrawer() {
     let host = document.getElementById('applydesk-floating-drawer-host');
