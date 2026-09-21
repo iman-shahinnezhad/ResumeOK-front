@@ -33,7 +33,7 @@ import { useAuth, API_URL } from '../context/AuthContext';
 import { getSession } from '../utils/session';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as DocumentPicker from 'expo-document-picker';
-import * as StoreReview from 'expo-store-review';
+
 import * as Notifications from 'expo-notifications';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -892,34 +892,7 @@ export default function OnboardingScreen() {
   };
 
 
-  const handleRateApp = async () => {
-    let nativeShown = false;
-    try {
-      if (await StoreReview.isAvailableAsync()) {
-        await StoreReview.requestReview();
-        nativeShown = true;
-      }
-    } catch (err) {
-      console.log('Store review error:', err);
-    }
 
-    if (!nativeShown) {
-      const appStoreUrl = 'itms-apps://apps.apple.com/app/id6783382482?action=write-review';
-      Linking.canOpenURL(appStoreUrl).then((supported) => {
-        if (supported) {
-          Linking.openURL(appStoreUrl).catch(() => {});
-        } else {
-          Linking.openURL('https://apps.apple.com/app/apple-store/id6783382482?action=write-review').catch(() => {});
-        }
-      }).catch(() => {
-        Linking.openURL('https://apps.apple.com/app/apple-store/id6783382482?action=write-review').catch(() => {});
-      });
-    }
-
-    setTimeout(() => {
-      setShowIRated(true);
-    }, 1500);
-  };
 
   const handleRequestNotifications = async () => {
     try {
