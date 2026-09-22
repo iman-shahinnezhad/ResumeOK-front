@@ -90,23 +90,51 @@ export default function Login({ onLogin, API_URL }: Props) {
         throw new Error('Google token did not contain valid email/sub');
       }
 
-      const res = await fetch(`${API_URL}/api/auth/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          googleId,
-          email,
-          name,
-          avatar,
-        })
-      });
+      const googleData = {
+        googleId,
+        email,
+        name,
+        avatar,
+      };
 
-      const data = await res.json();
-      if (res.ok && data.token && data.user) {
-        onLogin(data.token, data.user);
-        navigate('/jobs');
-      } else {
-        setErrorMessage(data.error || 'Google login failed on server.');
+      const endpointsToTry = [
+        `${API_URL}/api/auth/google`,
+        `/api/auth/google`,
+        `http://188.166.164.115:3030/api/auth/google`,
+        `https://188.166.164.115:3030/api/auth/google`
+      ];
+
+      let res = null;
+      let data = null;
+      let fetchSuccess = false;
+
+      for (const endpoint of Array.from(new Set(endpointsToTry))) {
+        try {
+          res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(googleData)
+          });
+          data = await res.json();
+          if (res.ok && data.token && data.user) {
+            fetchSuccess = true;
+            onLogin(data.token, data.user);
+            navigate('/jobs');
+            break;
+          }
+        } catch (e) {
+          console.warn(`Attempt failed for ${endpoint}:`, e);
+        }
+      }
+
+      if (!fetchSuccess) {
+        if (data?.error) {
+          setErrorMessage(data.error);
+        } else if (window.location.protocol === 'https:' && API_URL.startsWith('http:')) {
+          setErrorMessage('Browser blocked connection to http://188.166.164.115:3030 (Mixed Content). Please use http://applydesk.io or set up SSL proxy.');
+        } else {
+          setErrorMessage('Could not connect to authentication server. Please try again.');
+        }
       }
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
@@ -137,22 +165,45 @@ export default function Login({ onLogin, API_URL }: Props) {
     setLoading(true);
     setErrorMessage('');
 
-    const endpoint = isSignUp ? `${API_URL}/api/auth/register` : `${API_URL}/api/auth/login`;
+    const apiPath = isSignUp ? '/api/auth/register' : '/api/auth/login';
     const body = isSignUp ? { name, email, password } : { email, password };
 
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
+    const endpointsToTry = [
+      `${API_URL}${apiPath}`,
+      `${apiPath}`,
+      `http://188.166.164.115:3030${apiPath}`,
+      `https://188.166.164.115:3030${apiPath}`
+    ];
 
-      const data = await res.json();
-      if (res.ok && data.token && data.user) {
-        onLogin(data.token, data.user);
-        navigate('/jobs');
-      } else {
-        setErrorMessage(data.error || 'Authentication failed. Please check your credentials.');
+    let fetchSuccess = false;
+    let data = null;
+
+    try {
+      for (const ep of Array.from(new Set(endpointsToTry))) {
+        try {
+          const res = await fetch(ep, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          data = await res.json();
+          if (res.ok && data.token && data.user) {
+            fetchSuccess = true;
+            onLogin(data.token, data.user);
+            navigate('/jobs');
+            break;
+          }
+        } catch (e) {}
+      }
+
+      if (!fetchSuccess) {
+        if (data?.error) {
+          setErrorMessage(data.error);
+        } else if (window.location.protocol === 'https:' && API_URL.startsWith('http:')) {
+          setErrorMessage('Browser blocked connection to http://188.166.164.115:3030 (Mixed Content). Please use http://applydesk.io or configure SSL.');
+        } else {
+          setErrorMessage('Authentication failed. Please check your credentials.');
+        }
       }
     } catch (err) {
       setErrorMessage('Network error. Failed to connect to server.');
