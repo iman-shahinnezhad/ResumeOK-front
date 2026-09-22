@@ -60,14 +60,17 @@ function MainAppContent() {
       localStorage.setItem('guest_id', id);
     }
 
-    const savedToken = localStorage.getItem('auth_token');
-    const savedUser = localStorage.getItem('auth_user');
+    const savedToken = localStorage.getItem('auth_token') || localStorage.getItem('resumeok_token');
+    const savedUser = localStorage.getItem('auth_user') || localStorage.getItem('resumeok_user');
     if (savedToken && savedUser) {
       try {
         const parsedUser = JSON.parse(savedUser);
         setToken(savedToken);
         setUser(parsedUser);
         setCredits(parsedUser.credit);
+
+        // Notify Extension Content Script of existing login
+        window.postMessage({ type: 'APPLYDESK_AUTH_SYNC', token: savedToken, user: parsedUser }, '*');
       } catch (e) {
         console.error(e);
       }
@@ -77,6 +80,12 @@ function MainAppContent() {
   const handleLogin = (userToken: string, userData: any) => {
     localStorage.setItem('auth_token', userToken);
     localStorage.setItem('auth_user', JSON.stringify(userData));
+    localStorage.setItem('resumeok_token', userToken);
+    localStorage.setItem('resumeok_user', JSON.stringify(userData));
+
+    // Instantly notify Chrome Extension Content Script
+    window.postMessage({ type: 'APPLYDESK_AUTH_SYNC', token: userToken, user: userData }, '*');
+
     setToken(userToken);
     setUser(userData);
     setCredits(userData.credit);

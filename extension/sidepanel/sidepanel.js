@@ -39,6 +39,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch(e) { return null; }
   }
 
+  // Automatically re-check auth & update UI whenever Chrome storage changes
+  try {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === 'local' && (changes.resumeok_token || changes.resumeok_user)) {
+        checkAuthAndLoadData();
+      }
+    });
+  } catch(e) {}
+
   // Check Web App Auth & Load Real User Data from MongoDB
   async function checkAuthAndLoadData() {
     try {
@@ -53,7 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         const tabs = await chrome.tabs.query({});
         for (const tab of tabs) {
-          if (tab.id && tab.url && (tab.url.includes('applydesk.io') || tab.url.includes('188.166.164.115') || tab.url.includes('localhost'))) {
+          if (tab.id && tab.url && (tab.url.includes('applydesk') || tab.url.includes('188.166.164.115') || tab.url.includes('localhost') || tab.url.includes('127.0.0.1'))) {
             await new Promise((resolve) => {
               chrome.tabs.sendMessage(tab.id, { type: 'CHECK_WEB_AUTH' }, () => {
                 if (chrome.runtime.lastError) resolve(null);
@@ -85,15 +94,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Fetch REAL User Details & Credits from MongoDB API
     try {
-      const authRes = await fetch(`${API_BASE}/auth/me`, {
-        headers: { 'Authorization': `Bearer ${activeToken}` }
-      });
-      if (authRes.ok) {
-        const authData = await authRes.json();
-        if (authData && authData.user) {
-          activeUser = authData.user;
-          await chrome.storage.local.set({ resumeok_user: activeUser });
-        }
+      const endpoints = [
+        `${API_BASE}/api/auth/me`,
+        `${API_BASE}/auth/me`
+      ];
+      for (const ep of endpoints) {
+        try {
+          const authRes = await fetch(ep, {
+            headers: { 'Authorization': `Bearer ${activeToken}` }
+          });
+          if (authRes.ok) {
+            const authData = await authRes.json();
+            if (authData && authData.user) {
+              activeUser = authData.user;
+              await chrome.storage.local.set({ resumeok_user: activeUser });
+              break;
+            }
+          }
+        } catch(e) {}
       }
     } catch(e) {}
 

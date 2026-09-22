@@ -934,10 +934,10 @@
   // Automatic Web App Authentication Sync
   function checkAndSyncWebAuth() {
     try {
-      const token = localStorage.getItem('auth_token');
-      const userStr = localStorage.getItem('auth_user');
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('resumeok_token');
+      const userStr = localStorage.getItem('auth_user') || localStorage.getItem('resumeok_user');
       if (token && userStr) {
-        const user = JSON.parse(userStr);
+        const user = typeof userStr === 'string' ? JSON.parse(userStr) : userStr;
         if (isExtensionValid()) {
           chrome.runtime.sendMessage({ type: 'SYNC_WEB_AUTH', token, user }, () => {
             if (chrome.runtime.lastError) { /* ignore */ }
@@ -947,17 +947,36 @@
     } catch(e) {}
   }
 
-  // Run auth check on page load & listen for local storage changes
+  // Run auth check on page load, window message events, & storage events
   try {
     checkAndSyncWebAuth();
+
+    window.addEventListener('message', (event) => {
+      if (event.data && (event.data.type === 'APPLYDESK_AUTH_SYNC' || event.data.type === 'APPLYDESK_WEB_LOGIN_SYNC')) {
+        if (event.data.token && event.data.user) {
+          try {
+            localStorage.setItem('auth_token', event.data.token);
+            localStorage.setItem('auth_user', JSON.stringify(event.data.user));
+            localStorage.setItem('resumeok_token', event.data.token);
+            localStorage.setItem('resumeok_user', JSON.stringify(event.data.user));
+          } catch (e) {}
+          if (isExtensionValid()) {
+            chrome.runtime.sendMessage({ type: 'SYNC_WEB_AUTH', token: event.data.token, user: event.data.user }, () => {
+              if (chrome.runtime.lastError) {}
+            });
+          }
+        }
+      }
+    });
+
     window.addEventListener('storage', (e) => {
-      if (e.key === 'auth_token' || e.key === 'auth_user') {
+      if (e.key === 'auth_token' || e.key === 'auth_user' || e.key === 'resumeok_token' || e.key === 'resumeok_user') {
         checkAndSyncWebAuth();
       }
     });
 
-    // On applydesk web app domains, continuously check for login token every 1 second
-    const isApplyDeskHost = window.location.hostname.includes('applydesk') || window.location.hostname.includes('188.166.164.115') || window.location.hostname.includes('localhost');
+    // On applydesk web app domains, continuously check for login token
+    const isApplyDeskHost = window.location.hostname.includes('applydesk') || window.location.hostname.includes('188.166.164.115') || window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
     if (isApplyDeskHost) {
       setInterval(checkAndSyncWebAuth, 1000);
     }
