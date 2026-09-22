@@ -27,7 +27,7 @@
     "*://*.indeed.com/*",
     "http://localhost/*",
     "http://127.0.0.1/*",
-    "http://188.166.164.115/*"
+    "https://api.applydesk.io/*"
   ],
   "action": {},
   "background": {

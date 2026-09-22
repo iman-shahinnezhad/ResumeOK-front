@@ -27,7 +27,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Define local API URL of your Node.js server (use the local IP address for real devices!)
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://188.166.164.115:3030';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.applydesk.io';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

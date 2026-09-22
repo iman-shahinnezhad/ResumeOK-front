@@ -1292,7 +1292,7 @@ export default function ApplyJobScreen() {
     `;
   };
 
-  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://188.166.164.115:3030';
+  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.applydesk.io';
   const [isAutofilling, setIsAutofilling] = useState(false);
 
   const handleTriggerAutofill = async () => {

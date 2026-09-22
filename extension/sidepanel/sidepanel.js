@@ -2,7 +2,7 @@
 
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:3030'
-  : 'http://188.166.164.115:3030';
+  : 'https://api.applydesk.io';
 
 const WEB_URL = 'https://applydesk.io';
 const WEB_LOGIN_URL = 'https://applydesk.io/login';

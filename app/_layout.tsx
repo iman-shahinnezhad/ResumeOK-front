@@ -79,7 +79,7 @@ export default function RootLayout() {
         
         // 1. Fetch from backend config
         try {
-          const API_URL = 'http://188.166.164.115:3030';
+          const API_URL = 'https://api.applydesk.io';
           const backendRes = await fetch(`${API_URL}/api/app-config`);
           if (backendRes.ok) {
             const config = await backendRes.json();

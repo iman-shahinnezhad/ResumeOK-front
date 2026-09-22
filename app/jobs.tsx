@@ -1604,7 +1604,7 @@ export default function JobsScreen() {
     return url;
   };
 
-  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://188.166.164.115:3030';
+  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.applydesk.io';
 
   const injectAutofillScript = async () => {
     if (webViewRef.current && userProfile) {

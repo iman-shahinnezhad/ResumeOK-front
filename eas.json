@@ -14,7 +14,7 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://188.166.164.115:3030"
+        "EXPO_PUBLIC_API_URL": "https://api.applydesk.io"
       }
     }
   },

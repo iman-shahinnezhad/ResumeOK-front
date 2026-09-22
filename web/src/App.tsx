@@ -27,7 +27,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:3030'
-  : 'http://188.166.164.115:3030';
+  : 'https://api.applydesk.io';
 
 function MainAppContent() {
   const location = useLocation();

@@ -696,7 +696,7 @@ export default function OnboardingScreen() {
                 `${API_URL}/api/parse-resume`,
                 'http://localhost:3000/api/parse-resume',
                 'http://127.0.0.1:3000/api/parse-resume',
-                'http://188.166.164.115:3030/api/parse-resume'
+                'https://api.applydesk.io/api/parse-resume'
               ];
 
               for (const endpoint of backendEndpoints) {

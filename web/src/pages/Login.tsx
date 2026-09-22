@@ -99,9 +99,8 @@ export default function Login({ onLogin, API_URL }: Props) {
 
       const endpointsToTry = [
         `${API_URL}/api/auth/google`,
-        `/api/auth/google`,
-        `http://188.166.164.115:3030/api/auth/google`,
-        `https://188.166.164.115:3030/api/auth/google`
+        `https://api.applydesk.io/api/auth/google`,
+        `/api/auth/google`
       ];
 
       let res = null;
@@ -130,8 +129,6 @@ export default function Login({ onLogin, API_URL }: Props) {
       if (!fetchSuccess) {
         if (data?.error) {
           setErrorMessage(data.error);
-        } else if (window.location.protocol === 'https:' && API_URL.startsWith('http:')) {
-          setErrorMessage('Browser blocked connection to http://188.166.164.115:3030 (Mixed Content). Please use http://applydesk.io or set up SSL proxy.');
         } else {
           setErrorMessage('Could not connect to authentication server. Please try again.');
         }
@@ -170,9 +167,8 @@ export default function Login({ onLogin, API_URL }: Props) {
 
     const endpointsToTry = [
       `${API_URL}${apiPath}`,
-      `${apiPath}`,
-      `http://188.166.164.115:3030${apiPath}`,
-      `https://188.166.164.115:3030${apiPath}`
+      `https://api.applydesk.io${apiPath}`,
+      `${apiPath}`
     ];
 
     let fetchSuccess = false;
@@ -199,8 +195,6 @@ export default function Login({ onLogin, API_URL }: Props) {
       if (!fetchSuccess) {
         if (data?.error) {
           setErrorMessage(data.error);
-        } else if (window.location.protocol === 'https:' && API_URL.startsWith('http:')) {
-          setErrorMessage('Browser blocked connection to http://188.166.164.115:3030 (Mixed Content). Please use http://applydesk.io or configure SSL.');
         } else {
           setErrorMessage('Authentication failed. Please check your credentials.');
         }

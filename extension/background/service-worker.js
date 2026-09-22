@@ -32,7 +32,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (data.resumeok_token && data.resumeok_user) {
           const userId = data.resumeok_user.id;
           const apiUrls = [
-            'http://188.166.164.115:3030',
+            'https://api.applydesk.io',
             'http://localhost:3000',
             'http://localhost:3030'
           ];
@@ -59,10 +59,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ profile: data.resumeok_profile || null });
       } else if (message.type === 'SAVE_JOB_TO_DB') {
         const data = await chrome.storage.local.get(['resumeok_token', 'resumeok_user']);
-        if (data.resumeok_token && data.resumeok_user) {
+        if (data.resumeok_user && data.resumeok_token) {
           const userId = data.resumeok_user.id;
           const apiUrls = [
-            'http://188.166.164.115:3030',
+            'https://api.applydesk.io',
             'http://localhost:3000',
             'http://localhost:3030'
           ];
