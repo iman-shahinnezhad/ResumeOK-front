@@ -982,6 +982,22 @@
     }
   } catch(e) {}
 
+  function closeFloatingRightOverlayDrawer() {
+    let host = document.getElementById('applydesk-floating-drawer-host');
+    if (host) {
+      const shadow = host.shadowRoot;
+      const container = shadow?.getElementById('ad-drawer-container');
+      if (container) {
+        container.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (host && host.parentNode) host.parentNode.removeChild(host);
+        }, 320);
+      } else {
+        if (host.parentNode) host.parentNode.removeChild(host);
+      }
+    }
+  }
+
   // Jobright-Style In-Page Floating Right Overlay Drawer
   function toggleFloatingRightOverlayDrawer() {
     let host = document.getElementById('applydesk-floating-drawer-host');
@@ -1024,18 +1040,7 @@
         container.style.transform = 'translateX(0)';
       });
     } else {
-      const shadow = host.shadowRoot;
-      const container = shadow?.getElementById('ad-drawer-container');
-      if (container) {
-        if (container.style.transform === 'translateX(0px)' || container.style.transform === 'translateX(0)') {
-          container.style.transform = 'translateX(100%)';
-          setTimeout(() => {
-            if (host && host.parentNode) host.parentNode.removeChild(host);
-          }, 320);
-        } else {
-          container.style.transform = 'translateX(0)';
-        }
-      }
+      closeFloatingRightOverlayDrawer();
     }
   }
 
@@ -1049,11 +1054,24 @@
     }
   } catch(e) {}
 
+  // Listen for iframe postMessages from sidepanel (e.g. close drawer)
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'CLOSE_APPLYDESK_FLOATING_DRAWER') {
+      closeFloatingRightOverlayDrawer();
+    }
+  });
+
   // Message listener from extension action, popup, sidepanel, or background
   if (isExtensionValid()) {
     try {
       chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (!isExtensionValid()) return false;
+
+        if (request.type === 'CLOSE_FLOATING_PANEL' || request.type === 'CLOSE_DRAWER') {
+          closeFloatingRightOverlayDrawer();
+          sendResponse({ success: true });
+          return true;
+        }
 
         if (request.type === 'CHECK_WEB_AUTH') {
           checkAndSyncWebAuth();

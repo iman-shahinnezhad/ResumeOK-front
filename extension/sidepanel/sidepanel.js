@@ -17,6 +17,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   const resumeFileNameVal = document.getElementById('resume-filename-val');
   const collapseBtn = document.getElementById('collapse-btn');
 
+  // Handle Collapse / Close Button Click
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', async () => {
+      // 1. Post message to parent window if inside floating drawer iframe
+      try {
+        window.parent.postMessage({ type: 'CLOSE_APPLYDESK_FLOATING_DRAWER' }, '*');
+      } catch(e) {}
+
+      // 2. Notify active browser tab to close overlay drawer
+      try {
+        const tab = await getActiveTab();
+        if (tab && tab.id) {
+          chrome.tabs.sendMessage(tab.id, { type: 'CLOSE_FLOATING_PANEL' }, () => {
+            if (chrome.runtime.lastError) {}
+          });
+        }
+      } catch(e) {}
+
+      // 3. Close window if native Chrome Side Panel
+      try {
+        window.close();
+      } catch(e) {}
+    });
+  }
+
   const userNameDisplay = document.getElementById('user-name-display');
   const userEmailDisplay = document.getElementById('user-email-display');
   const userAvatarBadge = document.getElementById('user-avatar-badge');
