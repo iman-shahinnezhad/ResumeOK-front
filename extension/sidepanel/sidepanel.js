@@ -659,181 +659,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Open Edit Profile Modal
+  // Open Edit Profile Modal over Active Web Page Tab (Matching Image 2 Centered Overlay)
   async function openEditProfileModal() {
-    if (!modalOverlay) return;
-    modalOverlay.style.display = 'flex';
-    if (modalSaveMsg) modalSaveMsg.innerText = '';
-
-    // Load latest profile from storage / memory
-    const storage = await chrome.storage.local.get(['resumeok_profile', 'resumeok_user']);
-    const prof = currentProfile || storage.resumeok_profile || {};
-    const u = activeUser || storage.resumeok_user || {};
-
-    // Pre-fill Personal Info
-    const setVal = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.value = val !== undefined && val !== null ? String(val) : '';
-    };
-
-    setVal('profile-firstName', prof.firstName || (u.name ? u.name.split(' ')[0] : ''));
-    setVal('profile-lastName', prof.lastName || (u.name ? u.name.split(' ').slice(1).join(' ') : ''));
-    setVal('profile-email', prof.email || u.email || '');
-    setVal('profile-phone', prof.phone || '');
-    setVal('profile-location', prof.location || '');
-    setVal('profile-linkedinUrl', prof.linkedinUrl || '');
-    setVal('profile-githubUrl', prof.githubUrl || '');
-    setVal('profile-portfolioUrl', prof.portfolioUrl || prof.website || '');
-    setVal('profile-usWorkAuth', prof.usWorkAuth || prof.usWorkAuthorization || 'Yes');
-    setVal('profile-sponsorshipRequired', prof.sponsorshipRequired || 'No');
-    setVal('profile-gender', prof.gender || 'Male');
-    setVal('profile-race', prof.race || prof.raceEthnicity || 'Decline to state');
-    setVal('profile-veteran', prof.veteran || prof.veteranStatus || 'No');
-    setVal('profile-disability', prof.disability || prof.disabilityStatus || 'No');
-
-    // Skills & Tools
-    const skillsVal = Array.isArray(prof.skills) ? prof.skills.join(', ') : (prof.skills || '');
-    setVal('profile-skills', skillsVal);
-    const langsVal = Array.isArray(prof.languages) ? prof.languages.join(', ') : (prof.languages || '');
-    setVal('profile-languages', langsVal);
-    setVal('profile-certifications', prof.certifications || '');
-
-    // Work, Education, Projects Lists
-    workExperiences = Array.isArray(prof.workExperiences) ? [...prof.workExperiences] : (Array.isArray(prof.experiences) ? [...prof.experiences] : []);
-    educationList = Array.isArray(prof.education) ? [...prof.education] : [];
-    projectsList = Array.isArray(prof.projects) ? [...prof.projects] : [];
-
-    renderWorkList();
-    renderEducationList();
-    renderProjectsList();
-  }
-
-  // Close Modal Handler
-  if (modalCloseBtn) {
-    modalCloseBtn.addEventListener('click', () => {
-      if (modalOverlay) modalOverlay.style.display = 'none';
-    });
-  }
-
-  // Save / Update Modal Handler
-  if (modalSaveBtn) {
-    modalSaveBtn.addEventListener('click', async () => {
-      modalSaveBtn.innerText = 'Updating...';
-      modalSaveBtn.disabled = true;
-      if (modalSaveMsg) modalSaveMsg.innerText = '';
-
-      // Collect Work Experience entries
-      const updatedWork = [];
-      document.querySelectorAll('#work-experience-list .entry-card').forEach(card => {
-        updatedWork.push({
-          companyName: card.querySelector('.work-company')?.value || '',
-          jobTitle: card.querySelector('.work-title')?.value || '',
-          startDate: card.querySelector('.work-start')?.value || '',
-          endDate: card.querySelector('.work-end')?.value || '',
-          location: card.querySelector('.work-location')?.value || '',
-          description: card.querySelector('.work-desc')?.value || ''
-        });
-      });
-
-      // Collect Education entries
-      const updatedEdu = [];
-      document.querySelectorAll('#education-list .entry-card').forEach(card => {
-        updatedEdu.push({
-          school: card.querySelector('.edu-school')?.value || '',
-          degree: card.querySelector('.edu-degree')?.value || '',
-          fieldOfStudy: card.querySelector('.edu-major')?.value || '',
-          graduationYear: card.querySelector('.edu-year')?.value || '',
-          gpa: card.querySelector('.edu-gpa')?.value || ''
-        });
-      });
-
-      // Collect Projects entries
-      const updatedProjects = [];
-      document.querySelectorAll('#projects-list .entry-card').forEach(card => {
-        updatedProjects.push({
-          name: card.querySelector('.proj-name')?.value || '',
-          role: card.querySelector('.proj-role')?.value || '',
-          link: card.querySelector('.proj-link')?.value || '',
-          description: card.querySelector('.proj-desc')?.value || ''
-        });
-      });
-
-      const getVal = (id) => document.getElementById(id)?.value || '';
-
-      const skillsText = getVal('profile-skills');
-      const skillsArr = skillsText.split(',').map(s => s.trim()).filter(s => s.length > 0);
-
-      const langsText = getVal('profile-languages');
-      const langsArr = langsText.split(',').map(s => s.trim()).filter(s => s.length > 0);
-
-      const updatedProfile = {
-        ...(currentProfile || {}),
-        firstName: getVal('profile-firstName'),
-        lastName: getVal('profile-lastName'),
-        email: getVal('profile-email'),
-        phone: getVal('profile-phone'),
-        location: getVal('profile-location'),
-        linkedinUrl: getVal('profile-linkedinUrl'),
-        githubUrl: getVal('profile-githubUrl'),
-        portfolioUrl: getVal('profile-portfolioUrl'),
-        usWorkAuth: getVal('profile-usWorkAuth'),
-        usWorkAuthorization: getVal('profile-usWorkAuth'),
-        sponsorshipRequired: getVal('profile-sponsorshipRequired'),
-        gender: getVal('profile-gender'),
-        race: getVal('profile-race'),
-        raceEthnicity: getVal('profile-race'),
-        veteran: getVal('profile-veteran'),
-        veteranStatus: getVal('profile-veteran'),
-        disability: getVal('profile-disability'),
-        disabilityStatus: getVal('profile-disability'),
-        skills: skillsArr,
-        languages: langsArr,
-        certifications: getVal('profile-certifications'),
-        workExperiences: updatedWork,
-        experiences: updatedWork,
-        education: updatedEdu,
-        projects: updatedProjects
-      };
-
-      currentProfile = updatedProfile;
-
-      // 1. Save to Chrome Storage Local
-      await chrome.storage.local.set({ resumeok_profile: updatedProfile });
-
-      // 2. Sync to MongoDB Server Database if user is logged in
-      if (activeUser && activeToken) {
-        const userId = activeUser.id;
-        const apiEndpoints = [
-          `${API_BASE}/api/user/${userId}/profile`,
-          `${API_BASE}/api/user/profile`
-        ];
-        for (const ep of apiEndpoints) {
-          try {
-            const res = await fetch(ep, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${activeToken}`
-              },
-              body: JSON.stringify({ profile: updatedProfile })
+    try {
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (activeTab && activeTab.id) {
+        chrome.tabs.sendMessage(activeTab.id, { type: 'OPEN_EDIT_INFO_MODAL' }, (res) => {
+          if (chrome.runtime.lastError) {
+            // Inject content script if not loaded on active tab
+            chrome.scripting.executeScript({
+              target: { tabId: activeTab.id },
+              files: ['content/content-script.js']
+            }, () => {
+              setTimeout(() => {
+                chrome.tabs.sendMessage(activeTab.id, { type: 'OPEN_EDIT_INFO_MODAL' });
+              }, 150);
             });
-            if (res.ok) break;
-          } catch(e) {}
-        }
+          }
+        });
+      } else {
+        chrome.runtime.sendMessage({ type: 'OPEN_EDIT_INFO_MODAL' });
       }
-
-      modalSaveBtn.innerText = 'Update';
-      modalSaveBtn.disabled = false;
-      if (modalSaveMsg) modalSaveMsg.innerText = '✅ Profile updated successfully!';
-
-      setTimeout(() => {
-        if (modalOverlay) modalOverlay.style.display = 'none';
-        if (modalSaveMsg) modalSaveMsg.innerText = '';
-      }, 600);
-    });
+    } catch(e) {
+      if (modalOverlay) modalOverlay.style.display = 'flex';
+    }
   }
 
-  // Attach click handlers to open Edit Your Information Modal Overlay
+  // Attach click handlers to open Edit Your Information Modal Overlay on Active Page
   document.body.addEventListener('click', (e) => {
     const target = e.target.closest('#edit-info-link, #edit-info-link-2, .edit-info-row');
     if (target) {
@@ -842,4 +694,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 });
+
 

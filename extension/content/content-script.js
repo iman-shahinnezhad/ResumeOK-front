@@ -588,7 +588,7 @@
     }
   }
 
-  // Inject Pixel-Perfect "Edit Your Information" Modal Matching Design Images 1 & 2
+  // Inject Pixel-Perfect "Edit Your Information" Modal Overlay on Active Page Tab (Matching Image 2 Design)
   function openEditInfoModal() {
     let host = document.getElementById('applydesk-modal-host');
     if (!host) {
@@ -622,7 +622,7 @@
           position: fixed;
           inset: 0;
           background: rgba(0, 0, 0, 0.45);
-          backdrop-filter: blur(4px);
+          backdrop-filter: blur(5px);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -630,16 +630,16 @@
         }
 
         .modal-card {
-          width: 860px;
-          max-width: 92vw;
-          height: 580px;
-          max-height: 90vh;
+          width: 880px;
+          max-width: 94vw;
+          height: 620px;
+          max-height: 92vh;
           background: #ffffff;
           border-radius: 28px;
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          box-shadow: 0 25px 70px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
           animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -657,6 +657,7 @@
           align-items: center;
           justify-content: space-between;
           border-bottom: 1px solid #e2e8f0;
+          flex-shrink: 0;
         }
 
         .brand-box { display: flex; align-items: center; gap: 12px; }
@@ -705,7 +706,8 @@
           background: #ffffff;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
+          flex-shrink: 0;
         }
 
         .nav-item {
@@ -714,7 +716,7 @@
           gap: 12px;
           padding: 12px 16px;
           border-radius: 14px;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 600;
           color: #475569;
           cursor: pointer;
@@ -733,6 +735,9 @@
           overflow-y: auto;
           background: #ffffff;
         }
+
+        .tab-pane { display: none; flex-direction: column; gap: 16px; width: 100%; }
+        .tab-pane.active { display: flex; }
 
         /* Pill Input Grid matching mockup */
         .input-grid {
@@ -766,11 +771,56 @@
           background: transparent;
           border: none;
           outline: none;
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 700;
           color: #0f172a;
           width: 100%;
         }
+
+        textarea.input-field {
+          resize: vertical;
+          min-height: 50px;
+          font-family: inherit;
+        }
+
+        /* Entry Cards for Work / Edu / Projects */
+        .card-list { display: flex; flex-direction: column; gap: 12px; }
+        .entry-card {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 14px 18px;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .btn-remove-entry {
+          position: absolute;
+          top: 10px;
+          right: 12px;
+          background: #fee2e2;
+          color: #ef4444;
+          border: none;
+          border-radius: 8px;
+          padding: 4px 10px;
+          font-size: 11px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .btn-add-entry {
+          align-self: flex-start;
+          background: #e2e8f0;
+          color: #0f172a;
+          border: none;
+          border-radius: 14px;
+          padding: 8px 18px;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          margin-top: 4px;
+        }
+        .btn-add-entry:hover { background: #cbd5e1; }
 
         /* Update Action Button matching mockup */
         .modal-footer {
@@ -778,10 +828,11 @@
           justify-content: flex-end;
           align-items: center;
           margin-top: 24px;
+          flex-shrink: 0;
         }
 
         .btn-update-pill {
-          background: #b0b0b0;
+          background: #0f172a;
           color: #ffffff;
           border-radius: 24px;
           padding: 14px 44px;
@@ -793,17 +844,35 @@
         }
 
         .btn-update-pill:hover {
-          background: #0f172a;
+          background: #1e293b;
           transform: translateY(-1px);
         }
       `;
 
-      const fn = currentProfile.firstName || 'Donald';
-      const ln = currentProfile.lastName || 'Donald';
-      const em = currentProfile.email || 'Donald';
-      const ph = currentProfile.phone || 'Donald';
-      const ci = currentProfile.city || 'Donald';
-      const co = currentProfile.country || 'Donald';
+      const fn = currentProfile.firstName || '';
+      const ln = currentProfile.lastName || '';
+      const em = currentProfile.email || '';
+      const ph = currentProfile.phone || '';
+      const lo = currentProfile.location || currentProfile.city || '';
+      const co = currentProfile.country || '';
+      const li = currentProfile.linkedinUrl || '';
+      const gh = currentProfile.githubUrl || '';
+      const po = currentProfile.portfolioUrl || '';
+
+      const sk = Array.isArray(currentProfile.skills) ? currentProfile.skills.join(', ') : (currentProfile.skills || '');
+      const la = Array.isArray(currentProfile.languages) ? currentProfile.languages.join(', ') : (currentProfile.languages || '');
+      const ce = currentProfile.certifications || '';
+
+      const wa = currentProfile.usWorkAuth || currentProfile.usWorkAuthorization || '';
+      const sp = currentProfile.sponsorshipRequired || '';
+      const ge = currentProfile.gender || '';
+      const ra = currentProfile.race || currentProfile.raceEthnicity || '';
+      const ve = currentProfile.veteran || currentProfile.veteranStatus || '';
+      const di = currentProfile.disability || currentProfile.disabilityStatus || '';
+
+      const experiences = currentProfile.workExperiences || currentProfile.experiences || [];
+      const education = currentProfile.education || [];
+      const projects = currentProfile.projects || [];
 
       const modalWrapper = document.createElement('div');
       modalWrapper.innerHTML = `
@@ -835,49 +904,132 @@
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                   <span>Personal info</span>
                 </div>
-                <div class="nav-item" data-tab="education">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                  <span>Personal info</span>
-                </div>
                 <div class="nav-item" data-tab="work">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                  <span>Personal info</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                  <span>Work Experience</span>
+                </div>
+                <div class="nav-item" data-tab="education">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                  <span>Education</span>
                 </div>
                 <div class="nav-item" data-tab="skills">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                  <span>Personal info</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  <span>Skills & Tools</span>
+                </div>
+                <div class="nav-item" data-tab="projects">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                  <span>Projects</span>
                 </div>
                 <div class="nav-item" data-tab="eeo">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                  <span>Personal info</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  <span>Demographics</span>
                 </div>
               </aside>
 
               <main class="modal-content">
-                <div class="input-grid">
+                <!-- Personal Info Tab -->
+                <div class="tab-pane active" id="pane-personal">
+                  <div class="input-grid">
+                    <div class="input-pill-box">
+                      <span class="input-label">First Name</span>
+                      <input id="inp-fn" class="input-field" type="text" value="${fn}" placeholder="First Name" />
+                    </div>
+                    <div class="input-pill-box">
+                      <span class="input-label">Last Name</span>
+                      <input id="inp-ln" class="input-field" type="text" value="${ln}" placeholder="Last Name" />
+                    </div>
+                    <div class="input-pill-box">
+                      <span class="input-label">Email</span>
+                      <input id="inp-em" class="input-field" type="email" value="${em}" placeholder="Email" />
+                    </div>
+                    <div class="input-pill-box">
+                      <span class="input-label">Phone</span>
+                      <input id="inp-ph" class="input-field" type="text" value="${ph}" placeholder="Phone" />
+                    </div>
+                    <div class="input-pill-box">
+                      <span class="input-label">Location / City</span>
+                      <input id="inp-lo" class="input-field" type="text" value="${lo}" placeholder="City, State" />
+                    </div>
+                    <div class="input-pill-box">
+                      <span class="input-label">Country</span>
+                      <input id="inp-co" class="input-field" type="text" value="${co}" placeholder="Country" />
+                    </div>
+                    <div class="input-pill-box">
+                      <span class="input-label">LinkedIn URL</span>
+                      <input id="inp-li" class="input-field" type="text" value="${li}" placeholder="linkedin.com/in/..." />
+                    </div>
+                    <div class="input-pill-box">
+                      <span class="input-label">GitHub URL</span>
+                      <input id="inp-gh" class="input-field" type="text" value="${gh}" placeholder="github.com/..." />
+                    </div>
+                    <div class="input-pill-box">
+                      <span class="input-label">Portfolio URL</span>
+                      <input id="inp-po" class="input-field" type="text" value="${po}" placeholder="portfolio.com" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Work Experience Tab -->
+                <div class="tab-pane" id="pane-work">
+                  <div class="card-list" id="work-list"></div>
+                  <button class="btn-add-entry" id="btn-add-work">+ Add Experience</button>
+                </div>
+
+                <!-- Education Tab -->
+                <div class="tab-pane" id="pane-education">
+                  <div class="card-list" id="edu-list"></div>
+                  <button class="btn-add-entry" id="btn-add-edu">+ Add Education</button>
+                </div>
+
+                <!-- Skills Tab -->
+                <div class="tab-pane" id="pane-skills">
                   <div class="input-pill-box">
-                    <span class="input-label">First Name</span>
-                    <input id="inp-fn" class="input-field" type="text" value="${fn}" />
+                    <span class="input-label">Skills (comma separated)</span>
+                    <textarea id="inp-sk" class="input-field" placeholder="React, Node.js, TypeScript, Python">${sk}</textarea>
                   </div>
                   <div class="input-pill-box">
-                    <span class="input-label">First Name</span>
-                    <input id="inp-ln" class="input-field" type="text" value="${ln}" />
+                    <span class="input-label">Languages</span>
+                    <input id="inp-la" class="input-field" type="text" value="${la}" placeholder="English, Spanish" />
                   </div>
                   <div class="input-pill-box">
-                    <span class="input-label">First Name</span>
-                    <input id="inp-em" class="input-field" type="text" value="${em}" />
+                    <span class="input-label">Certifications</span>
+                    <input id="inp-ce" class="input-field" type="text" value="${ce}" placeholder="AWS Certified Developer, PMP" />
                   </div>
-                  <div class="input-pill-box">
-                    <span class="input-label">First Name</span>
-                    <input id="inp-ph" class="input-field" type="text" value="${ph}" />
-                  </div>
-                  <div class="input-pill-box">
-                    <span class="input-label">First Name</span>
-                    <input id="inp-ci" class="input-field" type="text" value="${ci}" />
-                  </div>
-                  <div class="input-pill-box">
-                    <span class="input-label">First Name</span>
-                    <input id="inp-co" class="input-field" type="text" value="${co}" />
+                </div>
+
+                <!-- Projects Tab -->
+                <div class="tab-pane" id="pane-projects">
+                  <div class="card-list" id="proj-list"></div>
+                  <button class="btn-add-entry" id="btn-add-proj">+ Add Project</button>
+                </div>
+
+                <!-- Demographics / EEO Tab -->
+                <div class="tab-pane" id="pane-eeo">
+                  <div class="input-grid">
+                    <div class="input-pill-box">
+                      <span class="input-label">US Work Authorization</span>
+                      <input id="inp-wa" class="input-field" type="text" value="${wa}" placeholder="Yes / No / Citizen" />
+                    </div>
+                    <div class="input-pill-box">
+                      <span class="input-label">Sponsorship Required</span>
+                      <input id="inp-sp" class="input-field" type="text" value="${sp}" placeholder="Yes / No" />
+                    </div>
+                    <div class="input-pill-box">
+                      <span class="input-label">Gender</span>
+                      <input id="inp-ge" class="input-field" type="text" value="${ge}" placeholder="Male / Female / Decline" />
+                    </div>
+                    <div class="input-pill-box">
+                      <span class="input-label">Race / Ethnicity</span>
+                      <input id="inp-ra" class="input-field" type="text" value="${ra}" placeholder="Race / Ethnicity" />
+                    </div>
+                    <div class="input-pill-box">
+                      <span class="input-label">Veteran Status</span>
+                      <input id="inp-ve" class="input-field" type="text" value="${ve}" placeholder="I am not a veteran" />
+                    </div>
+                    <div class="input-pill-box">
+                      <span class="input-label">Disability Status</span>
+                      <input id="inp-di" class="input-field" type="text" value="${di}" placeholder="No, I do not have a disability" />
+                    </div>
                   </div>
                 </div>
 
@@ -893,6 +1045,86 @@
       shadow.appendChild(style);
       shadow.appendChild(modalWrapper);
 
+      // Render Dynamic Card Lists
+      const workList = shadow.getElementById('work-list');
+      const eduList = shadow.getElementById('edu-list');
+      const projList = shadow.getElementById('proj-list');
+
+      function addWorkCard(exp = {}) {
+        const div = document.createElement('div');
+        div.className = 'entry-card work-card';
+        div.innerHTML = `
+          <button type="button" class="btn-remove-entry">Remove</button>
+          <div class="input-grid">
+            <div class="input-pill-box"><span class="input-label">Company</span><input class="input-field w-company" value="${exp.company || ''}" /></div>
+            <div class="input-pill-box"><span class="input-label">Role / Title</span><input class="input-field w-role" value="${exp.role || exp.title || ''}" /></div>
+            <div class="input-pill-box"><span class="input-label">Dates (e.g. 2021 - Present)</span><input class="input-field w-dates" value="${exp.dates || ''}" /></div>
+          </div>
+          <div class="input-pill-box"><span class="input-label">Description</span><textarea class="input-field w-desc">${exp.description || ''}</textarea></div>
+        `;
+        div.querySelector('.btn-remove-entry').onclick = () => div.remove();
+        workList.appendChild(div);
+      }
+
+      function addEduCard(ed = {}) {
+        const div = document.createElement('div');
+        div.className = 'entry-card edu-card';
+        div.innerHTML = `
+          <button type="button" class="btn-remove-entry">Remove</button>
+          <div class="input-grid">
+            <div class="input-pill-box"><span class="input-label">School / University</span><input class="input-field e-school" value="${ed.school || ''}" /></div>
+            <div class="input-pill-box"><span class="input-label">Degree</span><input class="input-field e-degree" value="${ed.degree || ''}" /></div>
+            <div class="input-pill-box"><span class="input-label">Field of Study</span><input class="input-field e-field" value="${ed.fieldOfStudy || ''}" /></div>
+          </div>
+        `;
+        div.querySelector('.btn-remove-entry').onclick = () => div.remove();
+        eduList.appendChild(div);
+      }
+
+      function addProjCard(pj = {}) {
+        const div = document.createElement('div');
+        div.className = 'entry-card proj-card';
+        div.innerHTML = `
+          <button type="button" class="btn-remove-entry">Remove</button>
+          <div class="input-grid">
+            <div class="input-pill-box"><span class="input-label">Project Name</span><input class="input-field p-name" value="${pj.name || ''}" /></div>
+            <div class="input-pill-box"><span class="input-label">Role</span><input class="input-field p-role" value="${pj.role || ''}" /></div>
+            <div class="input-pill-box"><span class="input-label">Link</span><input class="input-field p-link" value="${pj.link || ''}" /></div>
+          </div>
+        `;
+        div.querySelector('.btn-remove-entry').onclick = () => div.remove();
+        projList.appendChild(div);
+      }
+
+      if (experiences.length > 0) experiences.forEach(addWorkCard);
+      else addWorkCard();
+
+      if (education.length > 0) education.forEach(addEduCard);
+      else addEduCard();
+
+      if (projects.length > 0) projects.forEach(addProjCard);
+      else addProjCard();
+
+      shadow.getElementById('btn-add-work').onclick = () => addWorkCard();
+      shadow.getElementById('btn-add-edu').onclick = () => addEduCard();
+      shadow.getElementById('btn-add-proj').onclick = () => addProjCard();
+
+      // Navigation tab switcher
+      const navItems = shadow.querySelectorAll('.nav-item');
+      const tabPanes = shadow.querySelectorAll('.tab-pane');
+
+      navItems.forEach(item => {
+        item.addEventListener('click', () => {
+          const tab = item.dataset.tab;
+          navItems.forEach(n => n.classList.remove('active'));
+          tabPanes.forEach(p => p.classList.remove('active'));
+
+          item.classList.add('active');
+          const targetPane = shadow.getElementById(`pane-${tab}`);
+          if (targetPane) targetPane.classList.add('active');
+        });
+      });
+
       const closeBtn = shadow.getElementById('ad-modal-close');
       const updateBtn = shadow.getElementById('ad-modal-update-btn');
 
@@ -904,28 +1136,91 @@
 
       if (updateBtn) {
         updateBtn.addEventListener('click', async () => {
+          // Collect Work entries
+          const updatedWork = [];
+          shadow.querySelectorAll('.work-card').forEach(card => {
+            updatedWork.push({
+              company: card.querySelector('.w-company')?.value || '',
+              role: card.querySelector('.w-role')?.value || '',
+              title: card.querySelector('.w-role')?.value || '',
+              dates: card.querySelector('.w-dates')?.value || '',
+              description: card.querySelector('.w-desc')?.value || ''
+            });
+          });
+
+          // Collect Education entries
+          const updatedEdu = [];
+          shadow.querySelectorAll('.edu-card').forEach(card => {
+            updatedEdu.push({
+              school: card.querySelector('.e-school')?.value || '',
+              degree: card.querySelector('.e-degree')?.value || '',
+              fieldOfStudy: card.querySelector('.e-field')?.value || ''
+            });
+          });
+
+          // Collect Project entries
+          const updatedProj = [];
+          shadow.querySelectorAll('.proj-card').forEach(card => {
+            updatedProj.push({
+              name: card.querySelector('.p-name')?.value || '',
+              role: card.querySelector('.p-role')?.value || '',
+              link: card.querySelector('.p-link')?.value || ''
+            });
+          });
+
+          const skText = shadow.getElementById('inp-sk')?.value || '';
+          const skArr = skText.split(',').map(s => s.trim()).filter(s => s.length > 0);
+          const laText = shadow.getElementById('inp-la')?.value || '';
+          const laArr = laText.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
           const updatedProfile = {
             ...currentProfile,
             firstName: shadow.getElementById('inp-fn')?.value || fn,
             lastName: shadow.getElementById('inp-ln')?.value || ln,
             email: shadow.getElementById('inp-em')?.value || em,
             phone: shadow.getElementById('inp-ph')?.value || ph,
-            city: shadow.getElementById('inp-ci')?.value || ci,
+            location: shadow.getElementById('inp-lo')?.value || lo,
+            city: shadow.getElementById('inp-lo')?.value || lo,
             country: shadow.getElementById('inp-co')?.value || co,
-            resumeFileName: `${shadow.getElementById('inp-fn')?.value || 'Resume'}_CV.PDF`
+            linkedinUrl: shadow.getElementById('inp-li')?.value || li,
+            githubUrl: shadow.getElementById('inp-gh')?.value || gh,
+            portfolioUrl: shadow.getElementById('inp-po')?.value || po,
+
+            skills: skArr,
+            languages: laArr,
+            certifications: shadow.getElementById('inp-ce')?.value || ce,
+
+            usWorkAuth: shadow.getElementById('inp-wa')?.value || wa,
+            usWorkAuthorization: shadow.getElementById('inp-wa')?.value || wa,
+            sponsorshipRequired: shadow.getElementById('inp-sp')?.value || sp,
+            gender: shadow.getElementById('inp-ge')?.value || ge,
+            race: shadow.getElementById('inp-ra')?.value || ra,
+            raceEthnicity: shadow.getElementById('inp-ra')?.value || ra,
+            veteran: shadow.getElementById('inp-ve')?.value || ve,
+            veteranStatus: shadow.getElementById('inp-ve')?.value || ve,
+            disability: shadow.getElementById('inp-di')?.value || di,
+            disabilityStatus: shadow.getElementById('inp-di')?.value || di,
+
+            workExperiences: updatedWork,
+            experiences: updatedWork,
+            education: updatedEdu,
+            projects: updatedProj
           };
 
           updateBtn.innerText = 'Updating...';
+          updateBtn.disabled = true;
+
           if (isExtensionValid()) {
             try {
               await chrome.storage.local.set({ resumeok_profile: updatedProfile });
               chrome.runtime.sendMessage({ type: 'SAVE_PROFILE_STORAGE', profile: updatedProfile });
             } catch(e) {}
           }
+
           updateBtn.innerText = '✅ Saved!';
           setTimeout(() => {
             host.remove();
-          }, 450);
+          }, 500);
         });
       }
     }
