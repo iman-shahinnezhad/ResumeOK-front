@@ -31,11 +31,7 @@ export default function Login({ onLogin, API_URL }: Props) {
 
   // Load Google Identity Services script on mount
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
+    const initGoogleBtn = () => {
       if (window.google?.accounts?.id) {
         window.google.accounts.id.initialize({
           client_id: '430649749710-b8mvmd6c5uu9ulr8j7bp12ae0br6pb86.apps.googleusercontent.com',
@@ -44,23 +40,33 @@ export default function Login({ onLogin, API_URL }: Props) {
 
         const btnDiv = document.getElementById('googleSignInBtn');
         if (btnDiv) {
+          btnDiv.innerHTML = '';
           window.google.accounts.id.renderButton(btnDiv, {
             theme: 'outline',
             size: 'large',
-            width: '100%',
+            width: 360,
             text: 'continue_with',
             shape: 'rectangular',
           });
         }
       }
     };
-    document.body.appendChild(script);
 
-    return () => {
-      try {
-        document.body.removeChild(script);
-      } catch (e) { }
-    };
+    if (window.google?.accounts?.id) {
+      initGoogleBtn();
+    } else {
+      const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+      if (existingScript) {
+        existingScript.addEventListener('load', initGoogleBtn);
+      } else {
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        script.onload = initGoogleBtn;
+        document.head.appendChild(script);
+      }
+    }
   }, []);
 
   const handleGoogleCredentialResponse = async (response: any) => {
