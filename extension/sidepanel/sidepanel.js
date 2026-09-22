@@ -79,11 +79,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       const storage = await chrome.storage.local.get(['resumeok_token', 'resumeok_user', 'resumeok_profile']);
       activeToken = storage.resumeok_token || null;
       activeUser = storage.resumeok_user || null;
+      if (typeof activeUser === 'string') {
+        try { activeUser = JSON.parse(activeUser); } catch(e) {}
+      }
       if (storage.resumeok_profile) currentProfile = storage.resumeok_profile;
     } catch(e) {}
 
-    // If token not in extension storage, check active web tab & any applydesk tabs for localStorage auth
-    if (!activeToken || !activeUser) {
+    // If token not in extension storage, query open ApplyDesk web tabs to sync auth
+    if (!activeToken) {
       try {
         const tabs = await chrome.tabs.query({});
         for (const tab of tabs) {
@@ -96,17 +99,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
           }
         }
-        // Re-check storage after content script sync attempt
+        // Wait 250ms for chrome.storage.local write to complete
+        await new Promise(r => setTimeout(r, 250));
+
         const storage = await chrome.storage.local.get(['resumeok_token', 'resumeok_user']);
-        if (storage.resumeok_token && storage.resumeok_user) {
-          activeToken = storage.resumeok_token;
-          activeUser = storage.resumeok_user;
+        activeToken = storage.resumeok_token || null;
+        activeUser = storage.resumeok_user || null;
+        if (typeof activeUser === 'string') {
+          try { activeUser = JSON.parse(activeUser); } catch(e) {}
         }
       } catch(e) {}
     }
 
-    // IF NOT LOGGED IN: Show Login Required View
-    if (!activeToken || !activeUser) {
+    // IF STILL NO TOKEN: Show Login Required View
+    if (!activeToken) {
       if (loginRequiredView) loginRequiredView.style.display = 'block';
       if (mainContent) mainContent.style.display = 'none';
       if (tokenCountEl) tokenCountEl.innerText = '0';
@@ -117,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (loginRequiredView) loginRequiredView.style.display = 'none';
     if (mainContent) mainContent.style.display = 'block';
 
-    // Fetch REAL User Details & Credits from MongoDB API
+    // Verify token & update credit balance from MongoDB API
     try {
       const endpoints = [
         `${API_BASE}/api/auth/me`,
@@ -135,10 +141,21 @@ document.addEventListener('DOMContentLoaded', async () => {
               await chrome.storage.local.set({ resumeok_user: activeUser });
               break;
             }
+          } else if (authRes.status === 401) {
+            // Token explicitly rejected by backend -> logout
+            await chrome.storage.local.remove(['resumeok_token', 'resumeok_user']);
+            activeToken = null;
+            activeUser = null;
+            if (loginRequiredView) loginRequiredView.style.display = 'block';
+            if (mainContent) mainContent.style.display = 'none';
+            if (tokenCountEl) tokenCountEl.innerText = '0';
+            return false;
           }
         } catch(e) {}
       }
     } catch(e) {}
+
+    if (!activeUser) activeUser = {};
 
     // Update Token Count in Header
     if (tokenCountEl) {
@@ -147,27 +164,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Fetch REAL Profile from MongoDB API
     try {
-      const profRes = await fetch(`${API_BASE}/api/user/${activeUser.id}/profile`, {
-        headers: { 'Authorization': `Bearer ${activeToken}` }
-      });
-      if (profRes.ok) {
-        const profData = await profRes.json();
-        if (profData && profData.profile) {
-          currentProfile = profData.profile;
-          await chrome.storage.local.set({ resumeok_profile: currentProfile });
+      if (activeUser.id) {
+        const profRes = await fetch(`${API_BASE}/api/user/${activeUser.id}/profile`, {
+          headers: { 'Authorization': `Bearer ${activeToken}` }
+        });
+        if (profRes.ok) {
+          const profData = await profRes.json();
+          if (profData && profData.profile) {
+            currentProfile = profData.profile;
+            await chrome.storage.local.set({ resumeok_profile: currentProfile });
+          }
         }
       }
     } catch(e) {}
 
     // Fetch REAL User Documents (Resumes) from MongoDB API
     try {
-      const docRes = await fetch(`${API_BASE}/api/user/${activeUser.id}/documents`, {
-        headers: { 'Authorization': `Bearer ${activeToken}` }
-      });
-      if (docRes.ok) {
-        const docData = await docRes.json();
-        if (docData && docData.resumes) {
-          userResumes = docData.resumes;
+      if (activeUser.id) {
+        const docRes = await fetch(`${API_BASE}/api/user/${activeUser.id}/documents`, {
+          headers: { 'Authorization': `Bearer ${activeToken}` }
+        });
+        if (docRes.ok) {
+          const docData = await docRes.json();
+          if (docData && docData.resumes) {
+            userResumes = docData.resumes;
+          }
         }
       }
     } catch(e) {}
@@ -212,6 +233,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (refreshAuthBtn) {
     refreshAuthBtn.addEventListener('click', async () => {
       refreshAuthBtn.innerText = 'Checking...';
+      // Force sync check on open tabs
+      try {
+        const tabs = await chrome.tabs.query({});
+        for (const tab of tabs) {
+          if (tab.id && tab.url && (tab.url.includes('applydesk') || tab.url.includes('188.166.164.115') || tab.url.includes('localhost') || tab.url.includes('127.0.0.1'))) {
+            chrome.tabs.sendMessage(tab.id, { type: 'CHECK_WEB_AUTH' }, () => {
+              if (chrome.runtime.lastError) {}
+            });
+          }
+        }
+      } catch(e) {}
+      await new Promise(r => setTimeout(r, 300));
       const success = await checkAuthAndLoadData();
       refreshAuthBtn.innerText = '🔄 Check Login Status';
       if (!success && addJobMsg) {

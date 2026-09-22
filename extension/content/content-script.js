@@ -1229,10 +1229,19 @@
   // Automatic Web App Authentication Sync
   function checkAndSyncWebAuth() {
     try {
-      const token = localStorage.getItem('auth_token') || localStorage.getItem('resumeok_token');
-      const userStr = localStorage.getItem('auth_user') || localStorage.getItem('resumeok_user');
-      if (token && userStr) {
-        const user = typeof userStr === 'string' ? JSON.parse(userStr) : userStr;
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('resumeok_token') || localStorage.getItem('jwt');
+      const userStr = localStorage.getItem('auth_user') || localStorage.getItem('resumeok_user') || localStorage.getItem('user');
+      if (token) {
+        let user = null;
+        if (userStr) {
+          try {
+            user = typeof userStr === 'string' ? JSON.parse(userStr) : userStr;
+          } catch(e) {
+            user = { token };
+          }
+        } else {
+          user = { token };
+        }
         if (isExtensionValid()) {
           chrome.runtime.sendMessage({ type: 'SYNC_WEB_AUTH', token, user }, () => {
             if (chrome.runtime.lastError) { /* ignore */ }

@@ -5,17 +5,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       if (message.type === 'SYNC_WEB_AUTH') {
-        if (message.token && message.user) {
+        if (message.token) {
+          const userObj = message.user ? (typeof message.user === 'string' ? JSON.parse(message.user) : message.user) : { token: message.token };
           await chrome.storage.local.set({
             resumeok_token: message.token,
-            resumeok_user: message.user
+            resumeok_user: userObj
           });
-          console.log('[ServiceWorker] Synced user auth session from web app:', message.user.email || message.user.id);
+          console.log('[ServiceWorker] Synced user auth session from web app:', userObj.email || userObj.id || message.token);
+
+          // Fetch full user details if missing
+          if (!userObj.id || !userObj.email) {
+            try {
+              const res = await fetch('https://api.applydesk.io/api/auth/me', {
+                headers: { 'Authorization': `Bearer ${message.token}` }
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data && data.user) {
+                  await chrome.storage.local.set({ resumeok_user: data.user });
+                }
+              }
+            } catch(e) {}
+          }
         }
         sendResponse({ success: true });
       } else if (message.type === 'GET_AUTH_STATUS') {
         const data = await chrome.storage.local.get(['resumeok_token', 'resumeok_user']);
-        const isLoggedIn = Boolean(data.resumeok_token && data.resumeok_user);
+        const isLoggedIn = Boolean(data.resumeok_token);
         sendResponse({
           isLoggedIn,
           token: data.resumeok_token || null,
@@ -134,4 +150,19 @@ if (chrome.action && chrome.action.onClicked) {
     }
   });
 }
+
+// Automatically sync web auth session whenever user visits or refreshes ApplyDesk web app
+try {
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === 'complete' && tab && tab.url) {
+      const isApplyDesk = tab.url.includes('applydesk') || tab.url.includes('188.166.164.115') || tab.url.includes('localhost') || tab.url.includes('127.0.0.1');
+      if (isApplyDesk) {
+        chrome.tabs.sendMessage(tabId, { type: 'CHECK_WEB_AUTH' }, () => {
+          if (chrome.runtime.lastError) { /* ignore */ }
+        });
+      }
+    }
+  });
+} catch(e) {}
+
 
