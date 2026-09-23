@@ -123,6 +123,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           await chrome.action.setBadgeBackgroundColor({ tabId: sender.tab.id, color: '#000000' });
         }
         sendResponse({ success: true });
+      } else if (message.type === 'OPEN_SIDE_PANEL') {
+        if (sender.tab && sender.tab.id) {
+          if (chrome.sidePanel && chrome.sidePanel.open) {
+            try {
+              await chrome.sidePanel.open({ tabId: sender.tab.id });
+              sendResponse({ success: true, method: 'sidePanel' });
+              return;
+            } catch(e) {
+              try {
+                await chrome.sidePanel.open({ windowId: sender.tab.windowId });
+                sendResponse({ success: true, method: 'sidePanel' });
+                return;
+              } catch(err) {}
+            }
+          }
+          chrome.tabs.sendMessage(sender.tab.id, { type: 'OPEN_FLOATING_PANEL' }, () => {
+            if (chrome.runtime.lastError) {}
+          });
+        }
+        sendResponse({ success: true, method: 'drawer' });
       }
     } catch (err) {
       console.error('Service worker message error:', err);

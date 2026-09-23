@@ -155,6 +155,57 @@
     } catch(e) { return null; }
   }
 
+  // File Upload Helper with ATS UI Preview & Event Triggering
+  function attachFileToInput(fileInp, blob, fileName) {
+    if (!fileInp || !blob) return false;
+    try {
+      const file = new File([blob], fileName, { type: 'application/pdf' });
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      fileInp.files = dt.files;
+
+      ['change', 'input', 'blur'].forEach(evtName => {
+        fileInp.dispatchEvent(new Event(evtName, { bubbles: true, cancelable: true }));
+        fileInp.dispatchEvent(new CustomEvent(evtName, { bubbles: true, cancelable: true }));
+      });
+
+      if (typeof fileInp.onchange === 'function') {
+        try { fileInp.onchange(); } catch(e) {}
+      }
+
+      try {
+        if (window.jQuery) {
+          window.jQuery(fileInp).trigger('change');
+        }
+      } catch(e) {}
+
+      // Update ATS UI preview element
+      try {
+        const container = fileInp.closest('.field, .form-group, [class*="upload" i], [class*="attachment" i]') || fileInp.parentElement;
+        if (container) {
+          const chosenDisplay = container.querySelector('.chosen-file, .file-name, .filename, [data-file-name], span[class*="file" i]');
+          if (chosenDisplay) {
+            chosenDisplay.innerText = fileName;
+            chosenDisplay.style.display = 'inline-block';
+          } else {
+            let preview = container.querySelector('.applydesk-file-preview');
+            if (!preview) {
+              preview = document.createElement('div');
+              preview.className = 'applydesk-file-preview';
+              preview.style.cssText = 'margin-top:6px; font-size:13px; font-weight:700; color:#10b981; display:flex; align-items:center; gap:6px;';
+              container.appendChild(preview);
+            }
+            preview.innerHTML = `<span>📎 ${fileName} (Attached)</span>`;
+          }
+        }
+      } catch(e) {}
+
+      return true;
+    } catch(e) {
+      return false;
+    }
+  }
+
   // Detect Job Details on Active Page
   function extractJobDetails() {
     let title = '';
@@ -443,149 +494,56 @@
       }
 
       // Cover Letter Manual Input Button Trigger (e.g. Greenhouse / Lever "Enter manually" button)
-      doc.querySelectorAll('button, a, div[role="button"]').forEach(btn => {
-        const txt = (btn.innerText || '').toLowerCase();
-        if (txt.includes('enter manually') || txt.includes('type cover letter')) {
-          try { btn.click(); } catch(e) {}
+      doc.querySelectorAll('button, a, div[role="button"], [data-source="manual"]').forEach(btn => {
+        const txt = (btn.innerText || btn.getAttribute('data-source') || '').toLowerCase();
+        if (txt.includes('enter manually') || txt.includes('type cover letter') || txt === 'manual') {
+          try {
+            ['mousedown', 'mouseup', 'click'].forEach(evtName => {
+              btn.dispatchEvent(new MouseEvent(evtName, { bubbles: true, cancelable: true, view: window }));
+            });
+            btn.click();
+          } catch(e) {}
         }
       });
 
       // Cover Letter Text & Textareas
       const clText = profile.coverLetterText || profile.workSummary || `Dear Hiring Manager,\n\nI am thrilled to apply for this position at your company. With my solid technical background in software engineering, frontend development, and project execution, I am confident in bringing immediate value to your team.\n\nBest regards,\n${full || 'Candidate'}`;
-      const coverEls = findInputsByLabel(doc, ['cover letter', 'cover_letter', 'letter']);
-      if (coverEls.length > 0) {
-        coverEls.forEach(ta => { setVal(ta, clText); filled++; });
-      } else {
-        doc.querySelectorAll('textarea[name*="cover" i], textarea[id*="cover" i], textarea[placeholder*="cover" i], textarea[name*="letter" i], textarea').forEach(ta => {
-          if (!ta.value) { setVal(ta, clText); filled++; }
+      
+      const fillCoverLetterTextareas = () => {
+        const coverEls = findInputsByLabel(doc, ['cover letter', 'cover_letter', 'letter']);
+        if (coverEls.length > 0) {
+          coverEls.forEach(ta => { setVal(ta, clText); filled++; });
+        }
+        doc.querySelectorAll('textarea[name*="cover" i], textarea[id*="cover" i], textarea[placeholder*="cover" i], textarea[name*="letter" i], textarea, #cover_letter_text').forEach(ta => {
+          setVal(ta, clText);
+          filled++;
         });
-      }
+      };
 
-      // Resume & Cover Letter File Upload Attachment Helper
-      doc.querySelectorAll('input[type="file"]').forEach(fileInp => {
-        try {
-          // Minimal valid 1-page PDF base64 snippet
-          const samplePdf = 'JVBERi0xLjQKJ...';
-          const b64 = profile.resumeBase64 || samplePdf;
-          const blob = b64ToBlob(b64, 'application/pdf');
-          if (blob) {
-            const fileName = (fileInp.name || fileInp.id || '').toLowerCase().includes('cover') 
-              ? `${fn}_Cover_Letter.pdf`
-              : `${fn}_Resume.pdf`;
-            const file = new File([blob], fileName, { type: 'application/pdf' });
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            fileInp.files = dataTransfer.files;
-            fileInp.dispatchEvent(new Event('change', { bubbles: true }));
-            filled++;
-          }
-        } catch(e) {}
-      });
+      fillCoverLetterTextareas();
+      setTimeout(fillCoverLetterTextareas, 150);
+      setTimeout(fillCoverLetterTextareas, 400);
 
-      // Demographics & EEO Questions (Gender, Sex)
-      const genderTerms = gen ? [gen, 'man', 'male', 'decline', 'prefer not', 'choose not'] : ['man', 'male', 'decline', 'prefer not', 'choose not'];
-      doc.querySelectorAll('select[name*="gender" i], select[id*="gender" i], select[name*="sex" i], select[aria-label*="gender" i], select[data-qa*="gender" i]').forEach(s => {
-        setVal(s, genderTerms);
-        filled++;
-      });
-      doc.querySelectorAll('input[type="radio"][name*="gender" i], input[type="radio"][id*="gender" i], input[type="radio"][value*="gender" i]').forEach(r => {
-        const valStr = `${r.value} ${r.id} ${r.name} ${r.labels?.[0]?.innerText || ''}`.toLowerCase();
-        if (genderTerms.some(t => valStr.includes(t.toLowerCase()))) {
-          setVal(r, true);
-          filled++;
-        }
-      });
-
-      // Race & Ethnicity
-      const raceTerms = race ? [race, 'decline', 'prefer not', 'choose not', 'white', 'asian'] : ['decline', 'prefer not', 'choose not', 'white'];
-      doc.querySelectorAll('select[name*="race" i], select[id*="race" i], select[name*="ethnicity" i], select[id*="ethnicity" i]').forEach(s => {
-        setVal(s, raceTerms);
-        filled++;
-      });
-      doc.querySelectorAll('input[type="radio"][name*="race" i], input[type="radio"][name*="ethnicity" i]').forEach(r => {
-        const valStr = `${r.value} ${r.id} ${r.name} ${r.labels?.[0]?.innerText || ''}`.toLowerCase();
-        if (raceTerms.some(t => valStr.includes(t.toLowerCase()))) {
-          setVal(r, true);
-          filled++;
-        }
-      });
-
-      // Veteran Status
-      const vetTerms = vet ? [vet, 'not a veteran', 'am not', 'no', 'decline'] : ['not a veteran', 'am not', 'no', 'decline'];
-      doc.querySelectorAll('select[name*="veteran" i], select[id*="veteran" i]').forEach(s => {
-        setVal(s, vetTerms);
-        filled++;
-      });
-      doc.querySelectorAll('input[type="radio"][name*="veteran" i]').forEach(r => {
-        const valStr = `${r.value} ${r.id} ${r.name} ${r.labels?.[0]?.innerText || ''}`.toLowerCase();
-        if (vetTerms.some(t => valStr.includes(t.toLowerCase()))) {
-          setVal(r, true);
-          filled++;
-        }
-      });
-
-      // Disability Status
-      const disabTerms = disab ? [disab, 'no', 'dont have', 'don\'t have', 'decline'] : ['no', 'dont have', 'don\'t have', 'decline'];
-      doc.querySelectorAll('select[name*="disability" i], select[id*="disability" i]').forEach(s => {
-        setVal(s, disabTerms);
-        filled++;
-      });
-      doc.querySelectorAll('input[type="radio"][name*="disability" i]').forEach(r => {
-        const valStr = `${r.value} ${r.id} ${r.name} ${r.labels?.[0]?.innerText || ''}`.toLowerCase();
-        if (disabTerms.some(t => valStr.includes(t.toLowerCase()))) {
-          setVal(r, true);
-          filled++;
-        }
-      });
-
-      // Work Authorization & Visa Sponsorship Questions
-      doc.querySelectorAll('select[name*="authorized" i], select[name*="sponsor" i], select[id*="sponsor" i], select[id*="authorized" i]').forEach(s => {
-        setVal(s, ['yes', 'authorized', 'legally', 'no']);
-        filled++;
-      });
-      doc.querySelectorAll('input[type="radio"][name*="authorized" i], input[type="radio"][name*="sponsor" i]').forEach(r => {
-        const valStr = `${r.value} ${r.id} ${r.name} ${r.labels?.[0]?.innerText || ''}`.toLowerCase();
-        if (valStr.includes('yes') || valStr.includes('authorized')) {
-          setVal(r, true);
-          filled++;
-        }
-      });
-
-      // How did you hear about us / Source
-      doc.querySelectorAll('select[name*="source" i], select[name*="hear" i], select[id*="source" i]').forEach(s => {
-        setVal(s, ['LinkedIn', 'Website', 'Other']);
-        filled++;
-      });
-
-      // File attachments (PDF Resume & PDF Cover Letter)
+      // Attach Resume & Cover Letter PDF Files to all input[type="file"]
       try {
-        let resBlob = profile.resumeBase64 ? b64ToBlob(profile.resumeBase64, 'application/pdf') : null;
-        if (!resBlob) {
-          const dummyPdf = `%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<<>>>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000052 00000 n\n0000000101 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF`;
-          resBlob = new Blob([dummyPdf], { type: 'application/pdf' });
-        }
+        const resB64 = profile.resumeBase64 || VALID_SAMPLE_PDF_B64;
+        const resBlob = b64ToBlob(resB64, 'application/pdf');
         
+        const clB64 = profile.coverLetterBase64 || profile.resumeBase64 || VALID_SAMPLE_PDF_B64;
+        const clBlob = b64ToBlob(clB64, 'application/pdf');
+
         if (resBlob) {
-          const resFile = new File([resBlob], profile.resumeFileName || "OmidMoradi_Resume.pdf", { type: 'application/pdf' });
-          const clFile = new File([resBlob], "OmidMoradi_CoverLetter.pdf", { type: 'application/pdf' });
+          const resFileName = profile.resumeFileName || `${fn}_Resume.pdf`;
+          const clFileName = `${fn}_CoverLetter.pdf`;
 
-          const dtRes = new DataTransfer();
-          dtRes.items.add(resFile);
-
-          const dtCl = new DataTransfer();
-          dtCl.items.add(clFile);
-
-          doc.querySelectorAll('input[type="file"]').forEach(inp => {
-            const n = (inp.name || inp.id || inp.getAttribute('aria-label') || '').toLowerCase();
+          doc.querySelectorAll('input[type="file"]').forEach(fileInp => {
+            const n = (fileInp.name || fileInp.id || fileInp.getAttribute('aria-label') || fileInp.parentElement?.innerText || '').toLowerCase();
             if (n.includes('cover')) {
-              inp.files = dtCl.files;
-              inp.dispatchEvent(new Event('change', { bubbles: true }));
-              filled++;
+              if (clBlob) attachFileToInput(fileInp, clBlob, clFileName);
             } else {
-              inp.files = dtRes.files;
-              inp.dispatchEvent(new Event('change', { bubbles: true }));
-              filled++;
+              attachFileToInput(fileInp, resBlob, resFileName);
             }
+            filled++;
           });
         }
       } catch(e) {}
@@ -775,9 +733,13 @@
       dockTab.addEventListener('click', () => {
         dockTab.style.display = 'none';
         if (isExtensionValid()) {
-          chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' }, () => {
-            if (chrome.runtime.lastError) { /* ignore */ }
+          chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' }, (res) => {
+            if (chrome.runtime.lastError || !res || res.method === 'drawer' || !res.method) {
+              toggleFloatingRightOverlayDrawer();
+            }
           });
+        } else {
+          toggleFloatingRightOverlayDrawer();
         }
       });
     }
