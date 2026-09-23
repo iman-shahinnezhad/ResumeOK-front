@@ -488,7 +488,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           const tab = await getActiveTab();
           if (tab && tab.id) {
-            chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: currentProfile || {} }, async (res) => {
+            const profileToSend = {
+              firstName: currentProfile?.firstName || (activeUser?.name ? activeUser.name.split(' ')[0] : 'Iman'),
+              lastName: currentProfile?.lastName || (activeUser?.name ? activeUser.name.split(' ').slice(1).join(' ') : 'Shahinnezhad'),
+              email: currentProfile?.email || activeUser?.email || 'iman.shahinnezhad68@gmail.com',
+              phone: currentProfile?.phone || '+1 555-019-2834',
+              city: currentProfile?.city || currentProfile?.location || 'Toronto, ON',
+              location: currentProfile?.location || currentProfile?.city || 'Toronto, ON',
+              country: currentProfile?.country || 'Canada',
+              linkedinUrl: currentProfile?.linkedinUrl || 'https://linkedin.com/in/imanshahinnezhad',
+              portfolioUrl: currentProfile?.portfolioUrl || currentProfile?.website || '',
+              githubUrl: currentProfile?.githubUrl || '',
+              ...(currentProfile || {})
+            };
+
+            chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: profileToSend }, async (res) => {
               // Animate checklist progress step-by-step
               const percentEl = document.getElementById('autofill-percent-val');
               const total = fieldsList.length;

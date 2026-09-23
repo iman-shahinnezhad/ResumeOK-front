@@ -4,7 +4,7 @@
   if (window.__resumeokContentScriptLoaded) return;
   window.__resumeokContentScriptLoaded = true;
 
-  // Helper: Set native input value with synthetic events
+  // Helper: Set native input value with synthetic events & React native property setters
   function setVal(el, val) {
     if (!el || val === undefined || val === null) return;
     try {
@@ -40,16 +40,58 @@
         return;
       }
 
-      const proto = Object.getPrototypeOf(el);
-      const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set || Object.getOwnPropertyDescriptor(el, 'value')?.set;
-      if (setter) setter.call(el, val);
-      else el.value = val;
+      // Invoke native HTMLInputElement / HTMLTextAreaElement value setter for React/Vue/Angular property trackers
+      const prototype = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+      const nativeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+      
+      if (nativeValueSetter) {
+        nativeValueSetter.call(el, val);
+      } else {
+        el.value = val;
+      }
+
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      el.dispatchEvent(new Event('blur', { bubbles: true }));
     } catch(e) {
-      el.value = val;
+      try {
+        el.value = val;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      } catch(err) {}
     }
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-    el.dispatchEvent(new Event('blur', { bubbles: true }));
+  }
+
+  // Helper: Find form input elements by inspecting associated labels, placeholders, aria-labels, name, id
+  function findInputsByLabel(doc, searchTerms) {
+    const matched = [];
+    const allInputs = Array.from(doc.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), select, textarea'));
+    
+    for (const input of allInputs) {
+      const aria = (input.getAttribute('aria-label') || '').toLowerCase();
+      const placeholder = (input.getAttribute('placeholder') || '').toLowerCase();
+      const name = (input.getAttribute('name') || '').toLowerCase();
+      const id = (input.getAttribute('id') || '').toLowerCase();
+      const dataQa = (input.getAttribute('data-qa') || '').toLowerCase();
+
+      let isMatch = searchTerms.some(term => {
+        const t = term.toLowerCase();
+        return aria.includes(t) || placeholder.includes(t) || name.includes(t) || id.includes(t) || dataQa.includes(t);
+      });
+
+      if (!isMatch) {
+        // Inspect associated <label> or parent wrapper text
+        const labelFor = id ? doc.querySelector(`label[for="${id}"]`) : null;
+        const parentLabel = labelFor || input.closest('label') || input.parentElement;
+        if (parentLabel) {
+          const txt = (parentLabel.innerText || '').toLowerCase();
+          isMatch = searchTerms.some(term => txt.includes(term.toLowerCase()));
+        }
+      }
+
+      if (isMatch) matched.push(input);
+    }
+    return matched;
   }
 
   // Base64 to Blob helper
@@ -173,85 +215,133 @@
       try { if (f.contentDocument) docs.push(f.contentDocument); } catch(e) {}
     });
 
-    const fn = (profile.firstName || '').trim();
+    const fn = (profile.firstName || 'Candidate').trim();
     const ln = (profile.lastName || '').trim();
     const full = `${fn} ${ln}`.trim();
     const em = (profile.email || '').trim();
     const ph = (profile.phone || '').trim();
     const li = (profile.linkedinUrl || '').trim();
     const po = (profile.portfolioUrl || '').trim();
-    const ci = (profile.city || '').trim();
+    const ci = (profile.city || profile.location || '').trim();
 
     const sch = (profile.schoolName || '').trim();
     const deg = (profile.degree || '').trim();
     const dis = (profile.discipline || '').trim();
-    const edStart = (profile.eduStartDate || '').trim();
-    const edEnd = (profile.eduEndDate || '').trim();
 
     const emp = (profile.companyName || '').trim();
     const tit = (profile.jobTitle || '').trim();
-    const wkStart = (profile.workStartDate || '').trim();
-    const wkEnd = (profile.workEndDate || '').trim();
 
     const gen = (profile.gender || '').trim();
     const race = (profile.race || '').trim();
     const vet = (profile.veteranStatus || '').trim();
-    const disab = (profile.disabilityStatus || '').trim();
 
     docs.forEach(doc => {
       // First Name
       if (fn) {
-        doc.querySelectorAll('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]').forEach(e => {
-          if (!e.value) { setVal(e, fn); filled++; }
-        });
+        const inputs = findInputsByLabel(doc, ['first name', 'given name', 'first_name', 'fname']);
+        if (inputs.length > 0) {
+          inputs.forEach(e => { setVal(e, fn); filled++; });
+        } else {
+          doc.querySelectorAll('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]').forEach(e => {
+            setVal(e, fn); filled++;
+          });
+        }
       }
+
       // Last Name
       if (ln) {
-        doc.querySelectorAll('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]').forEach(e => {
-          if (!e.value) { setVal(e, ln); filled++; }
-        });
+        const inputs = findInputsByLabel(doc, ['last name', 'family name', 'surname', 'last_name', 'lname']);
+        if (inputs.length > 0) {
+          inputs.forEach(e => { setVal(e, ln); filled++; });
+        } else {
+          doc.querySelectorAll('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]').forEach(e => {
+            setVal(e, ln); filled++;
+          });
+        }
       }
+
       // Full Name
       if (full) {
-        doc.querySelectorAll('input[name="name" i], input[id="name" i], input[placeholder*="full name" i]').forEach(e => {
-          if (!e.value) { setVal(e, full); filled++; }
-        });
+        const inputs = findInputsByLabel(doc, ['full name', 'candidate name', 'your name']);
+        if (inputs.length > 0) {
+          inputs.forEach(e => { setVal(e, full); filled++; });
+        } else {
+          doc.querySelectorAll('input[name="name" i], input[id="name" i], input[placeholder*="full name" i]').forEach(e => {
+            setVal(e, full); filled++;
+          });
+        }
       }
+
       // Email
       if (em) {
-        doc.querySelectorAll('input[type="email" i], input[name*="email" i], input[id*="email" i]').forEach(e => {
-          if (!e.value) { setVal(e, em); filled++; }
-        });
+        const inputs = findInputsByLabel(doc, ['email', 'e-mail', 'email address']);
+        if (inputs.length > 0) {
+          inputs.forEach(e => { setVal(e, em); filled++; });
+        } else {
+          doc.querySelectorAll('input[type="email" i], input[name*="email" i], input[id*="email" i]').forEach(e => {
+            setVal(e, em); filled++;
+          });
+        }
       }
+
       // Phone
       if (ph) {
-        doc.querySelectorAll('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]').forEach(e => {
-          if (!e.value) { setVal(e, ph); filled++; }
-        });
+        const inputs = findInputsByLabel(doc, ['phone', 'mobile', 'telephone', 'phone number']);
+        if (inputs.length > 0) {
+          inputs.forEach(e => { setVal(e, ph); filled++; });
+        } else {
+          doc.querySelectorAll('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]').forEach(e => {
+            setVal(e, ph); filled++;
+          });
+        }
       }
+
       // LinkedIn
       if (li) {
-        doc.querySelectorAll('input[name*="linkedin" i], input[id*="linkedin" i], input[placeholder*="linkedin" i]').forEach(e => {
-          if (!e.value) { setVal(e, li); filled++; }
-        });
+        const inputs = findInputsByLabel(doc, ['linkedin', 'linkedin url', 'linkedin profile']);
+        if (inputs.length > 0) {
+          inputs.forEach(e => { setVal(e, li); filled++; });
+        } else {
+          doc.querySelectorAll('input[name*="linkedin" i], input[id*="linkedin" i], input[placeholder*="linkedin" i]').forEach(e => {
+            setVal(e, li); filled++;
+          });
+        }
       }
+
       // Portfolio / Website
       if (po) {
-        doc.querySelectorAll('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i], input[id*="portfolio" i]').forEach(e => {
-          if (!e.value) { setVal(e, po); filled++; }
-        });
+        const inputs = findInputsByLabel(doc, ['website', 'portfolio', 'personal website']);
+        if (inputs.length > 0) {
+          inputs.forEach(e => { setVal(e, po); filled++; });
+        } else {
+          doc.querySelectorAll('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i], input[id*="portfolio" i]').forEach(e => {
+            setVal(e, po); filled++;
+          });
+        }
       }
+
       // City / Location / Address
       if (ci) {
-        doc.querySelectorAll('input[name*="city" i], input[id*="city" i], input[name*="location" i], input[id*="location" i]').forEach(e => {
-          if (!e.value) { setVal(e, ci); filled++; }
-        });
+        const inputs = findInputsByLabel(doc, ['location', 'city', 'address', 'current location']);
+        if (inputs.length > 0) {
+          inputs.forEach(e => { setVal(e, ci); filled++; });
+        } else {
+          doc.querySelectorAll('input[name*="city" i], input[id*="city" i], input[name*="location" i], input[id*="location" i]').forEach(e => {
+            setVal(e, ci); filled++;
+          });
+        }
       }
+
       // Country
       const countryVal = profile.country || 'United States';
-      doc.querySelectorAll('select[name*="country" i], select[id*="country" i]').forEach(s => {
-        if (!s.value || s.value === '0') { setVal(s, countryVal); filled++; }
-      });
+      const countryInputs = findInputsByLabel(doc, ['country', 'nation']);
+      if (countryInputs.length > 0) {
+        countryInputs.forEach(e => { setVal(e, countryVal); filled++; });
+      } else {
+        doc.querySelectorAll('select[name*="country" i], select[id*="country" i]').forEach(s => {
+          setVal(s, countryVal); filled++;
+        });
+      }
 
       // Education
       if (sch) {
