@@ -502,33 +502,56 @@ document.addEventListener('DOMContentLoaded', async () => {
               ...(currentProfile || {})
             };
 
-            chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: profileToSend }, async (res) => {
-              // Animate checklist progress step-by-step
-              const percentEl = document.getElementById('autofill-percent-val');
-              const total = fieldsList.length;
-
-              for (let i = 0; i < total; i++) {
-                await new Promise(r => setTimeout(r, 220));
-                const itemEl = document.getElementById(`check-item-${i}`);
-                if (itemEl) {
-                  itemEl.style.color = '#16a34a';
-                  itemEl.innerHTML = `
-                    <div style="width:18px;height:18px;display:flex;align-items:center;justify-content:center;">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                    </div>
-                    <span>${fieldsList[i].label}</span>
-                  `;
+            let totalFilledCount = 0;
+            try {
+              const frames = await chrome.webNavigation.getAllFrames({ tabId: tab.id });
+              if (frames && frames.length > 0) {
+                for (const frame of frames) {
+                  await new Promise((resolve) => {
+                    chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: profileToSend }, { frameId: frame.frameId }, (res) => {
+                      if (chrome.runtime.lastError) resolve(0);
+                      else {
+                        if (res && res.count) totalFilledCount += res.count;
+                        resolve(res ? res.count : 0);
+                      }
+                    });
+                  });
                 }
-                const currentPercent = Math.round(((i + 1) / total) * 100);
-                if (percentEl) percentEl.innerText = `${currentPercent}%`;
               }
+            } catch(e) {
+              await new Promise((resolve) => {
+                chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: profileToSend }, (res) => {
+                  if (res && res.count) totalFilledCount = res.count;
+                  resolve(res);
+                });
+              });
+            }
 
-              autofillBtn.innerText = '✅ Form Autofilled!';
-              autofillBtn.disabled = false;
-              if (autofillMsg) autofillMsg.innerText = `✅ Autofilled ${res?.count || total} fields!`;
-            });
+            // Animate checklist progress step-by-step
+            const percentEl = document.getElementById('autofill-percent-val');
+            const total = fieldsList.length;
+
+            for (let i = 0; i < total; i++) {
+              await new Promise(r => setTimeout(r, 220));
+              const itemEl = document.getElementById(`check-item-${i}`);
+              if (itemEl) {
+                itemEl.style.color = '#16a34a';
+                itemEl.innerHTML = `
+                  <div style="width:18px;height:18px;display:flex;align-items:center;justify-content:center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </div>
+                  <span>${fieldsList[i].label}</span>
+                `;
+              }
+              const currentPercent = Math.round(((i + 1) / total) * 100);
+              if (percentEl) percentEl.innerText = `${currentPercent}%`;
+            }
+
+            autofillBtn.innerText = '✅ Form Autofilled!';
+            autofillBtn.disabled = false;
+            if (autofillMsg) autofillMsg.innerText = `✅ Autofilled ${totalFilledCount || total} fields!`;
           }
         });
       }
