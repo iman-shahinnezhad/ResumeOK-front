@@ -23,15 +23,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       // 1. Post message to parent window if inside floating drawer iframe
       try {
         window.parent.postMessage({ type: 'CLOSE_APPLYDESK_FLOATING_DRAWER' }, '*');
+        window.parent.postMessage({ type: 'SHOW_DOCK_TAB' }, '*');
       } catch(e) {}
 
-      // 2. Notify active browser tab to close overlay drawer
+      // 2. Notify active browser tab to close overlay drawer and show floating right dock tab
       try {
         const tab = await getActiveTab();
         if (tab && tab.id) {
-          chrome.tabs.sendMessage(tab.id, { type: 'CLOSE_FLOATING_PANEL' }, () => {
-            if (chrome.runtime.lastError) {}
-          });
+          chrome.tabs.sendMessage(tab.id, { type: 'CLOSE_FLOATING_PANEL' }, () => {});
+          chrome.tabs.sendMessage(tab.id, { type: 'SHOW_DOCK_TAB' }, () => {});
         }
       } catch(e) {}
 

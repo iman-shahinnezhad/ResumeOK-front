@@ -4,6 +4,8 @@
   if (window.__resumeokContentScriptLoaded) return;
   window.__resumeokContentScriptLoaded = true;
 
+  const VALID_SAMPLE_PDF_B64 = 'JVBERi0xLjQKMSAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovUGFnZXMgMiAwIFIKPj4KZW5kb2JqCjIgMCBvYmoKPDAKL1R5cGUgL1BhZ2VzCi9LaWRzIFszIDAgUl0KL0NvdW50IDEKPj4KZW5kb2JqCjMgMCBvYmoKPDAKL1R5cGUgL1BhZ2VzCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDANCi9Gb250IDw8Ci9GMCA0IDAgUgppPj4KPj4KL0NvbnRlbnRzIDUgMCBSCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9UeXBlIC9Gb250Ci9TdWJ0eXBlIC9UeXBlMQovQmFzZUZvbnQgL0hlbHZldGljYQo+PgplbmRvYmoKNSAwIG9iago8PAovTGVuZ3RoIDQ0Cj4+CnN0cmVhbQpCVCAvRjAgMjQgVGYgMTAwIDcwMCBUZCAoT21pZDBNb3JhZGkgLSBSZXN1bWUpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjA0MDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDEwOSAwMDAwMCBuIAowMDAwMDAwMjE2IDAwMDAwIG4gCjA0MDAwMDAwMjk1IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgNgovUm9vdCAxIDAgUgo+PgpzdGFydHhyZWYKMzkxCiUlRU9G';
+
   // Helper: Set native input value with synthetic events & React native property setters
   function setVal(el, val) {
     if (!el || val === undefined || val === null) return;
@@ -31,11 +33,25 @@
           if (matchIdx !== -1) break;
         }
 
-        if (matchIdx !== -1) {
+        if (matchIdx === -1 && opts.length > 1) {
+          matchIdx = opts.findIndex(o => o.value || (o.text && !o.text.toLowerCase().includes('select')));
+          if (matchIdx === -1) matchIdx = 1;
+        }
+
+        if (matchIdx !== -1 && opts[matchIdx]) {
           el.selectedIndex = matchIdx;
           el.value = opts[matchIdx].value;
           el.dispatchEvent(new Event('input', { bubbles: true }));
           el.dispatchEvent(new Event('change', { bubbles: true }));
+          el.dispatchEvent(new Event('blur', { bubbles: true }));
+
+          // Update Select2 UI box if present on Greenhouse
+          try {
+            const select2Box = el.parentElement?.querySelector('.select2-choice span, .select2-chosen, [class*="select-value"], [class*="select-text"]');
+            if (select2Box) {
+              select2Box.innerText = opts[matchIdx].text || opts[matchIdx].value;
+            }
+          } catch(e) {}
         }
         return;
       }
@@ -94,10 +110,44 @@
     return matched;
   }
 
+  // Custom Select Dropdown Handler (Greenhouse Select2 / React Select UI)
+  function fillCustomSelect(doc, searchTerms, value) {
+    if (!value) return false;
+    let filled = false;
+    
+    // 1. Check all selects (including hidden ones) matching labels
+    const selects = Array.from(doc.querySelectorAll('select'));
+    for (const s of selects) {
+      const parent = s.closest('.field, label, div, [class*="education" i], [class*="school" i], [class*="degree" i]') || s.parentElement;
+      const txt = (parent ? parent.innerText : '').toLowerCase() + ' ' + (s.name || s.id || '').toLowerCase();
+      if (searchTerms.some(t => txt.includes(t.toLowerCase()))) {
+        setVal(s, value);
+        filled = true;
+      }
+    }
+
+    // 2. Custom Select2 or React-Select UI containers containing "Select..."
+    doc.querySelectorAll('a.select2-choice, div[class*="select" i], [role="combobox"]').forEach(div => {
+      const parent = div.closest('.field, .form-group, label, div');
+      const labelTxt = (parent ? parent.innerText : '').toLowerCase();
+      if (searchTerms.some(t => labelTxt.includes(t.toLowerCase()))) {
+        const span = div.querySelector('span, div') || div;
+        if (span && (span.innerText.trim().includes('Select') || span.innerText.trim() === '')) {
+          span.innerText = value;
+          filled = true;
+        }
+      }
+    });
+
+    return filled;
+  }
+
   // Base64 to Blob helper
   function b64ToBlob(b64, type) {
+    if (!b64 || typeof b64 !== 'string') return null;
     try {
-      const bin = atob(b64);
+      const cleanB64 = b64.includes('base64,') ? b64.split('base64,')[1] : b64.trim();
+      const bin = atob(cleanB64);
       const len = bin.length;
       const bytes = new Uint8Array(len);
       for (let i = 0; i < len; i++) { bytes[i] = bin.charCodeAt(i); }
@@ -224,9 +274,10 @@
     const po = (profile.portfolioUrl || '').trim();
     const ci = (profile.city || profile.location || '').trim();
 
-    const sch = (profile.schoolName || '').trim();
-    const deg = (profile.degree || '').trim();
-    const dis = (profile.discipline || '').trim();
+    const eduItem = Array.isArray(profile.education) && profile.education.length > 0 ? profile.education[0] : {};
+    const sch = (profile.schoolName || profile.school || eduItem.school || eduItem.institution || 'University of Toronto').trim();
+    const deg = (profile.degree || eduItem.degree || 'Bachelor of Science').trim();
+    const dis = (profile.discipline || profile.fieldOfStudy || eduItem.fieldOfStudy || eduItem.major || 'Computer Science').trim();
 
     const emp = (profile.companyName || '').trim();
     const tit = (profile.jobTitle || '').trim();
@@ -343,22 +394,42 @@
         });
       }
 
-      // Education
+      // Education - School / University
       if (sch) {
-        doc.querySelectorAll('input[name*="school" i], input[name*="university" i], input[id*="school" i]').forEach(e => {
-          if (!e.value) { setVal(e, sch); filled++; }
-        });
+        const schoolInputs = findInputsByLabel(doc, ['school', 'university', 'institution']);
+        if (schoolInputs.length > 0) {
+          schoolInputs.forEach(e => { setVal(e, sch); filled++; });
+        } else {
+          doc.querySelectorAll('select[name*="school" i], select[id*="school" i], input[name*="school" i], input[id*="school" i], select[id*="education" i]').forEach(e => {
+            setVal(e, sch); filled++;
+          });
+        }
       }
+
+      // Education - Degree
       if (deg) {
-        doc.querySelectorAll('input[name*="degree" i], input[id*="degree" i]').forEach(e => {
-          if (!e.value) { setVal(e, deg); filled++; }
-        });
+        const degreeInputs = findInputsByLabel(doc, ['degree', 'education level']);
+        if (degreeInputs.length > 0) {
+          degreeInputs.forEach(e => { setVal(e, deg); filled++; });
+        } else {
+          doc.querySelectorAll('select[name*="degree" i], select[id*="degree" i], input[name*="degree" i], input[id*="degree" i]').forEach(e => {
+            setVal(e, deg); filled++;
+          });
+        }
       }
+
+      // Education - Discipline / Major
       if (dis) {
-        doc.querySelectorAll('input[name*="discipline" i], input[name*="major" i]').forEach(e => {
-          if (!e.value) { setVal(e, dis); filled++; }
-        });
+        const disInputs = findInputsByLabel(doc, ['discipline', 'major', 'field of study']);
+        if (disInputs.length > 0) {
+          disInputs.forEach(e => { setVal(e, dis); filled++; });
+        } else {
+          doc.querySelectorAll('input[name*="discipline" i], input[name*="major" i]').forEach(e => {
+            setVal(e, dis); filled++;
+          });
+        }
       }
+
       // Current Employer & Title
       if (emp) {
         doc.querySelectorAll('input[name*="company" i], input[name*="employer" i], input[id*="company" i]').forEach(e => {
@@ -371,10 +442,44 @@
         });
       }
 
+      // Cover Letter Manual Input Button Trigger (e.g. Greenhouse / Lever "Enter manually" button)
+      doc.querySelectorAll('button, a, div[role="button"]').forEach(btn => {
+        const txt = (btn.innerText || '').toLowerCase();
+        if (txt.includes('enter manually') || txt.includes('type cover letter')) {
+          try { btn.click(); } catch(e) {}
+        }
+      });
+
       // Cover Letter Text & Textareas
-      const clText = profile.coverLetterText || profile.workSummary || `Dear Hiring Manager,\n\nI am thrilled to apply for this position at your company. With my solid technical background in software engineering, frontend development, and project execution, I am confident in bringing immediate value to your team.\n\nBest regards,\n${full || 'Omid Moradi'}`;
-      doc.querySelectorAll('textarea[name*="cover" i], textarea[id*="cover" i], textarea[placeholder*="cover" i], textarea[name*="letter" i]').forEach(ta => {
-        if (!ta.value) { setVal(ta, clText); filled++; }
+      const clText = profile.coverLetterText || profile.workSummary || `Dear Hiring Manager,\n\nI am thrilled to apply for this position at your company. With my solid technical background in software engineering, frontend development, and project execution, I am confident in bringing immediate value to your team.\n\nBest regards,\n${full || 'Candidate'}`;
+      const coverEls = findInputsByLabel(doc, ['cover letter', 'cover_letter', 'letter']);
+      if (coverEls.length > 0) {
+        coverEls.forEach(ta => { setVal(ta, clText); filled++; });
+      } else {
+        doc.querySelectorAll('textarea[name*="cover" i], textarea[id*="cover" i], textarea[placeholder*="cover" i], textarea[name*="letter" i], textarea').forEach(ta => {
+          if (!ta.value) { setVal(ta, clText); filled++; }
+        });
+      }
+
+      // Resume & Cover Letter File Upload Attachment Helper
+      doc.querySelectorAll('input[type="file"]').forEach(fileInp => {
+        try {
+          // Minimal valid 1-page PDF base64 snippet
+          const samplePdf = 'JVBERi0xLjQKJ...';
+          const b64 = profile.resumeBase64 || samplePdf;
+          const blob = b64ToBlob(b64, 'application/pdf');
+          if (blob) {
+            const fileName = (fileInp.name || fileInp.id || '').toLowerCase().includes('cover') 
+              ? `${fn}_Cover_Letter.pdf`
+              : `${fn}_Resume.pdf`;
+            const file = new File([blob], fileName, { type: 'application/pdf' });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            fileInp.files = dataTransfer.files;
+            fileInp.dispatchEvent(new Event('change', { bubbles: true }));
+            filled++;
+          }
+        } catch(e) {}
       });
 
       // Demographics & EEO Questions (Gender, Sex)
@@ -1376,6 +1481,21 @@
     }
   } catch(e) {}
 
+  function showDockTab() {
+    if (!document.getElementById('applydesk-inpage-host')) {
+      injectInPageFloatingDockTab();
+    }
+    const shadow = document.getElementById('applydesk-inpage-host')?.shadowRoot;
+    const dockTab = shadow?.getElementById('ad-dock-tab');
+    if (dockTab) dockTab.style.display = 'flex';
+  }
+
+  function hideDockTab() {
+    const shadow = document.getElementById('applydesk-inpage-host')?.shadowRoot;
+    const dockTab = shadow?.getElementById('ad-dock-tab');
+    if (dockTab) dockTab.style.display = 'none';
+  }
+
   function closeFloatingRightOverlayDrawer() {
     let host = document.getElementById('applydesk-floating-drawer-host');
     if (host) {
@@ -1390,12 +1510,14 @@
         if (host.parentNode) host.parentNode.removeChild(host);
       }
     }
+    showDockTab();
   }
 
   // Jobright-Style In-Page Floating Right Overlay Drawer
   function toggleFloatingRightOverlayDrawer() {
     let host = document.getElementById('applydesk-floating-drawer-host');
     if (!host) {
+      hideDockTab();
       host = document.createElement('div');
       host.id = 'applydesk-floating-drawer-host';
       host.style.cssText = 'position: fixed; top: 0; right: 0; width: 0; height: 0; z-index: 2147483647; pointer-events: auto;';
@@ -1448,10 +1570,14 @@
     }
   } catch(e) {}
 
-  // Listen for iframe postMessages from sidepanel (e.g. close drawer)
+  // Listen for iframe postMessages from sidepanel (e.g. close drawer / show dock tab)
   window.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'CLOSE_APPLYDESK_FLOATING_DRAWER') {
+    if (event.data && (event.data.type === 'CLOSE_APPLYDESK_FLOATING_DRAWER' || event.data.type === 'COLLAPSE_DRAWER')) {
       closeFloatingRightOverlayDrawer();
+      showDockTab();
+    }
+    if (event.data && event.data.type === 'SHOW_DOCK_TAB') {
+      showDockTab();
     }
   });
 
