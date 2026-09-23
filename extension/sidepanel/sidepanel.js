@@ -122,6 +122,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // USER IS LOGGED IN: Show Main Content Area
     if (loginRequiredView) loginRequiredView.style.display = 'none';
     if (mainContent) mainContent.style.display = 'block';
+    if (addJobMsg) addJobMsg.innerHTML = '';
 
     // Verify token & update credit balance from MongoDB API
     try {
@@ -247,7 +248,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       await new Promise(r => setTimeout(r, 300));
       const success = await checkAuthAndLoadData();
       refreshAuthBtn.innerText = '🔄 Check Login Status';
-      if (!success && addJobMsg) {
+      if (success && addJobMsg) {
+        addJobMsg.innerHTML = '';
+      } else if (!success && addJobMsg) {
         addJobMsg.innerHTML = '<span style="color:#ef4444;font-weight:700;">⚠️ Please log in on the web page first.</span>';
       }
     });
