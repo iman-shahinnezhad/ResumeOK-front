@@ -352,6 +352,16 @@ export default function OnboardingScreen() {
   const [roleQuery, setRoleQuery] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
+  // Email Auth Modal & Form States
+  const [authModalVisible, setAuthModalVisible] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authName, setAuthName] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [authError, setAuthError] = useState('');
+
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
@@ -1162,6 +1172,81 @@ export default function OnboardingScreen() {
     }
   };
 
+  const handleFillDemoAccount = () => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {}
+    setAuthMode('login');
+    setAuthEmail('apple-reviewer@applydesk.io');
+    setAuthPassword('AppleTest2026!');
+    setAuthError('');
+  };
+
+  const handleEmailAuth = async () => {
+    if (!authEmail.trim() || !authPassword.trim()) {
+      setAuthError('Please enter email and password.');
+      return;
+    }
+    if (authMode === 'register' && !authName.trim()) {
+      setAuthError('Please enter your full name.');
+      return;
+    }
+
+    setAuthError('');
+    setAuthSubmitting(true);
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
+      const body = authMode === 'login'
+        ? { email: authEmail.trim().toLowerCase(), password: authPassword.trim() }
+        : { name: authName.trim(), email: authEmail.trim().toLowerCase(), password: authPassword.trim() };
+
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setAuthError(data.error || 'Authentication failed. Please check your credentials.');
+        return;
+      }
+
+      // Login success
+      await login({
+        user: data.user,
+        accessToken: data.token,
+      });
+
+      setAuthModalVisible(false);
+
+      // Check if user has already completed onboarding
+      const profilePath = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
+      const profileInfo = await FileSystem.getInfoAsync(profilePath).catch(() => ({ exists: false }));
+      const completedPath = `${FileSystem.documentDirectory}onboarding_completed.txt`;
+      const seenPath = `${FileSystem.documentDirectory}has_seen_onboarding.txt`;
+
+      const serverHasCompleted = data.user?.hasCompletedOnboarding || (data.user?.profile && Object.keys(data.user.profile).length > 0);
+      const isExistingAccount = serverHasCompleted || profileInfo.exists;
+
+      if (isExistingAccount) {
+        if (data.user?.profile && Object.keys(data.user.profile).length > 0) {
+          await FileSystem.writeAsStringAsync(profilePath, JSON.stringify(data.user.profile, null, 2)).catch(() => {});
+          await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}resume_builder_form_data.json`, JSON.stringify(data.user.profile, null, 2)).catch(() => {});
+        }
+        await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => {});
+        await FileSystem.writeAsStringAsync(seenPath, 'true').catch(() => {});
+        router.replace('/(tabs)/jobs');
+      } else {
+        setStep('engineered');
+      }
+    } catch (e: any) {
+      console.log('Email Auth error:', e);
+      setAuthError('Network error. Could not connect to authentication server.');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
   const handleReferralSubmit = async () => {
     if (!referralCode.trim()) {
       setStep('loading');
@@ -1494,6 +1579,7 @@ export default function OnboardingScreen() {
           <View style={[styles.inner, { paddingTop: insets.top + 30, paddingBottom: insets.bottom + 30 }]}>
             <View style={styles.welcomeHeader}>
               <Text style={styles.welcomeTitle}>WELCOME</Text>
+              <Text style={styles.welcomeSubTitle}>Sign in or create an account to start tailoring resumes and applying 10x faster</Text>
             </View>
 
             <View style={styles.bottomControls}>
@@ -1510,10 +1596,17 @@ export default function OnboardingScreen() {
                     <Text style={styles.authBtnText}>Continue with Apple</Text>
                   </TouchableOpacity>
 
-                  {/* Google Sign-In hidden for now */}
-
-                  <TouchableOpacity style={styles.skipBtnLink} onPress={() => setStep('engineered')}>
-                    <Text style={styles.skipBtnText}>Skip for now</Text>
+                  <TouchableOpacity
+                    style={styles.emailAuthBtn}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {}
+                      setAuthError('');
+                      setAuthModalVisible(true);
+                    }}
+                  >
+                    <Ionicons name="mail-outline" size={20} color="#FFFFFF" style={styles.authBtnIcon} />
+                    <Text style={styles.emailAuthBtnText}>Sign In / Register with Email</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -2389,6 +2482,133 @@ export default function OnboardingScreen() {
             </View>
           </View>
         )}
+      {/* Professional Email & Password Authentication Modal */}
+      <Modal
+        visible={authModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setAuthModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalBackdrop}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.modalBackdropTouch}>
+              <View style={styles.modalCardContainer}>
+                {/* Modal Header */}
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalTabGroup}>
+                    <TouchableOpacity
+                      style={[styles.modalTabBtn, authMode === 'login' ? styles.modalTabBtnActive : null]}
+                      onPress={() => {
+                        setAuthMode('login');
+                        setAuthError('');
+                      }}
+                    >
+                      <Text style={[styles.modalTabText, authMode === 'login' ? styles.modalTabTextActive : null]}>Sign In</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalTabBtn, authMode === 'register' ? styles.modalTabBtnActive : null]}
+                      onPress={() => {
+                        setAuthMode('register');
+                        setAuthError('');
+                      }}
+                    >
+                      <Text style={[styles.modalTabText, authMode === 'register' ? styles.modalTabTextActive : null]}>Create Account</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.modalCloseBtn}
+                    onPress={() => setAuthModalVisible(false)}
+                  >
+                    <Ionicons name="close" size={22} color="#64748B" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Form Content */}
+                <ScrollView contentContainerStyle={styles.modalFormContent} keyboardShouldPersistTaps="handled">
+                  {authMode === 'register' && (
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Full Name</Text>
+                      <View style={styles.inputContainer}>
+                        <Ionicons name="person-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
+                        <TextInput
+                          style={styles.textInputStyle}
+                          placeholder="John Doe"
+                          placeholderTextColor="#94A3B8"
+                          value={authName}
+                          onChangeText={setAuthName}
+                          autoCapitalize="words"
+                        />
+                      </View>
+                    </View>
+                  )}
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Email Address</Text>
+                    <View style={styles.inputContainer}>
+                      <Ionicons name="mail-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.textInputStyle}
+                        placeholder="you@domain.com"
+                        placeholderTextColor="#94A3B8"
+                        value={authEmail}
+                        onChangeText={setAuthEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Password</Text>
+                    <View style={styles.inputContainer}>
+                      <Ionicons name="lock-closed-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.textInputStyle}
+                        placeholder="••••••••"
+                        placeholderTextColor="#94A3B8"
+                        value={authPassword}
+                        onChangeText={setAuthPassword}
+                        secureTextEntry={!showPassword}
+                        autoCapitalize="none"
+                      />
+                      <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 4 }}>
+                        <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#94A3B8" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {authError ? (
+                    <View style={styles.errorContainer}>
+                      <Ionicons name="alert-circle" size={16} color="#EF4444" style={{ marginRight: 6 }} />
+                      <Text style={styles.errorText}>{authError}</Text>
+                    </View>
+                  ) : null}
+
+                  <TouchableOpacity
+                    style={[styles.submitAuthBtn, authSubmitting ? styles.submitAuthBtnDisabled : null]}
+                    activeOpacity={0.85}
+                    disabled={authSubmitting}
+                    onPress={handleEmailAuth}
+                  >
+                    {authSubmitting ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.submitAuthBtnText}>
+                        {authMode === 'login' ? 'Sign In' : 'Create Account'}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
+
       </Animated.View>
     </View>
   );
@@ -3293,5 +3513,188 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '400',
     color: '#007AFF',
+  },
+  welcomeSubTitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 20,
+    lineHeight: 20,
+  },
+  emailAuthBtn: {
+    width: '100%',
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  emailAuthBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  demoAccountBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 191, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 191, 255, 0.3)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginVertical: 14,
+  },
+  demoAccountText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+  },
+  modalBackdropTouch: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalCardContainer: {
+    backgroundColor: '#0F172A',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 20,
+    paddingBottom: 34,
+    paddingHorizontal: 24,
+    maxHeight: '85%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  modalTabGroup: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    padding: 3,
+  },
+  modalTabBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 9,
+  },
+  modalTabBtnActive: {
+    backgroundColor: '#00bfff',
+  },
+  modalTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  modalTabTextActive: {
+    color: '#FFFFFF',
+  },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalFormContent: {
+    paddingBottom: 20,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#CBD5E1',
+    marginBottom: 6,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 50,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  textInputStyle: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 15,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  errorText: {
+    color: '#F87171',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  quickFillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    marginBottom: 16,
+    backgroundColor: 'rgba(0, 191, 255, 0.08)',
+    borderRadius: 10,
+  },
+  quickFillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#00bfff',
+  },
+  submitAuthBtn: {
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#00bfff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+    shadowColor: '#00bfff',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  submitAuthBtnDisabled: {
+    opacity: 0.6,
+  },
+  submitAuthBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

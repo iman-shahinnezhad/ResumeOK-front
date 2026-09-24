@@ -19,7 +19,7 @@ const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreCl
 export default function Settings() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { guestCredit, guestId, user, updateUser, logout, login, isLoggedIn } = useAuth();
+  const { guestCredit, guestId, user, updateUser, logout, login, isLoggedIn, deleteAccount } = useAuth();
   const [appleLoggingIn, setAppleLoggingIn] = React.useState(false);
 
   const [referralCode, setReferralCode] = React.useState('');
@@ -257,12 +257,20 @@ export default function Settings() {
               await FileSystem.deleteAsync(resumesPath, { idempotent: true });
               await FileSystem.deleteAsync(lettersPath, { idempotent: true });
 
-              await logout();
+              if (deleteAccount) {
+                await deleteAccount();
+              } else {
+                await logout();
+              }
               Alert.alert("Account Deleted", "Your account and stored profile data have been permanently deleted.");
               router.replace('/onboarding' as any);
             } catch (err) {
               console.log("Delete account error:", err);
-              await logout();
+              if (deleteAccount) {
+                await deleteAccount();
+              } else {
+                await logout();
+              }
               router.replace('/onboarding' as any);
             }
           }

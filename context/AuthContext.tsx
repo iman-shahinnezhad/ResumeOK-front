@@ -16,6 +16,7 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isLoading: boolean;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   login: (session: Session) => Promise<void>;
   deductCredits: (amount?: number) => Promise<boolean>;
   refundCredits: (amount: number) => Promise<boolean>;
@@ -115,6 +116,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadUserSession();
   }, []);
 
+  const deleteAccount = async () => {
+    try {
+      setIsLoading(true);
+      const session = await getSession();
+      if (user?.id || session?.user?.id) {
+        const targetId = user?.id || session?.user?.id;
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (session?.accessToken) {
+          headers['Authorization'] = `Bearer ${session.accessToken}`;
+        }
+        await fetch(`${API_URL}/api/user/${targetId}`, {
+          method: 'DELETE',
+          headers
+        });
+      }
+      await clearSession();
+      setUser(null);
+    } catch (err) {
+      console.error('Failed to delete account:', err);
+      await clearSession();
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const logout = async () => {
     try {
@@ -312,6 +338,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoggedIn: !!user,
         isLoading,
         logout,
+        deleteAccount,
         login,
         deductCredits,
         refundCredits,
