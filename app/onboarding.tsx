@@ -723,7 +723,7 @@ export default function OnboardingScreen() {
                       break;
                     }
                   }
-                } catch (err) {}
+                } catch (err) { }
               }
 
               if (!parsed || (!parsed.fullName && !parsed.email)) {
@@ -1032,11 +1032,11 @@ export default function OnboardingScreen() {
       if (isExistingAccount) {
         console.log("Existing user logged in via Google with completed onboarding. Skipping onboarding...");
         if ((sessionUser as any)?.profile && Object.keys((sessionUser as any).profile).length > 0) {
-          await FileSystem.writeAsStringAsync(profilePath, JSON.stringify((sessionUser as any).profile, null, 2)).catch(() => {});
-          await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}resume_builder_form_data.json`, JSON.stringify((sessionUser as any).profile, null, 2)).catch(() => {});
+          await FileSystem.writeAsStringAsync(profilePath, JSON.stringify((sessionUser as any).profile, null, 2)).catch(() => { });
+          await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}resume_builder_form_data.json`, JSON.stringify((sessionUser as any).profile, null, 2)).catch(() => { });
         }
-        await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => {});
-        await FileSystem.writeAsStringAsync(seenPath, 'true').catch(() => {});
+        await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => { });
+        await FileSystem.writeAsStringAsync(seenPath, 'true').catch(() => { });
         router.replace('/(tabs)/jobs');
         return;
       }
@@ -1104,14 +1104,14 @@ export default function OnboardingScreen() {
 
               if (isExistingAccount) {
                 console.log("Existing user logged in via Apple with completed onboarding. Skipping onboarding...");
-                
+
                 if (data.user?.profile && Object.keys(data.user.profile).length > 0) {
-                  await FileSystem.writeAsStringAsync(profilePath, JSON.stringify(data.user.profile, null, 2)).catch(() => {});
-                  await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}resume_builder_form_data.json`, JSON.stringify(data.user.profile, null, 2)).catch(() => {});
+                  await FileSystem.writeAsStringAsync(profilePath, JSON.stringify(data.user.profile, null, 2)).catch(() => { });
+                  await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}resume_builder_form_data.json`, JSON.stringify(data.user.profile, null, 2)).catch(() => { });
                 }
 
-                await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => {});
-                await FileSystem.writeAsStringAsync(seenPath, 'true').catch(() => {});
+                await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => { });
+                await FileSystem.writeAsStringAsync(seenPath, 'true').catch(() => { });
                 router.replace('/(tabs)/jobs');
                 return;
               }
@@ -1151,8 +1151,8 @@ export default function OnboardingScreen() {
           console.log("Local profile exists. Skipping onboarding...");
           const completedPath = `${FileSystem.documentDirectory}onboarding_completed.txt`;
           const seenPath = `${FileSystem.documentDirectory}has_seen_onboarding.txt`;
-          await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => {});
-          await FileSystem.writeAsStringAsync(seenPath, 'true').catch(() => {});
+          await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => { });
+          await FileSystem.writeAsStringAsync(seenPath, 'true').catch(() => { });
           router.replace('/(tabs)/jobs');
           return;
         }
@@ -1173,10 +1173,10 @@ export default function OnboardingScreen() {
   };
 
   const handleFillDemoAccount = () => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {}
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { }); } catch (e) { }
     setAuthMode('login');
-    setAuthEmail('apple-reviewer@applydesk.io');
-    setAuthPassword('AppleTest2026!');
+    setAuthEmail('');
+    setAuthPassword('');
     setAuthError('');
   };
 
@@ -1193,7 +1193,7 @@ export default function OnboardingScreen() {
     setAuthError('');
     setAuthSubmitting(true);
     try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
       const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
       const body = authMode === 'login'
         ? { email: authEmail.trim().toLowerCase(), password: authPassword.trim() }
@@ -1230,11 +1230,11 @@ export default function OnboardingScreen() {
 
       if (isExistingAccount) {
         if (data.user?.profile && Object.keys(data.user.profile).length > 0) {
-          await FileSystem.writeAsStringAsync(profilePath, JSON.stringify(data.user.profile, null, 2)).catch(() => {});
-          await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}resume_builder_form_data.json`, JSON.stringify(data.user.profile, null, 2)).catch(() => {});
+          await FileSystem.writeAsStringAsync(profilePath, JSON.stringify(data.user.profile, null, 2)).catch(() => { });
+          await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}resume_builder_form_data.json`, JSON.stringify(data.user.profile, null, 2)).catch(() => { });
         }
-        await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => {});
-        await FileSystem.writeAsStringAsync(seenPath, 'true').catch(() => {});
+        await FileSystem.writeAsStringAsync(completedPath, 'true').catch(() => { });
+        await FileSystem.writeAsStringAsync(seenPath, 'true').catch(() => { });
         router.replace('/(tabs)/jobs');
       } else {
         setStep('engineered');
@@ -1277,7 +1277,7 @@ export default function OnboardingScreen() {
   const saveProfileData = async () => {
     try {
       const path = `${FileSystem.documentDirectory}user_onboarding_profile.json`;
-      
+
       let existingProfile: any = {};
       try {
         const info = await FileSystem.getInfoAsync(path);
@@ -1304,9 +1304,9 @@ export default function OnboardingScreen() {
         challenge: selectedChallenge || existingProfile.challenge || '',
         city: selectedCity || existingProfile.city || '',
         experience: selectedExperience || existingProfile.experience || '',
-        expectedSalary: { 
-          min: minSalary || existingProfile.expectedSalary?.min || 100000, 
-          max: maxSalary || existingProfile.expectedSalary?.max || 180000 
+        expectedSalary: {
+          min: minSalary || existingProfile.expectedSalary?.min || 100000,
+          max: maxSalary || existingProfile.expectedSalary?.max || 180000
         },
         hearAbout: selectedHearAbout || existingProfile.hearAbout || '',
         resumeFile: selectedResume ? {
@@ -1369,7 +1369,7 @@ export default function OnboardingScreen() {
           body: JSON.stringify({
             name: `${firstName.trim()} ${lastName.trim()}`.trim()
           })
-        }).catch(() => {});
+        }).catch(() => { });
       }
 
       // Sync onboarding profile and completion status to backend server
@@ -1600,7 +1600,7 @@ export default function OnboardingScreen() {
                     style={styles.emailAuthBtn}
                     activeOpacity={0.85}
                     onPress={() => {
-                      try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (e) {}
+                      try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { }); } catch (e) { }
                       setAuthError('');
                       setAuthModalVisible(true);
                     }}
@@ -2482,132 +2482,132 @@ export default function OnboardingScreen() {
             </View>
           </View>
         )}
-      {/* Professional Email & Password Authentication Modal */}
-      <Modal
-        visible={authModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setAuthModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalBackdrop}
+        {/* Professional Email & Password Authentication Modal */}
+        <Modal
+          visible={authModalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setAuthModalVisible(false)}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.modalBackdropTouch}>
-              <View style={styles.modalCardContainer}>
-                {/* Modal Header */}
-                <View style={styles.modalHeader}>
-                  <View style={styles.modalTabGroup}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalBackdrop}
+          >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.modalBackdropTouch}>
+                <View style={styles.modalCardContainer}>
+                  {/* Modal Header */}
+                  <View style={styles.modalHeader}>
+                    <View style={styles.modalTabGroup}>
+                      <TouchableOpacity
+                        style={[styles.modalTabBtn, authMode === 'login' ? styles.modalTabBtnActive : null]}
+                        onPress={() => {
+                          setAuthMode('login');
+                          setAuthError('');
+                        }}
+                      >
+                        <Text style={[styles.modalTabText, authMode === 'login' ? styles.modalTabTextActive : null]}>Sign In</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.modalTabBtn, authMode === 'register' ? styles.modalTabBtnActive : null]}
+                        onPress={() => {
+                          setAuthMode('register');
+                          setAuthError('');
+                        }}
+                      >
+                        <Text style={[styles.modalTabText, authMode === 'register' ? styles.modalTabTextActive : null]}>Create Account</Text>
+                      </TouchableOpacity>
+                    </View>
                     <TouchableOpacity
-                      style={[styles.modalTabBtn, authMode === 'login' ? styles.modalTabBtnActive : null]}
-                      onPress={() => {
-                        setAuthMode('login');
-                        setAuthError('');
-                      }}
+                      style={styles.modalCloseBtn}
+                      onPress={() => setAuthModalVisible(false)}
                     >
-                      <Text style={[styles.modalTabText, authMode === 'login' ? styles.modalTabTextActive : null]}>Sign In</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.modalTabBtn, authMode === 'register' ? styles.modalTabBtnActive : null]}
-                      onPress={() => {
-                        setAuthMode('register');
-                        setAuthError('');
-                      }}
-                    >
-                      <Text style={[styles.modalTabText, authMode === 'register' ? styles.modalTabTextActive : null]}>Create Account</Text>
+                      <Ionicons name="close" size={22} color="#64748B" />
                     </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    style={styles.modalCloseBtn}
-                    onPress={() => setAuthModalVisible(false)}
-                  >
-                    <Ionicons name="close" size={22} color="#64748B" />
-                  </TouchableOpacity>
-                </View>
 
-                {/* Form Content */}
-                <ScrollView contentContainerStyle={styles.modalFormContent} keyboardShouldPersistTaps="handled">
-                  {authMode === 'register' && (
+                  {/* Form Content */}
+                  <ScrollView contentContainerStyle={styles.modalFormContent} keyboardShouldPersistTaps="handled">
+                    {authMode === 'register' && (
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Full Name</Text>
+                        <View style={styles.inputContainer}>
+                          <Ionicons name="person-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
+                          <TextInput
+                            style={styles.textInputStyle}
+                            placeholder="John Doe"
+                            placeholderTextColor="#94A3B8"
+                            value={authName}
+                            onChangeText={setAuthName}
+                            autoCapitalize="words"
+                          />
+                        </View>
+                      </View>
+                    )}
+
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Full Name</Text>
+                      <Text style={styles.inputLabel}>Email Address</Text>
                       <View style={styles.inputContainer}>
-                        <Ionicons name="person-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
+                        <Ionicons name="mail-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
                         <TextInput
                           style={styles.textInputStyle}
-                          placeholder="John Doe"
+                          placeholder="you@domain.com"
                           placeholderTextColor="#94A3B8"
-                          value={authName}
-                          onChangeText={setAuthName}
-                          autoCapitalize="words"
+                          value={authEmail}
+                          onChangeText={setAuthEmail}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          autoCorrect={false}
                         />
                       </View>
                     </View>
-                  )}
 
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Email Address</Text>
-                    <View style={styles.inputContainer}>
-                      <Ionicons name="mail-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
-                      <TextInput
-                        style={styles.textInputStyle}
-                        placeholder="you@domain.com"
-                        placeholderTextColor="#94A3B8"
-                        value={authEmail}
-                        onChangeText={setAuthEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                      />
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Password</Text>
+                      <View style={styles.inputContainer}>
+                        <Ionicons name="lock-closed-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
+                        <TextInput
+                          style={styles.textInputStyle}
+                          placeholder="••••••••"
+                          placeholderTextColor="#94A3B8"
+                          value={authPassword}
+                          onChangeText={setAuthPassword}
+                          secureTextEntry={!showPassword}
+                          autoCapitalize="none"
+                        />
+                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 4 }}>
+                          <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#94A3B8" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
 
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Password</Text>
-                    <View style={styles.inputContainer}>
-                      <Ionicons name="lock-closed-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
-                      <TextInput
-                        style={styles.textInputStyle}
-                        placeholder="••••••••"
-                        placeholderTextColor="#94A3B8"
-                        value={authPassword}
-                        onChangeText={setAuthPassword}
-                        secureTextEntry={!showPassword}
-                        autoCapitalize="none"
-                      />
-                      <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 4 }}>
-                        <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#94A3B8" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+                    {authError ? (
+                      <View style={styles.errorContainer}>
+                        <Ionicons name="alert-circle" size={16} color="#EF4444" style={{ marginRight: 6 }} />
+                        <Text style={styles.errorText}>{authError}</Text>
+                      </View>
+                    ) : null}
 
-                  {authError ? (
-                    <View style={styles.errorContainer}>
-                      <Ionicons name="alert-circle" size={16} color="#EF4444" style={{ marginRight: 6 }} />
-                      <Text style={styles.errorText}>{authError}</Text>
-                    </View>
-                  ) : null}
-
-                  <TouchableOpacity
-                    style={[styles.submitAuthBtn, authSubmitting ? styles.submitAuthBtnDisabled : null]}
-                    activeOpacity={0.85}
-                    disabled={authSubmitting}
-                    onPress={handleEmailAuth}
-                  >
-                    {authSubmitting ? (
-                      <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.submitAuthBtnText}>
-                        {authMode === 'login' ? 'Sign In' : 'Create Account'}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </ScrollView>
+                    <TouchableOpacity
+                      style={[styles.submitAuthBtn, authSubmitting ? styles.submitAuthBtnDisabled : null]}
+                      activeOpacity={0.85}
+                      disabled={authSubmitting}
+                      onPress={handleEmailAuth}
+                    >
+                      {authSubmitting ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.submitAuthBtnText}>
+                          {authMode === 'login' ? 'Sign In' : 'Create Account'}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </ScrollView>
+                </View>
               </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </Modal>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
+        </Modal>
 
       </Animated.View>
     </View>
