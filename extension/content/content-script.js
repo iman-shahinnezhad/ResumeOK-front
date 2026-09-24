@@ -96,11 +96,23 @@
       });
 
       if (!isMatch) {
-        // Inspect associated <label> or parent wrapper text
-        const labelFor = id ? doc.querySelector(`label[for="${id}"]`) : null;
-        const parentLabel = labelFor || input.closest('label') || input.parentElement;
-        if (parentLabel) {
-          const txt = (parentLabel.innerText || '').toLowerCase();
+        let labelEl = id ? doc.querySelector(`label[for="${id}"]`) : null;
+        if (!labelEl) labelEl = input.closest('label');
+        if (!labelEl) {
+          const fieldWrapper = input.closest('.field, .form-group, [class*="field" i], [class*="form-group" i], tr, li');
+          if (fieldWrapper) {
+            labelEl = fieldWrapper.querySelector('label, .label, [class*="label" i], .field-label');
+          }
+        }
+
+        if (labelEl) {
+          let txt = labelEl.innerText || '';
+          if (labelEl.querySelector('input, select, textarea')) {
+            const clone = labelEl.cloneNode(true);
+            clone.querySelectorAll('input, select, textarea').forEach(c => c.remove());
+            txt = clone.innerText || '';
+          }
+          txt = txt.toLowerCase();
           isMatch = searchTerms.some(term => txt.includes(term.toLowerCase()));
         }
       }
@@ -204,6 +216,71 @@
     } catch(e) {
       return false;
     }
+  }
+
+  // Scroll to webpage form field & flash glowing highlight animation
+  function scrollToAndHighlightField(searchTerms, selector) {
+    const docs = [document];
+    document.querySelectorAll('iframe').forEach(f => {
+      try { if (f.contentDocument) docs.push(f.contentDocument); } catch(e) {}
+    });
+
+    let targetEl = null;
+
+    for (const doc of docs) {
+      if (selector) {
+        targetEl = doc.querySelector(selector);
+        if (targetEl) break;
+      }
+      if (Array.isArray(searchTerms) && searchTerms.length > 0) {
+        const matched = findInputsByLabel(doc, searchTerms);
+        if (matched.length > 0) {
+          targetEl = matched[0];
+          break;
+        }
+      }
+    }
+
+    if (!targetEl && Array.isArray(searchTerms) && searchTerms.length > 0) {
+      for (const doc of docs) {
+        for (const term of searchTerms) {
+          const el = Array.from(doc.querySelectorAll('label, div, span, button')).find(e => 
+            (e.innerText || '').toLowerCase().includes(term.toLowerCase())
+          );
+          if (el) {
+            targetEl = el;
+            break;
+          }
+        }
+        if (targetEl) break;
+      }
+    }
+
+    if (targetEl) {
+      const scrollParent = targetEl.closest('.field, .form-group, label, div') || targetEl;
+      scrollParent.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      const origShadow = targetEl.style.boxShadow;
+      const origBorder = targetEl.style.borderColor;
+      const origTransition = targetEl.style.transition;
+
+      targetEl.style.transition = 'all 0.3s ease';
+      targetEl.style.boxShadow = '0 0 0 4px rgba(16, 185, 129, 0.55), 0 0 25px rgba(16, 185, 129, 0.35)';
+      targetEl.style.borderColor = '#10b981';
+
+      if (typeof targetEl.focus === 'function') {
+        try { targetEl.focus(); } catch(e) {}
+      }
+
+      setTimeout(() => {
+        targetEl.style.boxShadow = origShadow || '';
+        targetEl.style.borderColor = origBorder || '';
+        targetEl.style.transition = origTransition || '';
+      }, 2500);
+
+      return true;
+    }
+    return false;
   }
 
   // Detect Job Details on Active Page
@@ -1590,6 +1667,9 @@
           const res = runAutofill(request.profile);
           const scanRes = scanFormFields(request.profile);
           sendResponse({ success: true, count: res.count, scan: scanRes });
+        } else if (request.type === 'SCROLL_TO_FIELD') {
+          const ok = scrollToAndHighlightField(request.searchTerms, request.selector);
+          sendResponse({ success: ok });
         }
         return true;
       });

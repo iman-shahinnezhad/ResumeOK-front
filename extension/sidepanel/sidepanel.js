@@ -471,13 +471,17 @@ document.addEventListener('DOMContentLoaded', async () => {
           autofillBtn.disabled = true;
 
           const fieldsList = [
-            { label: 'First name', key: 'firstName' },
-            { label: 'Last name', key: 'lastName' },
-            { label: 'Phone number', key: 'phone' },
-            { label: 'Email', key: 'email' },
-            { label: 'Resume / CV File', key: 'resume' },
-            { label: 'Cover letter', key: 'coverLetter' },
-            { label: 'Work Authorization', key: 'auth' }
+            { label: 'First name', key: 'firstName', searchTerms: ['first name', 'given name', 'first_name'] },
+            { label: 'Last name', key: 'lastName', searchTerms: ['last name', 'surname', 'last_name'] },
+            { label: 'Phone number', key: 'phone', searchTerms: ['phone', 'mobile', 'telephone'] },
+            { label: 'Email', key: 'email', searchTerms: ['email', 'e-mail'] },
+            { label: 'Current location', key: 'location', searchTerms: ['location', 'city', 'address'] },
+            { label: 'Education School', key: 'school', searchTerms: ['school', 'university', 'institution'] },
+            { label: 'Education Degree', key: 'degree', searchTerms: ['degree', 'education level'] },
+            { label: 'Resume / CV File', key: 'resume', searchTerms: ['resume', 'cv'] },
+            { label: 'Cover letter', key: 'coverLetter', searchTerms: ['cover letter', 'cover_letter'] },
+            { label: 'Work Authorization', key: 'auth', searchTerms: ['authorized', 'legally', 'sponsor'] },
+            { label: 'Demographics / Gender', key: 'gender', searchTerms: ['gender', 'sex', 'race', 'veteran'] }
           ];
 
           // Render Auto filling Fields loading card
@@ -487,16 +491,45 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div style="font-size:16px;font-weight:800;color:#0f172a;">Auto filling Fields</div>
                 <div id="autofill-percent-val" style="font-size:16px;font-weight:800;color:#0f172a;">0%</div>
               </div>
-              <div id="autofill-checklist-items" style="display:flex;flex-direction:column;gap:12px;">
+              <div id="autofill-checklist-items" style="display:flex;flex-direction:column;gap:6px;">
                 ${fieldsList.map((f, i) => `
-                  <div id="check-item-${i}" style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#475569;">
-                    <div class="check-circle-icon" style="width:18px;height:18px;border-radius:50%;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center;"></div>
-                    <span>${f.label}</span>
+                  <div id="check-item-${i}" class="check-item-row" data-index="${i}" title="Click to scroll to ${f.label} on webpage" style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#475569;padding:6px 10px;border-radius:10px;cursor:pointer;transition:background 0.15s ease, transform 0.1s ease;">
+                    <div class="check-circle-icon" style="width:18px;height:18px;border-radius:50%;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center;flex-shrink:0;"></div>
+                    <span style="flex:1;">${f.label}</span>
+                    <span style="font-size:11px;color:#94a3b8;">🔍</span>
                   </div>
                 `).join('')}
               </div>
             </div>
           `;
+
+          // Attach Click-to-Scroll Field Highlight Event Listeners
+          const attachChecklistClickListeners = () => {
+            const rows = progressContainer.querySelectorAll('.check-item-row');
+            rows.forEach(row => {
+              row.addEventListener('click', async () => {
+                const idx = parseInt(row.getAttribute('data-index'));
+                const item = fieldsList[idx];
+                if (item && item.searchTerms) {
+                  row.style.background = '#f1f5f9';
+                  setTimeout(() => { row.style.background = 'transparent'; }, 400);
+
+                  const tab = await getActiveTab();
+                  if (tab && tab.id) {
+                    chrome.tabs.sendMessage(tab.id, {
+                      type: 'SCROLL_TO_FIELD',
+                      searchTerms: item.searchTerms,
+                      key: item.key
+                    }, () => {
+                      if (chrome.runtime.lastError) {}
+                    });
+                  }
+                }
+              });
+            });
+          };
+
+          attachChecklistClickListeners();
 
           const tab = await getActiveTab();
           if (tab && tab.id) {
@@ -544,22 +577,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             const total = fieldsList.length;
 
             for (let i = 0; i < total; i++) {
-              await new Promise(r => setTimeout(r, 220));
+              await new Promise(r => setTimeout(r, 180));
               const itemEl = document.getElementById(`check-item-${i}`);
               if (itemEl) {
                 itemEl.style.color = '#16a34a';
                 itemEl.innerHTML = `
-                  <div style="width:18px;height:18px;display:flex;align-items:center;justify-content:center;">
+                  <div style="width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
                   </div>
-                  <span>${fieldsList[i].label}</span>
+                  <span style="flex:1;font-weight:700;">${fieldsList[i].label}</span>
+                  <span style="font-size:11px;color:#16a34a;font-weight:700;">Filled</span>
                 `;
               }
               const currentPercent = Math.round(((i + 1) / total) * 100);
               if (percentEl) percentEl.innerText = `${currentPercent}%`;
             }
+
+            attachChecklistClickListeners();
 
             autofillBtn.innerText = '✅ Form Autofilled!';
             autofillBtn.disabled = false;
