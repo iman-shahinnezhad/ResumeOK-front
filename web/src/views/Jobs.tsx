@@ -106,19 +106,38 @@ export default function Jobs() {
         const rawList = Array.isArray(data) ? data : (data.jobs || []);
         if (rawList && rawList.length > 0) {
           const formattedJobs: JobApp[] = rawList.map((item: any, idx: number) => {
-            const compName = item.companyName || item.company || 'Tech Company';
-            const initials = compName.substring(0, 1).toUpperCase();
+            const rawComp = item.companyName || item.company;
+            const compName = typeof rawComp === 'string' ? rawComp : (rawComp?.name || rawComp?.title || 'Tech Company');
+            const initials = String(compName).substring(0, 1).toUpperCase();
             const score = 85 + (idx % 12);
             const grade = score >= 90 ? 'GREAT MATCH' : score >= 80 ? 'GOOD MATCH' : 'FAIR MATCH';
+
+            const rawTitle = item.title;
+            const titleStr = typeof rawTitle === 'string' ? rawTitle : (rawTitle?.name || rawTitle?.title || 'Software Engineer');
+
+            const rawLoc = item.location;
+            const locStr = typeof rawLoc === 'string' ? rawLoc : (rawLoc?.name || rawLoc?.title || 'Remote');
+
+            const rawSal = item.salary;
+            const salStr = typeof rawSal === 'string' ? rawSal : (rawSal?.text || rawSal?.name || '$130,000 - $175,000 / yr');
+
+            const rawType = item.employmentType || item.jobType;
+            const typeStr = typeof rawType === 'string' ? rawType : 'Full-time';
+
+            const rawSkills = item.skills || item.tags;
+            const tagsList = (Array.isArray(rawSkills) && rawSkills.length > 0 ? rawSkills : ['AI', 'Tech'])
+              .map((s: any) => typeof s === 'string' ? s : (s?.name || s?.title || String(s || '')))
+              .filter(Boolean);
+
             return {
               id: String(item.jobId || item._id || item.id || `job-${idx}`),
               company: compName,
               companyInitials: initials,
-              title: item.title || 'Software Engineer',
-              location: item.location || 'Remote',
-              salary: item.salary || '$130,000 - $175,000 / yr',
+              title: titleStr,
+              location: locStr,
+              salary: salStr,
               experience: '2+ years exp',
-              jobType: item.employmentType || 'Full-time',
+              jobType: typeStr,
               industry: 'Technology / Software',
               status: 'Recommended',
               appliedDate: item.createdAt ? new Date(item.createdAt).toISOString().split('T')[0] : '',
@@ -127,8 +146,8 @@ export default function Jobs() {
               postedAgo: 'Recently posted',
               applicantsCount: 'Early applicant',
               h1bStatus: '• Visa Sponsorship Available',
-              tags: item.skills && item.skills.length > 0 ? item.skills : ['AI', 'Tech'],
-              notes: item.applicationUrl ? `Direct Apply: ${item.applicationUrl}` : '',
+              tags: tagsList,
+              notes: typeof item.applicationUrl === 'string' ? `Direct Apply: ${item.applicationUrl}` : '',
               liked: false,
               autoApplied: false,
               isHidden: false
@@ -592,11 +611,15 @@ export default function Jobs() {
                         <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '4px' }}>
                           {job.postedAgo}
                         </span>
-                        {job.tags.map((t, idx) => (
-                          <span key={idx} style={{ fontSize: '12px', fontWeight: '700', color: t.includes('Kotlin') ? '#0f172a' : '#059669', backgroundColor: t.includes('Kotlin') ? '#f1f5f9' : '#ecfdf5', padding: '2px 8px', borderRadius: '4px' }}>
-                            {t}
-                          </span>
-                        ))}
+                        {job.tags.map((tItem, idx) => {
+                          const t = typeof tItem === 'string' ? tItem : (tItem?.name || tItem?.title || String(tItem || ''));
+                          const isDark = typeof t === 'string' && (t.includes('Kotlin') || t.includes('Required'));
+                          return (
+                            <span key={idx} style={{ fontSize: '12px', fontWeight: '700', color: isDark ? '#0f172a' : '#059669', backgroundColor: isDark ? '#f1f5f9' : '#ecfdf5', padding: '2px 8px', borderRadius: '4px' }}>
+                              {t}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
 
