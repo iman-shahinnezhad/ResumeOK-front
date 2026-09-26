@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const addJobMsg = document.getElementById('add-job-msg');
   const mainContent = document.getElementById('sidepanel-main-content');
   const loginRequiredView = document.getElementById('login-required-view');
+  const loadingView = document.getElementById('sidepanel-loading-view');
   const tokenCountEl = document.getElementById('token-count');
   const resumeScoreVal = document.getElementById('resume-score-val');
   const resumeFileNameVal = document.getElementById('resume-filename-val');
@@ -99,8 +100,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
           }
         }
-        // Wait 250ms for chrome.storage.local write to complete
-        await new Promise(r => setTimeout(r, 250));
+        // Wait 200ms for chrome.storage.local write to complete
+        await new Promise(r => setTimeout(r, 200));
 
         const storage = await chrome.storage.local.get(['resumeok_token', 'resumeok_user']);
         activeToken = storage.resumeok_token || null;
@@ -113,6 +114,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // IF STILL NO TOKEN: Show Login Required View
     if (!activeToken) {
+      if (loadingView) loadingView.style.display = 'none';
       if (loginRequiredView) loginRequiredView.style.display = 'block';
       if (mainContent) mainContent.style.display = 'none';
       if (tokenCountEl) tokenCountEl.innerText = '0';
@@ -120,6 +122,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // USER IS LOGGED IN: Show Main Content Area
+    if (loadingView) loadingView.style.display = 'none';
     if (loginRequiredView) loginRequiredView.style.display = 'none';
     if (mainContent) mainContent.style.display = 'block';
     if (addJobMsg) addJobMsg.innerHTML = '';

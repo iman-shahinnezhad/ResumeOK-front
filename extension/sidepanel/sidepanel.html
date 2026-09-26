@@ -34,6 +34,13 @@
       </div>
     </header>
 
+    <!-- Initial Loading View (Prevents UI flicker while checking web & local auth state) -->
+    <div id="sidepanel-loading-view" class="card-white" style="text-align: center; padding: 40px 16px; margin-top: 12px;">
+      <div style="font-size: 28px; margin-bottom: 12px; animation: pulse 1.5s infinite;">⚡</div>
+      <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">Syncing ApplyDesk...</div>
+      <div style="font-size: 11px; color: #64748b;">Verifying authentication</div>
+    </div>
+
     <!-- Login Required View (Shown when user is not logged in) -->
     <div id="login-required-view" class="card-white" style="display: none; text-align: center; padding: 24px 16px;">
       <div style="font-size: 32px; margin-bottom: 8px;">🔐</div>
@@ -50,7 +57,7 @@
     </div>
 
     <!-- Dynamic Authenticated Content Area -->
-    <main id="sidepanel-main-content">
+    <main id="sidepanel-main-content" style="display: none;">
       <!-- Active User Profile Card -->
       <div class="card-white" style="margin-bottom: 12px; padding: 14px 16px; background: #ffffff;">
         <div style="display: flex; justify-content: space-between; align-items: center;">

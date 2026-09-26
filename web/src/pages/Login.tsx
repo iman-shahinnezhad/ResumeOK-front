@@ -6,6 +6,7 @@ import useSEO from '../hooks/useSEO';
 interface Props {
   onLogin: (token: string, userData: any) => void;
   API_URL: string;
+  user?: any;
 }
 
 declare global {
@@ -14,13 +15,23 @@ declare global {
   }
 }
 
-export default function Login({ onLogin, API_URL }: Props) {
+export default function Login({ onLogin, API_URL, user }: Props) {
   useSEO(
     "Log in & Sign Up - ApplyDesk",
     "Access your AI job search copilot, ATS resume builder, auto-apply history, and insider referrals."
   );
 
   const navigate = useNavigate();
+
+  // Redirect authenticated user away from login page immediately
+  useEffect(() => {
+    const savedToken = localStorage.getItem('auth_token') || localStorage.getItem('resumeok_token');
+    const savedUser = localStorage.getItem('auth_user') || localStorage.getItem('resumeok_user');
+    if (user || (savedToken && savedUser)) {
+      navigate('/jobs', { replace: true });
+    }
+  }, [user, navigate]);
+
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

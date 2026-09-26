@@ -91,6 +91,16 @@ function MainAppContent() {
     setCredits(userData.credit);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    localStorage.removeItem('resumeok_token');
+    localStorage.removeItem('resumeok_user');
+    setToken(null);
+    setUser(null);
+    window.postMessage({ type: 'APPLYDESK_AUTH_LOGOUT' }, '*');
+  };
+
   const deductCredits = async (amount: number): Promise<boolean> => {
     const updated = Math.max(0, credits - amount);
     setCredits(updated);
@@ -172,13 +182,30 @@ function MainAppContent() {
 
               {/* Action Buttons & Vertical Divider */}
               <div className="resumeok-nav-actions">
-                <Link to="/login" className="btn-resumeok-black">
-                  Sign up for free
-                </Link>
-                <span className="resumeok-nav-divider"></span>
-                <Link to="/login" className="btn-resumeok-outline">
-                  Log in <ArrowRight className="w-3 h-3 ml-1 inline-block" />
-                </Link>
+                {user || token ? (
+                  <>
+                    <Link to="/profile" className="btn-resumeok-black" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#ffffff', color: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800 }}>
+                        {((user?.name || 'U')[0]).toUpperCase()}
+                      </span>
+                      <span>{user?.name || 'Profile'}</span>
+                    </Link>
+                    <span className="resumeok-nav-divider"></span>
+                    <button onClick={handleLogout} className="btn-resumeok-outline" style={{ cursor: 'pointer' }}>
+                      Log out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/login" className="btn-resumeok-black">
+                      Sign up for free
+                    </Link>
+                    <span className="resumeok-nav-divider"></span>
+                    <Link to="/login" className="btn-resumeok-outline">
+                      Log in <ArrowRight className="w-3 h-3 ml-1 inline-block" />
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
 
@@ -217,12 +244,25 @@ function MainAppContent() {
                 </div>
 
                 <div className="mobile-menu-actions">
-                  <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-resumeok-black full-w">
-                    Sign up for free
-                  </Link>
-                  <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-resumeok-outline full-w">
-                    Log in <ArrowRight className="w-3.5 h-3.5 ml-1 inline-block" />
-                  </Link>
+                  {user || token ? (
+                    <>
+                      <Link to="/profile" onClick={() => setMenuOpen(false)} className="btn-resumeok-black full-w">
+                        Profile ({user?.name || 'Account'})
+                      </Link>
+                      <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="btn-resumeok-outline full-w" style={{ marginTop: '8px', cursor: 'pointer' }}>
+                        Log out
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-resumeok-black full-w">
+                        Sign up for free
+                      </Link>
+                      <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-resumeok-outline full-w">
+                        Log in <ArrowRight className="w-3.5 h-3.5 ml-1 inline-block" />
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -244,7 +284,7 @@ function MainAppContent() {
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/library" element={<Library />} />
-          <Route path="/login" element={<Login onLogin={handleLogin} API_URL={API_URL} />} />
+          <Route path="/login" element={<Login user={user} onLogin={handleLogin} API_URL={API_URL} />} />
           <Route path="/profile" element={<Profile user={user} setUser={setUser} token={token} credits={credits} API_URL={API_URL} />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/partnership" element={<Partnership />} />
