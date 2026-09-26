@@ -171,31 +171,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Fetch REAL Profile from MongoDB API
     try {
-      if (activeUser.id) {
-        const profRes = await fetch(`${API_BASE}/api/user/${activeUser.id}/profile`, {
-          headers: { 'Authorization': `Bearer ${activeToken}` }
-        });
-        if (profRes.ok) {
-          const profData = await profRes.json();
-          if (profData && profData.profile) {
-            currentProfile = profData.profile;
-            await chrome.storage.local.set({ resumeok_profile: currentProfile });
-          }
+      const targetUserId = (activeUser && (activeUser.id || activeUser._id || activeUser.email)) || 'me';
+      const profRes = await fetch(`${API_BASE}/api/user/${targetUserId}/profile`, {
+        headers: { 'Authorization': `Bearer ${activeToken}` }
+      });
+      if (profRes.ok) {
+        const profData = await profRes.json();
+        if (profData && profData.profile) {
+          currentProfile = profData.profile;
+          await chrome.storage.local.set({ resumeok_profile: currentProfile });
         }
       }
     } catch(e) {}
 
     // Fetch REAL User Documents (Resumes) from MongoDB API
     try {
-      if (activeUser.id) {
-        const docRes = await fetch(`${API_BASE}/api/user/${activeUser.id}/documents`, {
-          headers: { 'Authorization': `Bearer ${activeToken}` }
-        });
-        if (docRes.ok) {
-          const docData = await docRes.json();
-          if (docData && docData.resumes) {
-            userResumes = docData.resumes;
-          }
+      const targetUserId = (activeUser && (activeUser.id || activeUser._id || activeUser.email)) || 'me';
+      const docRes = await fetch(`${API_BASE}/api/user/${targetUserId}/documents`, {
+        headers: { 'Authorization': `Bearer ${activeToken}` }
+      });
+      if (docRes.ok) {
+        const docData = await docRes.json();
+        if (docData && docData.resumes) {
+          userResumes = docData.resumes;
+          await chrome.storage.local.set({ resumeok_resumes: userResumes });
         }
       }
     } catch(e) {}
@@ -277,18 +276,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             resumeok_profile: currentProfile
           });
 
-          if (activeUser && activeUser.id) {
-            try {
-              await fetch(`${API_BASE}/api/user/${activeUser.id}/resume`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${activeToken}`
-                },
-                body: JSON.stringify({ fileName: file.name, fileData })
-              });
-            } catch(err) {}
-          }
+          const targetUserId = (activeUser && (activeUser.id || activeUser._id || activeUser.email)) || 'me';
+          try {
+            await fetch(`${API_BASE}/api/user/${targetUserId}/resume`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${activeToken}`
+              },
+              body: JSON.stringify({ fileName: file.name, fileData })
+            });
+          } catch(err) {}
 
           await checkAuthAndLoadData();
         };

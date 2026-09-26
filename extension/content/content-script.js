@@ -846,10 +846,11 @@
           }
 
           // Fetch fresh MongoDB profile & documents if logged in
-          if (activeToken && activeUser && activeUser.id) {
+          if (activeToken) {
             const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3030' : 'https://api.applydesk.io';
+            const targetUserId = (activeUser && (activeUser.id || activeUser._id || activeUser.email)) || 'me';
             try {
-              const profRes = await fetch(`${apiBase}/api/user/${activeUser.id}/profile`, {
+              const profRes = await fetch(`${apiBase}/api/user/${targetUserId}/profile`, {
                 headers: { 'Authorization': `Bearer ${activeToken}` }
               });
               if (profRes.ok) {
@@ -862,7 +863,7 @@
             } catch(e) {}
 
             try {
-              const docRes = await fetch(`${apiBase}/api/user/${activeUser.id}/documents`, {
+              const docRes = await fetch(`${apiBase}/api/user/${targetUserId}/documents`, {
                 headers: { 'Authorization': `Bearer ${activeToken}` }
               });
               if (docRes.ok) {
@@ -1426,10 +1427,11 @@
                 });
               }
 
-              if (activeToken && activeUser && activeUser.id) {
+              if (activeToken) {
                 const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3030' : 'https://api.applydesk.io';
+                const targetUserId = (activeUser && (activeUser.id || activeUser._id || activeUser.email)) || 'me';
                 try {
-                  await fetch(`${apiBase}/api/user/${activeUser.id}/resume`, {
+                  await fetch(`${apiBase}/api/user/${targetUserId}/resume`, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
