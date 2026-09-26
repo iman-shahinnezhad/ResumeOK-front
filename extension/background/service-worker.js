@@ -168,8 +168,7 @@ if (chrome.action && chrome.action.onClicked) {
         }
       });
     }
-  })();
-  return true;
+  });
 }
 
 // Automatically sync web auth session whenever user visits or refreshes ApplyDesk web app
