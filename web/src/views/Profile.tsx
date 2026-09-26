@@ -57,36 +57,60 @@ export default function Profile({ user = null, setUser = () => {}, credits = 100
   });
 
   useEffect(() => {
-    // Load from local storage or user object
-    const saved = localStorage.getItem('user_profile_data');
-    if (saved) {
+    const savedToken = localStorage.getItem('auth_token') || localStorage.getItem('resumeok_token');
+    const savedUser = localStorage.getItem('auth_user') || localStorage.getItem('resumeok_user');
+    let parsedUser = user;
+    if (savedUser) {
       try {
-        setProfile(prev => ({ ...prev, ...JSON.parse(saved) }));
-      } catch (e) { console.error(e); }
-    } else if (user) {
-      const parts = (user.name || '').split(' ');
+        parsedUser = JSON.parse(savedUser);
+      } catch(e) {}
+    }
+
+    const savedProfile = localStorage.getItem('user_profile_data');
+    if (savedProfile) {
+      try {
+        setProfile(prev => ({ ...prev, ...JSON.parse(savedProfile) }));
+      } catch (e) {}
+    } else if (parsedUser) {
+      const parts = (parsedUser.name || '').split(' ');
       setProfile(prev => ({
         ...prev,
         firstName: parts[0] || '',
         lastName: parts.slice(1).join(' ') || '',
-        email: user.email || ''
+        email: parsedUser.email || ''
       }));
     }
-  }, [user]);
+
+    if (savedToken) {
+      fetch(`${API_URL}/api/user/profile`, {
+        headers: {
+          'Authorization': `Bearer ${savedToken}`
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.profile && Object.keys(data.profile).length > 0) {
+            setProfile(prev => ({ ...prev, ...data.profile }));
+            localStorage.setItem('user_profile_data', JSON.stringify(data.profile));
+          }
+        })
+        .catch(err => console.error('Failed to load profile from backend:', err));
+    }
+  }, [user, API_URL]);
 
   const handleSaveProfile = async () => {
     localStorage.setItem('user_profile_data', JSON.stringify(profile));
     
-    // If backend token exists, sync with API
-    if (user && API_URL) {
+    const savedToken = localStorage.getItem('auth_token') || localStorage.getItem('resumeok_token');
+    if (savedToken && API_URL) {
       try {
         await fetch(`${API_URL}/api/user/profile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            'Authorization': `Bearer ${savedToken}`
           },
-          body: JSON.stringify(profile)
+          body: JSON.stringify({ profile })
         });
       } catch(e) { console.error('API sync error:', e); }
     }

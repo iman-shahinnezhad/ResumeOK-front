@@ -130,6 +130,11 @@ export default function Login({ onLogin = () => {}, API_URL = "https://api.apply
           data = await res.json();
           if (res.ok && data.token && data.user) {
             fetchSuccess = true;
+            localStorage.setItem('auth_token', data.token);
+            localStorage.setItem('auth_user', JSON.stringify(data.user));
+            localStorage.setItem('resumeok_token', data.token);
+            localStorage.setItem('resumeok_user', JSON.stringify(data.user));
+            window.dispatchEvent(new Event('storage'));
             onLogin(data.token, data.user);
             navigate('/jobs');
             break;
@@ -200,6 +205,11 @@ export default function Login({ onLogin = () => {}, API_URL = "https://api.apply
           data = await res.json();
           if (res.ok && data.token && data.user) {
             fetchSuccess = true;
+            localStorage.setItem('auth_token', data.token);
+            localStorage.setItem('auth_user', JSON.stringify(data.user));
+            localStorage.setItem('resumeok_token', data.token);
+            localStorage.setItem('resumeok_user', JSON.stringify(data.user));
+            window.dispatchEvent(new Event('storage'));
             onLogin(data.token, data.user);
             navigate('/jobs');
             break;

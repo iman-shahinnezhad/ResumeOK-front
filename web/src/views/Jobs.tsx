@@ -71,6 +71,7 @@ export default function Jobs() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const [loadingJobs, setLoadingJobs] = useState<boolean>(true);
   const [jobs, setJobs] = useState<JobApp[]>([
     {
       id: 'job-1',
@@ -94,100 +95,51 @@ export default function Jobs() {
       liked: true,
       autoApplied: true,
       isHidden: false
-    },
-    {
-      id: 'job-2',
-      company: 'Linear App',
-      companyInitials: 'L',
-      title: 'React Native Developer - REMOTE',
-      location: 'United States • Remote',
-      salary: '$155,000 - $185,000 / yr',
-      experience: '1+ years exp',
-      jobType: 'Full-time, Part-time',
-      industry: 'Developer Tools / Artificial Intelligence / Early Stage',
-      status: 'Applied',
-      appliedDate: '2026-07-30',
-      matchScore: 89,
-      matchGrade: 'GOOD MATCH',
-      postedAgo: '2 days ago',
-      applicantsCount: 'Less than 15 applicants',
-      h1bStatus: '• Visa Sponsorship Available',
-      tags: ['Be an early applicant', 'TypeScript'],
-      notes: 'Applied with tailored resume & cover letter generated via ApplyDesk AI.',
-      liked: false,
-      autoApplied: true,
-      isHidden: false
-    },
-    {
-      id: 'job-3',
-      company: 'Sinclair Inc.',
-      companyInitials: 'S',
-      title: 'Contract Associate Engineer, Software Development',
-      location: 'United States • Remote',
-      salary: '$83,000 - $110,000 / yr',
-      experience: '0+ years exp',
-      jobType: 'Full-time, Contract',
-      industry: 'Media & Entertainment / Digital Media / Public Company',
-      status: 'Saved',
-      appliedDate: '2026-08-01',
-      matchScore: 78,
-      matchGrade: 'FAIR MATCH',
-      postedAgo: 'Reposted 2 weeks ago',
-      applicantsCount: 'Less than 25 applicants',
-      h1bStatus: '• No H1B Required',
-      tags: ['Entry Level', 'Immediate Hire'],
-      notes: 'High priority fit score. Need to highlight React and Node experience.',
-      liked: true,
-      autoApplied: false,
-      isHidden: false
-    },
-    {
-      id: 'job-4',
-      company: 'Figma',
-      companyInitials: 'F',
-      title: 'Senior Design Systems Developer',
-      location: 'San Francisco, CA • Hybrid',
-      salary: '$180,000 - $220,000 / yr',
-      experience: '4+ years exp',
-      jobType: 'Full-time',
-      industry: 'Design Software / Enterprise SaaS',
-      status: 'Offer',
-      appliedDate: '2026-07-20',
-      matchScore: 96,
-      matchGrade: 'GREAT MATCH',
-      postedAgo: '3 weeks ago',
-      applicantsCount: 'Over 50 applicants',
-      h1bStatus: '• Visa Sponsorship Available',
-      tags: ['Top Tier Match', 'High Equity'],
-      notes: 'Offer letter received! Reviewing equity package and health benefits.',
-      liked: true,
-      autoApplied: true,
-      isHidden: false
-    },
-    {
-      id: 'job-5',
-      company: 'Vercel',
-      companyInitials: 'V',
-      title: 'UI/UX Developer & Systems Designer',
-      location: 'Remote (Global)',
-      salary: '$170,000 - $210,000 / yr',
-      experience: '3+ years exp',
-      jobType: 'Full-time',
-      industry: 'Developer Experience / Web Platform',
-      status: 'Saved',
-      appliedDate: '2026-08-02',
-      matchScore: 91,
-      matchGrade: 'GREAT MATCH',
-      postedAgo: '1 day ago',
-      applicantsCount: 'Less than 10 applicants',
-      h1bStatus: '• No H1B Required',
-      tags: ['UI/UX Developer', 'React'],
-      notes: 'Architecting Vercel Design Tokens.',
-      liked: true,
-      autoApplied: true,
-      isHidden: true
     }
   ]);
+
+  useEffect(() => {
+    setLoadingJobs(true);
+    fetch('https://api.applydesk.io/api/jobs')
+      .then(res => res.json())
+      .then(data => {
+        const rawList = Array.isArray(data) ? data : (data.jobs || []);
+        if (rawList && rawList.length > 0) {
+          const formattedJobs: JobApp[] = rawList.map((item: any, idx: number) => {
+            const compName = item.companyName || item.company || 'Tech Company';
+            const initials = compName.substring(0, 1).toUpperCase();
+            const score = 85 + (idx % 12);
+            const grade = score >= 90 ? 'GREAT MATCH' : score >= 80 ? 'GOOD MATCH' : 'FAIR MATCH';
+            return {
+              id: String(item.jobId || item._id || item.id || `job-${idx}`),
+              company: compName,
+              companyInitials: initials,
+              title: item.title || 'Software Engineer',
+              location: item.location || 'Remote',
+              salary: item.salary || '$130,000 - $175,000 / yr',
+              experience: '2+ years exp',
+              jobType: item.employmentType || 'Full-time',
+              industry: 'Technology / Software',
+              status: 'Recommended',
+              appliedDate: item.createdAt ? new Date(item.createdAt).toISOString().split('T')[0] : '',
+              matchScore: score,
+              matchGrade: grade as any,
+              postedAgo: 'Recently posted',
+              applicantsCount: 'Early applicant',
+              h1bStatus: '• Visa Sponsorship Available',
+              tags: item.skills && item.skills.length > 0 ? item.skills : ['AI', 'Tech'],
+              notes: item.applicationUrl ? `Direct Apply: ${item.applicationUrl}` : '',
+              liked: false,
+              autoApplied: false,
+              isHidden: false
+            };
+          });
+          setJobs(formattedJobs);
+        }
+      })
+      .catch(err => console.error('Error loading live jobs from database:', err))
+      .finally(() => setLoadingJobs(false));
+  }, []);
 
   const toggleLike = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
