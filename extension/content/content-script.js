@@ -732,6 +732,7 @@
 
   // Inject Right-Edge Floating Dock Tab connected to Chrome Extension Side Panel
   function injectInPageFloatingDockTab() {
+    if (window !== window.top) return;
     if (document.getElementById('applydesk-inpage-host')) return;
 
     const host = document.createElement('div');
@@ -817,6 +818,7 @@
 
   // Inject Pixel-Perfect "Edit Your Information" Modal Overlay on Active Page Tab (Matching Image 2 Design)
   function openEditInfoModal() {
+    if (window !== window.top) return;
     let host = document.getElementById('applydesk-modal-host');
     if (!host) {
       host = document.createElement('div');
@@ -1750,6 +1752,7 @@
 
   // Jobright-Style In-Page Floating Right Overlay Drawer
   function toggleFloatingRightOverlayDrawer() {
+    if (window !== window.top) return;
     let host = document.getElementById('applydesk-floating-drawer-host');
     if (!host) {
       hideDockTab();
@@ -1797,16 +1800,19 @@
 
   // Inject dock tab container on page load
   try {
-    injectInPageFloatingDockTab();
-    if (isExtensionValid()) {
-      chrome.runtime.sendMessage({ type: 'FORM_DETECTED' }, () => {
-        if (chrome.runtime.lastError) { /* ignore silently */ }
-      });
+    if (window === window.top) {
+      injectInPageFloatingDockTab();
+      if (isExtensionValid()) {
+        chrome.runtime.sendMessage({ type: 'FORM_DETECTED' }, () => {
+          if (chrome.runtime.lastError) { /* ignore silently */ }
+        });
+      }
     }
   } catch(e) {}
 
   // Listen for iframe postMessages from sidepanel (e.g. close drawer / show dock tab)
   window.addEventListener('message', (event) => {
+    if (window !== window.top) return;
     if (event.data && (event.data.type === 'CLOSE_APPLYDESK_FLOATING_DRAWER' || event.data.type === 'COLLAPSE_DRAWER')) {
       closeFloatingRightOverlayDrawer();
       showDockTab();
@@ -1823,7 +1829,7 @@
         if (!isExtensionValid()) return false;
 
         if (request.type === 'CLOSE_FLOATING_PANEL' || request.type === 'CLOSE_DRAWER') {
-          closeFloatingRightOverlayDrawer();
+          if (window === window.top) closeFloatingRightOverlayDrawer();
           sendResponse({ success: true });
           return true;
         }
@@ -1835,25 +1841,25 @@
         }
 
         if (request.type === 'TOGGLE_FLOATING_PANEL' || request.type === 'TOGGLE_DRAWER' || request.type === 'OPEN_SIDE_PANEL') {
-          toggleFloatingRightOverlayDrawer();
+          if (window === window.top) toggleFloatingRightOverlayDrawer();
           sendResponse({ success: true });
           return true;
         }
 
-        if (!document.getElementById('applydesk-inpage-host')) {
+        if (window === window.top && !document.getElementById('applydesk-inpage-host')) {
           injectInPageFloatingDockTab();
         }
         const shadow = document.getElementById('applydesk-inpage-host')?.shadowRoot;
         const dockTab = shadow?.getElementById('ad-dock-tab');
 
         if (request.type === 'SHOW_DOCK_TAB' || request.type === 'COLLAPSE_DRAWER') {
-          if (dockTab) dockTab.style.display = 'flex';
+          if (window === window.top && dockTab) dockTab.style.display = 'flex';
           sendResponse({ success: true });
         } else if (request.type === 'HIDE_DOCK_TAB') {
-          if (dockTab) dockTab.style.display = 'none';
+          if (window === window.top && dockTab) dockTab.style.display = 'none';
           sendResponse({ success: true });
         } else if (request.type === 'OPEN_EDIT_INFO_MODAL') {
-          openEditInfoModal();
+          if (window === window.top) openEditInfoModal();
           sendResponse({ success: true });
         } else if (request.type === 'GET_JOB_DETAILS') {
           sendResponse(extractJobDetails());
