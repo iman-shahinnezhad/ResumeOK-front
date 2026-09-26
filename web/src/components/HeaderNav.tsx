@@ -85,8 +85,9 @@ export default function HeaderNav() {
         <div className="nav-container-resumeok">
           <div className="nav-brand-group">
             {/* Logo */}
-            <Link href="/" className="resumeok-brand-logo" onClick={() => setMenuOpen(false)}>
-              ApplyDesk
+            <Link href="/" className="resumeok-brand-logo" onClick={() => setMenuOpen(false)} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <img src="/assets/extension-logo.svg" alt="ApplyDesk Logo" style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'contain' }} />
+              <span>ApplyDesk</span>
             </Link>
 
             {/* Desktop Left Nav Menu */}
