@@ -31,7 +31,14 @@
     "http://127.0.0.1/*",
     "https://api.applydesk.io/*"
   ],
-  "action": {},
+  "action": {
+    "default_icon": "assets/extension-logo.svg"
+  },
+  "icons": {
+    "16": "assets/extension-logo.svg",
+    "48": "assets/extension-logo.svg",
+    "128": "assets/extension-logo.svg"
+  },
   "background": {
     "service_worker": "background/service-worker.js"
   },

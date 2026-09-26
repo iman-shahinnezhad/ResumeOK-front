@@ -1206,10 +1206,8 @@
           <div class="modal-card">
             <header class="modal-header">
               <div class="brand-box">
-                <div class="logo-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 18V10C4 6.68629 6.68629 4 10 4H14C17.3137 4 20 6.68629 20 10V18"></path>
-                  </svg>
+                <div class="logo-icon" style="display: flex; align-items: center; justify-content: center; background: transparent; border: none;">
+                  <img src="${chrome.runtime.getURL('assets/extension-logo.svg')}" width="36" height="36" style="border-radius: 9px; object-fit: contain;" alt="ApplyDesk Logo">
                 </div>
                 <div>
                   <div class="brand-title">Applydesk.io</div>
