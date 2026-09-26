@@ -807,17 +807,10 @@
 
     const dockTab = shadow.getElementById('ad-dock-tab');
     if (dockTab) {
-      dockTab.addEventListener('click', () => {
-        dockTab.style.display = 'none';
-        if (isExtensionValid()) {
-          chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' }, (res) => {
-            if (chrome.runtime.lastError || !res || res.method === 'drawer' || !res.method) {
-              toggleFloatingRightOverlayDrawer();
-            }
-          });
-        } else {
-          toggleFloatingRightOverlayDrawer();
-        }
+      dockTab.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleFloatingRightOverlayDrawer();
       });
     }
   }
