@@ -5,8 +5,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       if (message.type === 'SYNC_WEB_AUTH') {
+        const check = await chrome.storage.local.get('resumeok_explicit_logout');
+        if (check.resumeok_explicit_logout && !message.force) {
+          sendResponse({ success: false, reason: 'explicit_logout' });
+          return;
+        }
         if (message.token) {
           const userObj = message.user ? (typeof message.user === 'string' ? JSON.parse(message.user) : message.user) : { token: message.token };
+          await chrome.storage.local.remove('resumeok_explicit_logout');
           await chrome.storage.local.set({
             resumeok_token: message.token,
             resumeok_user: userObj
@@ -30,15 +36,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         sendResponse({ success: true });
       } else if (message.type === 'GET_AUTH_STATUS') {
-        const data = await chrome.storage.local.get(['resumeok_token', 'resumeok_user']);
-        const isLoggedIn = Boolean(data.resumeok_token);
+        const data = await chrome.storage.local.get(['resumeok_explicit_logout', 'resumeok_token', 'resumeok_user']);
+        const isLoggedIn = Boolean(data.resumeok_token) && !data.resumeok_explicit_logout;
         sendResponse({
           isLoggedIn,
-          token: data.resumeok_token || null,
-          user: data.resumeok_user || null
+          token: isLoggedIn ? (data.resumeok_token || null) : null,
+          user: isLoggedIn ? (data.resumeok_user || null) : null
         });
       } else if (message.type === 'LOGOUT') {
-        await chrome.storage.local.remove(['resumeok_token', 'resumeok_user', 'resumeok_profile', 'resumeok_resumes']);
+        await chrome.storage.local.set({ resumeok_explicit_logout: true });
+        await chrome.storage.local.remove(['resumeok_token', 'resumeok_user', 'resumeok_profile', 'resumeok_resumes', 'user_profile_data', 'auth_token', 'auth_user']);
         sendResponse({ success: true });
       } else if (message.type === 'SAVE_PROFILE_STORAGE') {
         await chrome.storage.local.set({ resumeok_profile: message.profile });

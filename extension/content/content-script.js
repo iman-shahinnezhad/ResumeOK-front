@@ -1659,7 +1659,7 @@
   }
 
   // Automatic Web App Authentication Sync
-  function checkAndSyncWebAuth() {
+  function checkAndSyncWebAuth(force = false) {
     try {
       const token = localStorage.getItem('auth_token') || localStorage.getItem('resumeok_token') || localStorage.getItem('jwt');
       const userStr = localStorage.getItem('auth_user') || localStorage.getItem('resumeok_user') || localStorage.getItem('user');
@@ -1675,7 +1675,7 @@
           user = { token };
         }
         if (isExtensionValid()) {
-          chrome.runtime.sendMessage({ type: 'SYNC_WEB_AUTH', token, user }, () => {
+          chrome.runtime.sendMessage({ type: 'SYNC_WEB_AUTH', token, user, force }, () => {
             if (chrome.runtime.lastError) { /* ignore */ }
           });
         }
@@ -1835,7 +1835,7 @@
         }
 
         if (request.type === 'CHECK_WEB_AUTH') {
-          checkAndSyncWebAuth();
+          checkAndSyncWebAuth(Boolean(request.force));
           sendResponse({ success: true });
           return true;
         }

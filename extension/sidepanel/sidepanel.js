@@ -77,7 +77,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Check Web App Auth & Load Real User Data from MongoDB
   async function checkAuthAndLoadData() {
     try {
-      const storage = await chrome.storage.local.get(['resumeok_token', 'resumeok_user', 'resumeok_profile']);
+      const storage = await chrome.storage.local.get(['resumeok_explicit_logout', 'resumeok_token', 'resumeok_user', 'resumeok_profile']);
+      if (storage.resumeok_explicit_logout) {
+        if (loadingView) loadingView.style.display = 'none';
+        if (loginRequiredView) loginRequiredView.style.display = 'block';
+        if (mainContent) mainContent.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        if (tokenCountEl) tokenCountEl.innerText = '0';
+        return false;
+      }
       activeToken = storage.resumeok_token || null;
       activeUser = storage.resumeok_user || null;
       if (typeof activeUser === 'string') {
@@ -103,7 +111,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Wait 200ms for chrome.storage.local write to complete
         await new Promise(r => setTimeout(r, 200));
 
-        const storage = await chrome.storage.local.get(['resumeok_token', 'resumeok_user']);
+        const storage = await chrome.storage.local.get(['resumeok_explicit_logout', 'resumeok_token', 'resumeok_user']);
+        if (storage.resumeok_explicit_logout) {
+          if (loadingView) loadingView.style.display = 'none';
+          if (loginRequiredView) loginRequiredView.style.display = 'block';
+          if (mainContent) mainContent.style.display = 'none';
+          if (logoutBtn) logoutBtn.style.display = 'none';
+          if (tokenCountEl) tokenCountEl.innerText = '0';
+          return false;
+        }
         activeToken = storage.resumeok_token || null;
         activeUser = storage.resumeok_user || null;
         if (typeof activeUser === 'string') {
@@ -149,6 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
           } else if (authRes.status === 401) {
             // Token explicitly rejected by backend -> logout
+            await chrome.storage.local.set({ resumeok_explicit_logout: true });
             await chrome.storage.local.remove(['resumeok_token', 'resumeok_user']);
             activeToken = null;
             activeUser = null;
@@ -171,10 +188,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Fetch REAL Profile from MongoDB API
     try {
-      const targetUserId = (activeUser && (activeUser.id || activeUser._id || activeUser.email)) || 'me';
-      const profRes = await fetch(`${API_BASE}/api/user/${targetUserId}/profile`, {
+      let profRes = await fetch(`${API_BASE}/api/user/profile`, {
         headers: { 'Authorization': `Bearer ${activeToken}` }
       });
+      if (!profRes.ok) {
+        profRes = await fetch(`${API_BASE}/api/user/me/profile`, {
+          headers: { 'Authorization': `Bearer ${activeToken}` }
+        });
+      }
       if (profRes.ok) {
         const profData = await profRes.json();
         if (profData && profData.profile) {
@@ -186,14 +207,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Fetch REAL User Documents (Resumes) from MongoDB API
     try {
-      const targetUserId = (activeUser && (activeUser.id || activeUser._id || activeUser.email)) || 'me';
-      const docRes = await fetch(`${API_BASE}/api/user/${targetUserId}/documents`, {
+      let docRes = await fetch(`${API_BASE}/api/user/documents`, {
         headers: { 'Authorization': `Bearer ${activeToken}` }
       });
+      if (!docRes.ok) {
+        docRes = await fetch(`${API_BASE}/api/user/me/documents`, {
+          headers: { 'Authorization': `Bearer ${activeToken}` }
+        });
+      }
       if (docRes.ok) {
         const docData = await docRes.json();
-        if (docData && docData.resumes) {
-          userResumes = docData.resumes;
+        if (docData && (docData.resumes || docData.documents)) {
+          userResumes = docData.resumes || docData.documents;
           await chrome.storage.local.set({ resumeok_resumes: userResumes });
         }
       }
@@ -299,7 +324,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Login Button Click -> Opens Web App Login Page (https://applydesk.io/login)
   if (loginWebBtn) {
-    loginWebBtn.addEventListener('click', () => {
+    loginWebBtn.addEventListener('click', async () => {
+      await chrome.storage.local.remove('resumeok_explicit_logout');
       window.open(WEB_LOGIN_URL, '_blank');
     });
   }
@@ -308,11 +334,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (refreshAuthBtn) {
     refreshAuthBtn.addEventListener('click', async () => {
       refreshAuthBtn.innerText = 'Checking...';
+      await chrome.storage.local.remove('resumeok_explicit_logout');
       try {
         const tabs = await chrome.tabs.query({});
         for (const tab of tabs) {
           if (tab.id && tab.url && (tab.url.includes('applydesk') || tab.url.includes('188.166.164.115') || tab.url.includes('localhost') || tab.url.includes('127.0.0.1'))) {
-            chrome.tabs.sendMessage(tab.id, { type: 'CHECK_WEB_AUTH' }, () => {
+            chrome.tabs.sendMessage(tab.id, { type: 'CHECK_WEB_AUTH', force: true }, () => {
               if (chrome.runtime.lastError) {}
             });
           }
@@ -338,11 +365,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       activeToken = null;
       activeUser = null;
+      currentProfile = null;
+      userResumes = [];
+      await chrome.storage.local.set({ resumeok_explicit_logout: true });
       await chrome.storage.local.remove(['resumeok_token', 'resumeok_user', 'resumeok_profile', 'resumeok_resumes', 'user_profile_data', 'auth_token', 'auth_user']);
       try {
         chrome.runtime.sendMessage({ type: 'LOGOUT' });
       } catch(err) {}
-      checkAuthAndLoadData();
+
+      if (loadingView) loadingView.style.display = 'none';
+      if (loginRequiredView) loginRequiredView.style.display = 'block';
+      if (mainContent) mainContent.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      if (tokenCountEl) tokenCountEl.innerText = '0';
     });
   }
 
