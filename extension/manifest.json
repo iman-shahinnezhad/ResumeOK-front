@@ -9,12 +9,8 @@
     "scripting",
     "tabs",
     "cookies",
-    "webNavigation",
-    "sidePanel"
+    "webNavigation"
   ],
-  "side_panel": {
-    "default_path": "sidepanel/sidepanel.html"
-  },
   "host_permissions": [
     "https://applydesk.io/*",
     "https://*.applydesk.io/*",

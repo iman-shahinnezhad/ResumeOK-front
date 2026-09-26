@@ -125,20 +125,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true });
       } else if (message.type === 'OPEN_SIDE_PANEL') {
         if (sender.tab && sender.tab.id) {
-          if (chrome.sidePanel && chrome.sidePanel.open) {
-            try {
-              await chrome.sidePanel.open({ tabId: sender.tab.id });
-              sendResponse({ success: true, method: 'sidePanel' });
-              return;
-            } catch(e) {
-              try {
-                await chrome.sidePanel.open({ windowId: sender.tab.windowId });
-                sendResponse({ success: true, method: 'sidePanel' });
-                return;
-              } catch(err) {}
-            }
-          }
-          chrome.tabs.sendMessage(sender.tab.id, { type: 'OPEN_FLOATING_PANEL' }, () => {
+          chrome.tabs.sendMessage(sender.tab.id, { type: 'TOGGLE_FLOATING_PANEL' }, () => {
             if (chrome.runtime.lastError) {}
           });
         }
@@ -151,19 +138,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   })();
   return true;
 });
-// Action Click -> Open Native Side Panel & Close In-Page Floating Drawer
+
+// Action Click -> Toggle Tab-Specific In-Page Sliding Overlay Drawer
 if (chrome.action && chrome.action.onClicked) {
   chrome.action.onClicked.addListener(async (tab) => {
     if (tab && tab.id) {
-      if (chrome.sidePanel && chrome.sidePanel.open) {
-        try {
-          await chrome.sidePanel.open({ tabId: tab.id });
-        } catch(e) {
-          try { await chrome.sidePanel.open({ windowId: tab.windowId }); } catch(err) {}
+      chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_FLOATING_PANEL' }, () => {
+        if (chrome.runtime.lastError) {
+          // If content script was not injected on this tab, inject dynamically
+          chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['content/content-script.js']
+          }, () => {
+            if (!chrome.runtime.lastError) {
+              setTimeout(() => {
+                chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_FLOATING_PANEL' });
+              }, 150);
+            }
+          });
         }
-      }
-      chrome.tabs.sendMessage(tab.id, { type: 'CLOSE_FLOATING_PANEL' }, () => {
-        if (chrome.runtime.lastError) {}
       });
     }
   });
