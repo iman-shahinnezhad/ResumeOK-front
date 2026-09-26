@@ -4,19 +4,19 @@ import { useState } from 'react';
 import { useNavigate } from '../lib/router-compat';
 import useSEO from '../hooks/useSEO';
 
-// Import exact design assets
-import webHome2 from '../assets/web-home2.png';
-import webHome8 from '../assets/web-home8.png';
-import webHome9 from '../assets/web-home9.png';
-import web1 from '../assets/web1.jpg';
-import web2 from '../assets/web2.png';
-import web3 from '../assets/web3.png';
-import web4 from '../assets/web4.png';
-import web5 from '../assets/web5.png';
-import web6 from '../assets/web6.png';
-import web7 from '../assets/web7.png';
-import web8 from '../assets/web8.png';
-import web9 from '../assets/web9.png';
+// Exact design assets from public assets directory
+const webHome2 = '/assets/web-home2.png';
+const webHome8 = '/assets/web-home8.png';
+const webHome9 = '/assets/web-home9.png';
+const web1 = '/assets/web1.jpg';
+const web2 = '/assets/web2.png';
+const web3 = '/assets/web3.png';
+const web4 = '/assets/web4.png';
+const web5 = '/assets/web5.png';
+const web6 = '/assets/web6.png';
+const web7 = '/assets/web7.png';
+const web8 = '/assets/web8.png';
+const web9 = '/assets/web9.png';
 
 export default function Home() {
   const navigate = useNavigate();
