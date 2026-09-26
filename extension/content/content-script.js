@@ -890,8 +890,8 @@
         .modal-backdrop {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.45);
-          backdrop-filter: blur(5px);
+          background: rgba(0, 0, 0, 0.2);
+          backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
           justify-content: center;

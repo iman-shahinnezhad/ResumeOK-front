@@ -75,39 +75,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ profile: data.resumeok_profile || null });
       } else if (message.type === 'SAVE_JOB_TO_DB') {
         const data = await chrome.storage.local.get(['resumeok_token', 'resumeok_user']);
-        if (data.resumeok_user && data.resumeok_token) {
-          const userId = data.resumeok_user.id;
-          const apiUrls = [
-            'https://api.applydesk.io',
-            'http://localhost:3000',
-            'http://localhost:3030'
-          ];
-          let saved = false;
-          for (const baseUrl of apiUrls) {
-            try {
-              const res = await fetch(`${baseUrl}/api/user-jobs/${userId}`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${data.resumeok_token}`
-                },
-                body: JSON.stringify({
-                  type: 'applied',
-                  jobId: message.jobId || String(Date.now()),
-                  jobData: message.jobData
-                })
-              });
-              if (res.ok) {
-                saved = true;
-                console.log('[ServiceWorker] Saved job to database user_jobs collection:', message.jobData.title);
-                break;
-              }
-            } catch(e) {}
-          }
-          sendResponse({ success: saved });
-        } else {
-          sendResponse({ success: false, error: 'User not logged in' });
+        const userId = (data.resumeok_user && (data.resumeok_user.id || data.resumeok_user._id || data.resumeok_user.email)) || 'guest';
+        const token = data.resumeok_token || '';
+        const apiUrls = [
+          'https://api.applydesk.io',
+          'http://localhost:3000',
+          'http://localhost:3030'
+        ];
+        let saved = false;
+        for (const baseUrl of apiUrls) {
+          try {
+            // 1. Save job to user_jobs collection & auto-create DbJob
+            const res = await fetch(`${baseUrl}/api/user-jobs/${userId}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify({
+                type: 'applied',
+                jobId: message.jobId || String(Date.now()),
+                jobData: message.jobData
+              })
+            });
+
+            // 2. Also save job directly to /api/jobs/add for public DbJob collection
+            await fetch(`${baseUrl}/api/jobs/add`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify(message.jobData)
+            }).catch(() => {});
+
+            if (res.ok) {
+              saved = true;
+              console.log('[ServiceWorker] Saved job to database user_jobs & DbJob collections:', message.jobData.title);
+              break;
+            }
+          } catch(e) {}
         }
+        sendResponse({ success: saved });
       } else if (message.type === 'LOG_APPLIED_JOB') {
         const data = await chrome.storage.local.get('resumeok_applications');
         const list = data.resumeok_applications || [];
