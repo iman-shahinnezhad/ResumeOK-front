@@ -829,10 +829,49 @@
     shadow.innerHTML = '';
 
     let currentProfile = {};
+    let userResumes = [];
+    let activeToken = null;
+    let activeUser = null;
+
     if (isExtensionValid()) {
       try {
-        chrome.storage.local.get('resumeok_profile', (res) => {
-          if (res && res.resumeok_profile) currentProfile = res.resumeok_profile;
+        chrome.storage.local.get(['resumeok_profile', 'resumeok_token', 'resumeok_user', 'resumeok_resumes'], async (res) => {
+          if (res) {
+            if (res.resumeok_profile) currentProfile = res.resumeok_profile;
+            if (res.resumeok_token) activeToken = res.resumeok_token;
+            if (res.resumeok_user) activeUser = res.resumeok_user;
+            if (res.resumeok_resumes) userResumes = res.resumeok_resumes;
+          }
+
+          // Fetch fresh MongoDB profile & documents if logged in
+          if (activeToken && activeUser && activeUser.id) {
+            const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3030' : 'https://api.applydesk.io';
+            try {
+              const profRes = await fetch(`${apiBase}/api/user/${activeUser.id}/profile`, {
+                headers: { 'Authorization': `Bearer ${activeToken}` }
+              });
+              if (profRes.ok) {
+                const profData = await profRes.json();
+                if (profData && profData.profile) {
+                  currentProfile = { ...currentProfile, ...profData.profile };
+                  chrome.storage.local.set({ resumeok_profile: currentProfile });
+                }
+              }
+            } catch(e) {}
+
+            try {
+              const docRes = await fetch(`${apiBase}/api/user/${activeUser.id}/documents`, {
+                headers: { 'Authorization': `Bearer ${activeToken}` }
+              });
+              if (docRes.ok) {
+                const docData = await docRes.json();
+                if (docData && docData.resumes) {
+                  userResumes = docData.resumes;
+                  chrome.storage.local.set({ resumeok_resumes: userResumes });
+                }
+              }
+            } catch(e) {}
+          }
           renderModal();
         });
       } catch(e) { renderModal(); }
@@ -859,7 +898,7 @@
         .modal-card {
           width: 880px;
           max-width: 94vw;
-          height: 620px;
+          height: 640px;
           max-height: 92vh;
           background: #ffffff;
           border-radius: 28px;
@@ -955,12 +994,66 @@
 
         .modal-content {
           flex: 1;
-          padding: 28px;
+          padding: 24px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
           overflow-y: auto;
           background: #ffffff;
+        }
+
+        .no-resume-banner {
+          background: #fbf5e8;
+          border: 1.5px solid #e8dfc8;
+          border-radius: 18px;
+          padding: 14px 18px;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 14px;
+        }
+
+        .banner-icon-box {
+          font-size: 24px;
+          flex-shrink: 0;
+        }
+
+        .banner-content {
+          flex: 1;
+        }
+
+        .banner-title {
+          font-size: 13.5px;
+          font-weight: 800;
+          color: #0f172a;
+          margin-bottom: 2px;
+        }
+
+        .banner-desc {
+          font-size: 11.5px;
+          color: #64748b;
+          font-weight: 500;
+          line-height: 1.4;
+        }
+
+        .banner-upload-btn {
+          background: #000000;
+          color: #ffffff;
+          border: none;
+          border-radius: 20px;
+          padding: 9px 18px;
+          font-size: 12.5px;
+          font-weight: 700;
+          cursor: pointer;
+          white-space: nowrap;
+          flex-shrink: 0;
+          transition: opacity 0.2s, transform 0.15s;
+        }
+
+        .banner-upload-btn:hover {
+          opacity: 0.9;
+          transform: translateY(-1px);
         }
 
         .tab-pane { display: none; flex-direction: column; gap: 16px; width: 100%; }
@@ -1101,6 +1194,9 @@
       const education = currentProfile.education || [];
       const projects = currentProfile.projects || [];
 
+      const hasResume = (userResumes && userResumes.length > 0) || currentProfile.resumeFileName || currentProfile.resumeFile;
+      const resumeName = (userResumes && userResumes[0] && userResumes[0].fileName) || currentProfile.resumeFileName || 'Resume';
+
       const modalWrapper = document.createElement('div');
       modalWrapper.innerHTML = `
         <div class="modal-backdrop">
@@ -1154,6 +1250,34 @@
               </aside>
 
               <main class="modal-content">
+                <div id="modal-banner-container">
+                  ${!hasResume ? `
+                    <div class="no-resume-banner">
+                      <div class="banner-icon-box">📄</div>
+                      <div class="banner-content">
+                        <div class="banner-title">Upload your resume to auto-fill details</div>
+                        <div class="banner-desc">Upload your resume to automatically populate your contact info, work experience, education, and skills into this form.</div>
+                      </div>
+                      <input type="file" id="modal-resume-file-input" accept=".pdf,.doc,.docx" style="display: none;" />
+                      <button type="button" id="modal-upload-resume-btn" class="banner-upload-btn">
+                        📤 Upload Resume
+                      </button>
+                    </div>
+                  ` : `
+                    <div class="no-resume-banner" style="background: #f0fdf4; border-color: #bbf7d0;">
+                      <div class="banner-icon-box">✅</div>
+                      <div class="banner-content">
+                        <div class="banner-title" style="color: #166534;">Resume Uploaded: ${resumeName}</div>
+                        <div class="banner-desc" style="color: #15803d;">Your profile fields are synchronized with your resume and MongoDB database.</div>
+                      </div>
+                      <input type="file" id="modal-resume-file-input" accept=".pdf,.doc,.docx" style="display: none;" />
+                      <button type="button" id="modal-upload-resume-btn" class="banner-upload-btn" style="background: #166534;">
+                        🔄 Replace Resume
+                      </button>
+                    </div>
+                  `}
+                </div>
+
                 <!-- Personal Info Tab -->
                 <div class="tab-pane active" id="pane-personal">
                   <div class="input-grid">
@@ -1272,6 +1396,73 @@
       shadow.appendChild(style);
       shadow.appendChild(modalWrapper);
 
+      // Attach Upload Resume Handler inside Modal
+      const attachUploadHandler = () => {
+        const uploadBtn = shadow.getElementById('modal-upload-resume-btn');
+        const fileInput = shadow.getElementById('modal-resume-file-input');
+
+        if (uploadBtn && fileInput) {
+          uploadBtn.onclick = () => fileInput.click();
+          fileInput.onchange = async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            uploadBtn.innerText = 'Uploading...';
+            uploadBtn.disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+              const fileData = evt.target.result;
+              
+              currentProfile.resumeFileName = file.name;
+              userResumes = [{ id: 'res_' + Date.now(), fileName: file.name, fileData }];
+              
+              if (isExtensionValid()) {
+                chrome.storage.local.set({
+                  resumeok_profile: currentProfile,
+                  resumeok_resumes: userResumes
+                });
+              }
+
+              if (activeToken && activeUser && activeUser.id) {
+                const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3030' : 'https://api.applydesk.io';
+                try {
+                  await fetch(`${apiBase}/api/user/${activeUser.id}/resume`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${activeToken}`
+                    },
+                    body: JSON.stringify({ fileName: file.name, fileData })
+                  });
+                } catch(err) {}
+              }
+
+              const bannerContainer = shadow.getElementById('modal-banner-container');
+              if (bannerContainer) {
+                bannerContainer.innerHTML = `
+                  <div class="no-resume-banner" style="background: #f0fdf4; border-color: #bbf7d0;">
+                    <div class="banner-icon-box">✅</div>
+                    <div class="banner-content">
+                      <div class="banner-title" style="color: #166534;">Resume Uploaded: ${file.name}</div>
+                      <div class="banner-desc" style="color: #15803d;">Your profile data is updated and saved to MongoDB.</div>
+                    </div>
+                    <input type="file" id="modal-resume-file-input" accept=".pdf,.doc,.docx" style="display: none;" />
+                    <button type="button" id="modal-upload-resume-btn" class="banner-upload-btn" style="background: #166534;">
+                      🔄 Replace Resume
+                    </button>
+                  </div>
+                `;
+                attachUploadHandler();
+              }
+            };
+            reader.readAsDataURL(file);
+          };
+        }
+      };
+
+      attachUploadHandler();
+
       // Render Dynamic Card Lists
       const workList = shadow.getElementById('work-list');
       const eduList = shadow.getElementById('edu-list');
@@ -1283,11 +1474,11 @@
         div.innerHTML = `
           <button type="button" class="btn-remove-entry">Remove</button>
           <div class="input-grid">
-            <div class="input-pill-box"><span class="input-label">Company</span><input class="input-field w-company" value="${exp.company || ''}" /></div>
-            <div class="input-pill-box"><span class="input-label">Role / Title</span><input class="input-field w-role" value="${exp.role || exp.title || ''}" /></div>
-            <div class="input-pill-box"><span class="input-label">Dates (e.g. 2021 - Present)</span><input class="input-field w-dates" value="${exp.dates || ''}" /></div>
+            <div class="input-pill-box"><span class="input-label">Company</span><input class="input-field w-company" value="${exp.company || exp.companyName || ''}" /></div>
+            <div class="input-pill-box"><span class="input-label">Role / Title</span><input class="input-field w-role" value="${exp.role || exp.title || exp.jobTitle || ''}" /></div>
+            <div class="input-pill-box"><span class="input-label">Dates (e.g. 2021 - Present)</span><input class="input-field w-dates" value="${exp.dates || exp.startDate ? (exp.startDate + (exp.endDate ? ' - ' + exp.endDate : '')) : ''}" /></div>
           </div>
-          <div class="input-pill-box"><span class="input-label">Description</span><textarea class="input-field w-desc">${exp.description || ''}</textarea></div>
+          <div class="input-pill-box"><span class="input-label">Description</span><textarea class="input-field w-desc">${exp.description || exp.workSummary || ''}</textarea></div>
         `;
         div.querySelector('.btn-remove-entry').onclick = () => div.remove();
         workList.appendChild(div);
@@ -1299,9 +1490,9 @@
         div.innerHTML = `
           <button type="button" class="btn-remove-entry">Remove</button>
           <div class="input-grid">
-            <div class="input-pill-box"><span class="input-label">School / University</span><input class="input-field e-school" value="${ed.school || ''}" /></div>
+            <div class="input-pill-box"><span class="input-label">School / University</span><input class="input-field e-school" value="${ed.school || ed.institution || ''}" /></div>
             <div class="input-pill-box"><span class="input-label">Degree</span><input class="input-field e-degree" value="${ed.degree || ''}" /></div>
-            <div class="input-pill-box"><span class="input-label">Field of Study</span><input class="input-field e-field" value="${ed.fieldOfStudy || ''}" /></div>
+            <div class="input-pill-box"><span class="input-label">Field of Study</span><input class="input-field e-field" value="${ed.fieldOfStudy || ed.major || ''}" /></div>
           </div>
         `;
         div.querySelector('.btn-remove-entry').onclick = () => div.remove();
@@ -1314,9 +1505,9 @@
         div.innerHTML = `
           <button type="button" class="btn-remove-entry">Remove</button>
           <div class="input-grid">
-            <div class="input-pill-box"><span class="input-label">Project Name</span><input class="input-field p-name" value="${pj.name || ''}" /></div>
+            <div class="input-pill-box"><span class="input-label">Project Name</span><input class="input-field p-name" value="${pj.name || pj.title || ''}" /></div>
             <div class="input-pill-box"><span class="input-label">Role</span><input class="input-field p-role" value="${pj.role || ''}" /></div>
-            <div class="input-pill-box"><span class="input-label">Link</span><input class="input-field p-link" value="${pj.link || ''}" /></div>
+            <div class="input-pill-box"><span class="input-label">Link</span><input class="input-field p-link" value="${pj.link || pj.url || ''}" /></div>
           </div>
         `;
         div.querySelector('.btn-remove-entry').onclick = () => div.remove();
@@ -1363,11 +1554,11 @@
 
       if (updateBtn) {
         updateBtn.addEventListener('click', async () => {
-          // Collect Work entries
           const updatedWork = [];
           shadow.querySelectorAll('.work-card').forEach(card => {
             updatedWork.push({
               company: card.querySelector('.w-company')?.value || '',
+              companyName: card.querySelector('.w-company')?.value || '',
               role: card.querySelector('.w-role')?.value || '',
               title: card.querySelector('.w-role')?.value || '',
               dates: card.querySelector('.w-dates')?.value || '',
@@ -1375,7 +1566,6 @@
             });
           });
 
-          // Collect Education entries
           const updatedEdu = [];
           shadow.querySelectorAll('.edu-card').forEach(card => {
             updatedEdu.push({
@@ -1385,7 +1575,6 @@
             });
           });
 
-          // Collect Project entries
           const updatedProj = [];
           shadow.querySelectorAll('.proj-card').forEach(card => {
             updatedProj.push({
@@ -1434,7 +1623,7 @@
             projects: updatedProj
           };
 
-          updateBtn.innerText = 'Updating...';
+          updateBtn.innerText = 'Saving to Database...';
           updateBtn.disabled = true;
 
           if (isExtensionValid()) {
@@ -1444,7 +1633,21 @@
             } catch(e) {}
           }
 
-          updateBtn.innerText = '✅ Saved!';
+          if (activeToken && activeUser && activeUser.id) {
+            const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3030' : 'https://api.applydesk.io';
+            try {
+              await fetch(`${apiBase}/api/user/${activeUser.id}/profile`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${activeToken}`
+                },
+                body: JSON.stringify({ profile: updatedProfile })
+              });
+            } catch(e) {}
+          }
+
+          updateBtn.innerText = '✅ Saved to Database!';
           setTimeout(() => {
             host.remove();
           }, 500);
