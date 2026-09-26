@@ -331,10 +331,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Log Out Click
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', async () => {
-      chrome.runtime.sendMessage({ type: 'LOGOUT' }, () => {
-        checkAuthAndLoadData();
-      });
+    logoutBtn.addEventListener('click', async (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      activeToken = null;
+      activeUser = null;
+      await chrome.storage.local.remove(['resumeok_token', 'resumeok_user', 'resumeok_profile', 'resumeok_resumes', 'user_profile_data', 'auth_token', 'auth_user']);
+      try {
+        chrome.runtime.sendMessage({ type: 'LOGOUT' });
+      } catch(err) {}
+      checkAuthAndLoadData();
     });
   }
 
