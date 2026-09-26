@@ -176,16 +176,70 @@ function prerender() {
     // Inject metaBlock into <head>
     html = html.replace('</head>', `${metaBlock}\n</head>`);
 
-    // 3. Pre-render Static HTML Content into <div id="root"> for zero-JS crawlers & instant FCP
+    // 3. Pre-render Full Static HTML Layout into <div id="root"> for zero-JS crawlers & instant FCP
     const staticContent = `
-      <div class="prerender-seo-shell" style="padding: 40px 20px; max-width: 1200px; margin: 0 auto; font-family: system-ui, sans-serif;">
-        <header style="margin-bottom: 24px;">
-          <h1 style="font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 8px;">${route.heading}</h1>
-          <p style="font-size: 18px; color: #475569; line-height: 1.5;">${route.subheading}</p>
-        </header>
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; color: #334155;">
-          <p style="font-size: 16px; line-height: 1.6;">${route.description}</p>
-        </div>
+      <div class="resumeok-landing" style="min-height: 100vh; display: flex; flex-direction: column; font-family: 'Plus Jakarta Sans', system-ui, sans-serif;">
+        <!-- Full Navigation Bar Header -->
+        <nav class="resumeok-nav" style="padding: 16px 28px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; background: #ffffff;">
+          <div style="display: flex; align-items: center; gap: 28px;">
+            <a href="/" style="font-size: 24px; font-weight: 900; color: #0f172a; text-decoration: none; letter-spacing: -0.5px;">ApplyDesk</a>
+            <div style="display: flex; gap: 18px; font-size: 14px; font-weight: 600;">
+              <a href="/jobs" style="color: #475569; text-decoration: none;">Auto Apply</a>
+              <a href="/build" style="color: #475569; text-decoration: none;">AI Resume Builder</a>
+              <a href="/audit" style="color: ${route.path === '/audit' ? '#2563eb' : '#475569'}; text-decoration: none; font-weight: 700;">Resume Scoring</a>
+              <a href="/jobs" style="color: ${route.path === '/jobs' ? '#2563eb' : '#475569'}; text-decoration: none;">Job Board</a>
+              <a href="/pricing" style="color: ${route.path === '/pricing' ? '#2563eb' : '#475569'}; text-decoration: none;">Pricing</a>
+              <a href="/partnership" style="color: #475569; text-decoration: none;">Partnership</a>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <a href="/login" style="padding: 8px 18px; border-radius: 9999px; background: #0f172a; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none;">Sign up for free</a>
+            <a href="/login" style="padding: 8px 18px; border-radius: 9999px; border: 1px solid #cbd5e1; color: #0f172a; font-size: 14px; font-weight: 700; text-decoration: none;">Log in →</a>
+          </div>
+        </nav>
+
+        <!-- Main Body Page Content -->
+        <main style="flex: 1; padding: 56px 24px; max-width: 1140px; margin: 0 auto; width: 100%;">
+          <header style="margin-bottom: 32px; text-align: left;">
+            <div style="display: inline-block; padding: 4px 12px; background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; border-radius: 9999px; font-size: 12px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px;">
+              Recruiter-Level ATS Intelligence
+            </div>
+            <h1 style="font-size: 40px; font-weight: 900; color: #0f172a; line-height: 1.15; margin-bottom: 12px; letter-spacing: -1px;">${route.heading}</h1>
+            <p style="font-size: 19px; color: #475569; line-height: 1.5; max-width: 800px;">${route.subheading}</p>
+          </header>
+
+          <section style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); margin-bottom: 32px;">
+            <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 12px;">Feature Overview</h2>
+            <p style="font-size: 16px; color: #334155; line-height: 1.7; margin-bottom: 20px;">${route.description}</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 24px;">
+              <div style="background: #f8fafc; border: 1px solid #f1f5f9; padding: 20px; border-radius: 14px;">
+                <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">⚡ Recruiter ATS Match</div>
+                <div style="font-size: 14px; color: #64748b; line-height: 1.5;">Analyzes keywords, formatting, bullet impact, and job description alignment instantly.</div>
+              </div>
+              <div style="background: #f8fafc; border: 1px solid #f1f5f9; padding: 20px; border-radius: 14px;">
+                <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">🎯 1-Click Auto Apply</div>
+                <div style="font-size: 14px; color: #64748b; line-height: 1.5;">Automatically matches and submits your application to verified Greenhouse & Lever jobs.</div>
+              </div>
+              <div style="background: #f8fafc; border: 1px solid #f1f5f9; padding: 20px; border-radius: 14px;">
+                <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">🔒 100% Data Privacy</div>
+                <div style="font-size: 14px; color: #64748b; line-height: 1.5;">Your documents and profile are encrypted and protected under strict privacy controls.</div>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <!-- Full Footer -->
+        <footer style="padding: 32px 24px; border-top: 1px solid #e2e8f0; text-align: center; color: #64748b; font-size: 14px; background: #f8fafc;">
+          <div style="max-width: 1140px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div style="font-weight: 600; color: #0f172a;">© 2026 ApplyDesk. 100% Private.</div>
+            <div style="display: flex; gap: 20px; font-size: 13px; font-weight: 600;">
+              <a href="/partnership" style="color: #475569; text-decoration: none;">Partner Program</a>
+              <a href="/privacy-policy" style="color: #475569; text-decoration: none;">Privacy Policy</a>
+              <a href="/user-agreement" style="color: #475569; text-decoration: none;">Terms of Service</a>
+            </div>
+          </div>
+        </footer>
       </div>
     `;
 
