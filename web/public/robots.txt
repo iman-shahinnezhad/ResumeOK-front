@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Allow: /audit
+Allow: /jobs
+Allow: /build
+Allow: /cover-letter
+Allow: /pricing
+Allow: /partnership
+Allow: /privacy-policy
+Allow: /user-agreement
+
+Disallow: /checkout
+Disallow: /profile
+Disallow: /settings
+Disallow: /tasks
+
+Sitemap: https://applydesk.io/sitemap.xml

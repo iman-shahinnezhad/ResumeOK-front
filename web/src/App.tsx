@@ -317,10 +317,14 @@ function MainAppContent() {
   );
 }
 
+import { HelmetProvider } from 'react-helmet-async';
+
 export default function App() {
   return (
-    <Router>
-      <MainAppContent />
-    </Router>
+    <HelmetProvider>
+      <Router>
+        <MainAppContent />
+      </Router>
+    </HelmetProvider>
   );
 }
