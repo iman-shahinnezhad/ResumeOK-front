@@ -64,18 +64,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch(e) { return null; }
   }
 
-  // Automatically close any in-page floating drawer on active tab whenever Native SidePanel opens
-  (async () => {
-    try {
-      const tab = await getActiveTab();
-      if (tab && tab.id) {
-        chrome.tabs.sendMessage(tab.id, { type: 'CLOSE_FLOATING_PANEL' }, () => {
-          if (chrome.runtime.lastError) {}
-        });
-      }
-    } catch(e) {}
-  })();
-
   // Automatically re-check auth & update UI whenever Chrome storage changes
   try {
     chrome.storage.onChanged.addListener((changes, areaName) => {
