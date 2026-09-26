@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect } from 'react';
 
 export default function useSEO(title: string, description: string) {

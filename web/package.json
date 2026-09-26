@@ -4,14 +4,15 @@
   "version": "2.1.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "start": "vite",
-    "build": "tsc -b && vite build && node scripts/prerender.js",
+    "dev": "next dev",
+    "start": "next start",
+    "build": "next build",
     "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
     "lucide-react": "^1.21.0",
+    "next": "^16.3.6",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-helmet-async": "^3.0.0",
@@ -23,6 +24,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "oxlint": "^1.69.0",
+    "puppeteer": "^25.12.0",
     "typescript": "~6.0.2",
     "vite": "^8.1.0"
   }
