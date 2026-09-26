@@ -117,14 +117,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (loadingView) loadingView.style.display = 'none';
       if (loginRequiredView) loginRequiredView.style.display = 'block';
       if (mainContent) mainContent.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'none';
       if (tokenCountEl) tokenCountEl.innerText = '0';
       return false;
     }
 
-    // USER IS LOGGED IN: Show Main Content Area
+    // USER IS LOGGED IN: Show Main Content Area & Header Logout
     if (loadingView) loadingView.style.display = 'none';
     if (loginRequiredView) loginRequiredView.style.display = 'none';
     if (mainContent) mainContent.style.display = 'block';
+    if (logoutBtn) logoutBtn.style.display = 'flex';
     if (addJobMsg) addJobMsg.innerHTML = '';
 
     // Verify token & update credit balance from MongoDB API
@@ -152,6 +154,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             activeUser = null;
             if (loginRequiredView) loginRequiredView.style.display = 'block';
             if (mainContent) mainContent.style.display = 'none';
+            if (logoutBtn) logoutBtn.style.display = 'none';
             if (tokenCountEl) tokenCountEl.innerText = '0';
             return false;
           }
@@ -199,32 +202,102 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!currentProfile) currentProfile = {};
 
-    // Update Profile Card Display
-    const fullName = currentProfile.firstName
-      ? `${currentProfile.firstName} ${currentProfile.lastName || ''}`.trim()
-      : (activeUser.name || 'Candidate User');
-    const userEmail = currentProfile.email || activeUser.email || 'User Account';
-
-    if (userNameDisplay) userNameDisplay.innerText = fullName;
-    if (userEmailDisplay) userEmailDisplay.innerText = userEmail;
-    if (userAvatarBadge) userAvatarBadge.innerText = (fullName[0] || 'U').toUpperCase();
-
-    // Populate Resume Filename
+    // Determine if User Has Uploaded a Resume
+    let hasResume = false;
     let resumeName = 'No resume uploaded';
+
     if (userResumes && userResumes.length > 0 && userResumes[0].fileName) {
       resumeName = userResumes[0].fileName;
+      hasResume = true;
     } else if (currentProfile.resumeFileName) {
       resumeName = currentProfile.resumeFileName;
-    } else if (currentProfile.firstName) {
-      resumeName = `${currentProfile.firstName}_CV.PDF`;
+      hasResume = true;
     }
-    if (resumeFileNameVal) resumeFileNameVal.innerText = resumeName;
+
+    const fixResumeBtn = document.getElementById('fix-resume-btn');
+
+    if (hasResume) {
+      if (resumeFileNameVal) resumeFileNameVal.innerText = resumeName;
+      if (resumeScoreVal) resumeScoreVal.innerText = '82/100';
+      if (fixResumeBtn) {
+        fixResumeBtn.className = 'btn-outline-pill';
+        fixResumeBtn.style.marginTop = '12px';
+        fixResumeBtn.innerHTML = '<span style="color:#eab308;">⚡</span> Fix resume issues';
+        fixResumeBtn.setAttribute('data-mode', 'fix');
+      }
+    } else {
+      if (resumeFileNameVal) resumeFileNameVal.innerText = 'No resume uploaded';
+      if (resumeScoreVal) resumeScoreVal.innerText = '0/100';
+      if (fixResumeBtn) {
+        fixResumeBtn.className = 'btn-black-pill';
+        fixResumeBtn.style.marginTop = '12px';
+        fixResumeBtn.innerHTML = '📤 Upload Resume';
+        fixResumeBtn.setAttribute('data-mode', 'upload');
+      }
+    }
 
     return true;
   }
 
   // Initial Auth & Data Load
   await checkAuthAndLoadData();
+
+  // Fix Resume Issues / Upload Resume Button Handler
+  const fixResumeBtn = document.getElementById('fix-resume-btn');
+  const resumeFileInput = document.getElementById('resume-file-input');
+
+  if (fixResumeBtn) {
+    fixResumeBtn.addEventListener('click', () => {
+      const mode = fixResumeBtn.getAttribute('data-mode');
+      if (mode === 'upload') {
+        if (resumeFileInput) resumeFileInput.click();
+      } else {
+        window.open(`${WEB_URL}/audit`, '_blank');
+      }
+    });
+  }
+
+  if (resumeFileInput) {
+    resumeFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (fixResumeBtn) fixResumeBtn.innerText = 'Uploading...';
+
+      try {
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+          const fileData = evt.target.result;
+          
+          const uploadedObj = { id: 'res_' + Date.now(), fileName: file.name, fileData };
+          userResumes = [uploadedObj];
+          currentProfile.resumeFileName = file.name;
+          await chrome.storage.local.set({
+            resumeok_resumes: userResumes,
+            resumeok_profile: currentProfile
+          });
+
+          if (activeUser && activeUser.id) {
+            try {
+              await fetch(`${API_BASE}/api/user/${activeUser.id}/resume`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${activeToken}`
+                },
+                body: JSON.stringify({ fileName: file.name, fileData })
+              });
+            } catch(err) {}
+          }
+
+          await checkAuthAndLoadData();
+        };
+        reader.readAsDataURL(file);
+      } catch(err) {
+        await checkAuthAndLoadData();
+      }
+    });
+  }
 
   // Login Button Click -> Opens Web App Login Page (https://applydesk.io/login)
   if (loginWebBtn) {
@@ -237,7 +310,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (refreshAuthBtn) {
     refreshAuthBtn.addEventListener('click', async () => {
       refreshAuthBtn.innerText = 'Checking...';
-      // Force sync check on open tabs
       try {
         const tabs = await chrome.tabs.query({});
         for (const tab of tabs) {
