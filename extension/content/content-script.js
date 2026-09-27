@@ -1898,12 +1898,21 @@
     }
   }
 
-  // Automatic Web App Authentication Sync
+  // Automatic Web App Authentication & Profile Sync
   function checkAndSyncWebAuth(force = false) {
     try {
       const token = localStorage.getItem('auth_token') || localStorage.getItem('resumeok_token') || localStorage.getItem('jwt');
       const userStr = localStorage.getItem('auth_user') || localStorage.getItem('resumeok_user') || localStorage.getItem('user');
-      if (token) {
+      const profileStr = localStorage.getItem('user_profile_data') || localStorage.getItem('resumeok_profile');
+
+      let profile = null;
+      if (profileStr) {
+        try {
+          profile = typeof profileStr === 'string' ? JSON.parse(profileStr) : profileStr;
+        } catch(e) {}
+      }
+
+      if (token || profile) {
         let user = null;
         if (userStr) {
           try {
@@ -1911,11 +1920,11 @@
           } catch(e) {
             user = { token };
           }
-        } else {
+        } else if (token) {
           user = { token };
         }
         if (isExtensionValid()) {
-          chrome.runtime.sendMessage({ type: 'SYNC_WEB_AUTH', token, user, force }, () => {
+          chrome.runtime.sendMessage({ type: 'SYNC_WEB_AUTH', token, user, profile, force }, () => {
             if (chrome.runtime.lastError) { /* ignore */ }
           });
         }
@@ -1937,7 +1946,7 @@
             localStorage.setItem('resumeok_user', JSON.stringify(event.data.user));
           } catch (e) {}
           if (isExtensionValid()) {
-            chrome.runtime.sendMessage({ type: 'SYNC_WEB_AUTH', token: event.data.token, user: event.data.user }, () => {
+            chrome.runtime.sendMessage({ type: 'SYNC_WEB_AUTH', token: event.data.token, user: event.data.user, profile: event.data.profile }, () => {
               if (chrome.runtime.lastError) {}
             });
           }
@@ -1946,7 +1955,7 @@
     });
 
     window.addEventListener('storage', (e) => {
-      if (e.key === 'auth_token' || e.key === 'auth_user' || e.key === 'resumeok_token' || e.key === 'resumeok_user') {
+      if (e.key === 'auth_token' || e.key === 'auth_user' || e.key === 'resumeok_token' || e.key === 'resumeok_user' || e.key === 'user_profile_data' || e.key === 'resumeok_profile') {
         checkAndSyncWebAuth();
       }
     });

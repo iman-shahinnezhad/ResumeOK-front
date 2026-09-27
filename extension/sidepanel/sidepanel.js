@@ -240,8 +240,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (activeUser && (activeUser.resumeFileName || activeUser.resumeUrl || activeUser.resumeFile)) {
       resumeName = activeUser.resumeFileName || 'Resume.pdf';
       hasResume = true;
-    } else if (currentProfile && (currentProfile.firstName || currentProfile.skills || (Array.isArray(currentProfile.workExperiences) && currentProfile.workExperiences.length > 0))) {
-      resumeName = currentProfile.resumeFileName || `${currentProfile.firstName || 'Candidate'}_Resume.pdf`;
+    } else if (currentProfile && (currentProfile.firstName || currentProfile.lastName || currentProfile.email || currentProfile.skills || (Array.isArray(currentProfile.workExperiences) && currentProfile.workExperiences.length > 0) || currentProfile.companyName || currentProfile.schoolName)) {
+      resumeName = currentProfile.resumeFileName || `${currentProfile.firstName || (activeUser && activeUser.name) || 'Candidate'}_Resume.pdf`;
+      hasResume = true;
+    } else if (activeUser && (activeUser.email || activeUser.name || activeUser.id)) {
+      resumeName = activeUser.resumeFileName || `${activeUser.name || (activeUser.email ? activeUser.email.split('@')[0] : 'Candidate')}_Resume.pdf`;
       hasResume = true;
     }
 

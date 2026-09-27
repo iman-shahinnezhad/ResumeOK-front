@@ -10,13 +10,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ success: false, reason: 'explicit_logout' });
           return;
         }
+        const storageUpdates = {};
         if (message.token) {
           const userObj = message.user ? (typeof message.user === 'string' ? JSON.parse(message.user) : message.user) : { token: message.token };
           await chrome.storage.local.remove('resumeok_explicit_logout');
-          await chrome.storage.local.set({
-            resumeok_token: message.token,
-            resumeok_user: userObj
-          });
+          storageUpdates.resumeok_token = message.token;
+          storageUpdates.resumeok_user = userObj;
           console.log('[ServiceWorker] Synced user auth session from web app:', userObj.email || userObj.id || message.token);
 
           // Fetch full user details if missing
@@ -28,11 +27,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               if (res.ok) {
                 const data = await res.json();
                 if (data && data.user) {
-                  await chrome.storage.local.set({ resumeok_user: data.user });
+                  storageUpdates.resumeok_user = data.user;
                 }
               }
             } catch(e) {}
           }
+        }
+        if (message.profile && typeof message.profile === 'object' && Object.keys(message.profile).length > 0) {
+          storageUpdates.resumeok_profile = message.profile;
+        }
+        if (Object.keys(storageUpdates).length > 0) {
+          await chrome.storage.local.set(storageUpdates);
         }
         sendResponse({ success: true });
       } else if (message.type === 'GET_AUTH_STATUS') {
