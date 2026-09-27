@@ -1397,6 +1397,62 @@
       shadow.appendChild(style);
       shadow.appendChild(modalWrapper);
 
+      // AI PDF Resume Parsing Helper using Gemini API
+      async function parseResumeWithAI(fileData, fileName) {
+        try {
+          const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3030' : 'https://api.applydesk.io';
+          const cleanB64 = fileData.includes(',') ? fileData.split(',')[1] : fileData;
+          const res = await fetch(`${apiBase}/api/parse-resume`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ base64Data: cleanB64, fileName: fileName || 'resume.pdf' })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.success && data.parsed) {
+              return data.parsed;
+            }
+          }
+        } catch(e) {
+          console.error('[AI Resume Parser] Error:', e);
+        }
+        return null;
+      }
+
+      function updateModalFieldsFromProfile(prof) {
+        const inpFn = shadow.getElementById('inp-fn'); if (inpFn && prof.firstName) inpFn.value = prof.firstName;
+        const inpLn = shadow.getElementById('inp-ln'); if (inpLn && prof.lastName) inpLn.value = prof.lastName;
+        const inpEm = shadow.getElementById('inp-em'); if (inpEm && prof.email) inpEm.value = prof.email;
+        const inpPh = shadow.getElementById('inp-ph'); if (inpPh && prof.phone) inpPh.value = prof.phone;
+        const inpLo = shadow.getElementById('inp-lo'); if (inpLo && (prof.location || prof.city)) inpLo.value = prof.location || prof.city;
+        const inpCo = shadow.getElementById('inp-co'); if (inpCo && prof.country) inpCo.value = prof.country;
+        const inpLi = shadow.getElementById('inp-li'); if (inpLi && prof.linkedinUrl) inpLi.value = prof.linkedinUrl;
+        const inpGh = shadow.getElementById('inp-gh'); if (inpGh && prof.githubUrl) inpGh.value = prof.githubUrl;
+        const inpPo = shadow.getElementById('inp-po'); if (inpPo && prof.portfolioUrl) inpPo.value = prof.portfolioUrl;
+
+        const inpSk = shadow.getElementById('inp-sk');
+        if (inpSk && prof.skills) {
+          inpSk.value = Array.isArray(prof.skills) ? prof.skills.join(', ') : prof.skills;
+        }
+        const inpLa = shadow.getElementById('inp-la');
+        if (inpLa && prof.languages) {
+          inpLa.value = Array.isArray(prof.languages) ? prof.languages.join(', ') : prof.languages;
+        }
+
+        if (prof.workExperiences && Array.isArray(prof.workExperiences) && prof.workExperiences.length > 0) {
+          workList.innerHTML = '';
+          prof.workExperiences.forEach(addWorkCard);
+        }
+        if (prof.education && Array.isArray(prof.education) && prof.education.length > 0) {
+          eduList.innerHTML = '';
+          prof.education.forEach(addEduCard);
+        }
+        if (prof.projects && Array.isArray(prof.projects) && prof.projects.length > 0) {
+          projList.innerHTML = '';
+          prof.projects.forEach(addProjCard);
+        }
+      }
+
       // Attach Upload Resume Handler inside Modal
       const attachUploadHandler = () => {
         const uploadBtn = shadow.getElementById('modal-upload-resume-btn');
@@ -1408,7 +1464,7 @@
             const file = e.target.files && e.target.files[0];
             if (!file) return;
 
-            uploadBtn.innerText = 'Uploading...';
+            uploadBtn.innerText = '⚡ Extracting with Gemini AI...';
             uploadBtn.disabled = true;
 
             const reader = new FileReader();
@@ -1416,8 +1472,43 @@
               const fileData = evt.target.result;
               
               currentProfile.resumeFileName = file.name;
+              currentProfile.resumeBase64 = fileData.includes(',') ? fileData.split(',')[1] : fileData;
               userResumes = [{ id: 'res_' + Date.now(), fileName: file.name, fileData }];
-              
+
+              const parsed = await parseResumeWithAI(fileData, file.name);
+              if (parsed) {
+                if (parsed.firstName) currentProfile.firstName = parsed.firstName;
+                if (parsed.lastName) currentProfile.lastName = parsed.lastName;
+                if (parsed.email) currentProfile.email = parsed.email;
+                if (parsed.phone) currentProfile.phone = parsed.phone;
+                if (parsed.location) {
+                  currentProfile.location = parsed.location;
+                  currentProfile.city = parsed.location;
+                }
+                if (parsed.country) currentProfile.country = parsed.country;
+                if (parsed.linkedinUrl) currentProfile.linkedinUrl = parsed.linkedinUrl;
+                if (parsed.githubUrl) currentProfile.githubUrl = parsed.githubUrl;
+                if (parsed.portfolioUrl) currentProfile.portfolioUrl = parsed.portfolioUrl;
+
+                if (parsed.skills && Array.isArray(parsed.skills) && parsed.skills.length > 0) {
+                  currentProfile.skills = parsed.skills;
+                }
+                if (parsed.languages && Array.isArray(parsed.languages) && parsed.languages.length > 0) {
+                  currentProfile.languages = parsed.languages;
+                }
+                if (parsed.workExperiences && Array.isArray(parsed.workExperiences) && parsed.workExperiences.length > 0) {
+                  currentProfile.workExperiences = parsed.workExperiences;
+                }
+                if (parsed.education && Array.isArray(parsed.education) && parsed.education.length > 0) {
+                  currentProfile.education = parsed.education;
+                }
+                if (parsed.projects && Array.isArray(parsed.projects) && parsed.projects.length > 0) {
+                  currentProfile.projects = parsed.projects;
+                }
+
+                updateModalFieldsFromProfile(currentProfile);
+              }
+
               if (isExtensionValid()) {
                 chrome.storage.local.set({
                   resumeok_profile: currentProfile,
@@ -1425,17 +1516,16 @@
                 });
               }
 
+              const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3030' : 'https://api.applydesk.io';
               if (activeToken) {
-                const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3030' : 'https://api.applydesk.io';
-                const targetUserId = (activeUser && (activeUser.id || activeUser._id || activeUser.email)) || 'me';
                 try {
-                  await fetch(`${apiBase}/api/user/${targetUserId}/resume`, {
+                  await fetch(`${apiBase}/api/user/profile`, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
                       'Authorization': `Bearer ${activeToken}`
                     },
-                    body: JSON.stringify({ fileName: file.name, fileData })
+                    body: JSON.stringify({ profile: currentProfile })
                   });
                 } catch(err) {}
               }
@@ -1446,8 +1536,8 @@
                   <div class="no-resume-banner" style="background: #f0fdf4; border-color: #bbf7d0;">
                     <div class="banner-icon-box">✅</div>
                     <div class="banner-content">
-                      <div class="banner-title" style="color: #166534;">Resume Uploaded: ${file.name}</div>
-                      <div class="banner-desc" style="color: #15803d;">Your profile data is updated and saved to MongoDB.</div>
+                      <div class="banner-title" style="color: #166534;">Resume Uploaded & Parsed: ${file.name}</div>
+                      <div class="banner-desc" style="color: #15803d;">Gemini AI has extracted your contact details, work history, and skills.</div>
                     </div>
                     <input type="file" id="modal-resume-file-input" accept=".pdf,.doc,.docx" style="display: none;" />
                     <button type="button" id="modal-upload-resume-btn" class="banner-upload-btn" style="background: #166534;">
@@ -1524,6 +1614,31 @@
 
       if (projects.length > 0) projects.forEach(addProjCard);
       else addProjCard();
+
+      // Auto-parse on load if profile fields are empty but resume PDF exists
+      if (!currentProfile.firstName && !currentProfile.email && userResumes && userResumes[0] && userResumes[0].fileData) {
+        parseResumeWithAI(userResumes[0].fileData, userResumes[0].fileName).then(parsed => {
+          if (parsed) {
+            if (parsed.firstName) currentProfile.firstName = parsed.firstName;
+            if (parsed.lastName) currentProfile.lastName = parsed.lastName;
+            if (parsed.email) currentProfile.email = parsed.email;
+            if (parsed.phone) currentProfile.phone = parsed.phone;
+            if (parsed.location) { currentProfile.location = parsed.location; currentProfile.city = parsed.location; }
+            if (parsed.country) currentProfile.country = parsed.country;
+            if (parsed.linkedinUrl) currentProfile.linkedinUrl = parsed.linkedinUrl;
+            if (parsed.githubUrl) currentProfile.githubUrl = parsed.githubUrl;
+            if (parsed.portfolioUrl) currentProfile.portfolioUrl = parsed.portfolioUrl;
+            if (parsed.skills && parsed.skills.length > 0) currentProfile.skills = parsed.skills;
+            if (parsed.languages && parsed.languages.length > 0) currentProfile.languages = parsed.languages;
+            if (parsed.workExperiences && parsed.workExperiences.length > 0) currentProfile.workExperiences = parsed.workExperiences;
+            if (parsed.education && parsed.education.length > 0) currentProfile.education = parsed.education;
+            if (parsed.projects && parsed.projects.length > 0) currentProfile.projects = parsed.projects;
+
+            updateModalFieldsFromProfile(currentProfile);
+            if (isExtensionValid()) chrome.storage.local.set({ resumeok_profile: currentProfile });
+          }
+        });
+      }
 
       shadow.getElementById('btn-add-work').onclick = () => addWorkCard();
       shadow.getElementById('btn-add-edu').onclick = () => addEduCard();

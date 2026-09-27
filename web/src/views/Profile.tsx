@@ -123,14 +123,61 @@ export default function Profile({ user = null, setUser = () => {}, credits = 100
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         const result = reader.result as string;
         const b64 = result.split(',')[1] || '';
-        setProfile(prev => ({
-          ...prev,
-          resumeFileName: file.name,
-          resumeBase64: b64
-        }));
+
+        let parsedFields: any = {};
+        try {
+          const res = await fetch(`${API_URL}/api/parse-resume`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ base64Data: b64, fileName: file.name })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.success && data.parsed) {
+              parsedFields = data.parsed;
+            }
+          }
+        } catch (err) {
+          console.error('Failed to parse resume with AI:', err);
+        }
+
+        setProfile(prev => {
+          const updated = {
+            ...prev,
+            resumeFileName: file.name,
+            resumeBase64: b64,
+            firstName: parsedFields.firstName || prev.firstName,
+            lastName: parsedFields.lastName || prev.lastName,
+            email: parsedFields.email || prev.email,
+            phone: parsedFields.phone || prev.phone,
+            city: parsedFields.location || prev.city,
+            country: parsedFields.country || prev.country,
+            linkedinUrl: parsedFields.linkedinUrl || prev.linkedinUrl,
+            portfolioUrl: parsedFields.portfolioUrl || prev.portfolioUrl,
+            companyName: (parsedFields.workExperiences?.[0]?.company || prev.companyName),
+            jobTitle: (parsedFields.workExperiences?.[0]?.role || prev.jobTitle),
+            schoolName: (parsedFields.education?.[0]?.school || prev.schoolName),
+            degree: (parsedFields.education?.[0]?.degree || prev.degree),
+            skills: Array.isArray(parsedFields.skills) ? parsedFields.skills.join(', ') : (prev.skills)
+          };
+          localStorage.setItem('user_profile_data', JSON.stringify(updated));
+          
+          const savedToken = localStorage.getItem('auth_token') || localStorage.getItem('resumeok_token');
+          if (savedToken && API_URL) {
+            fetch(`${API_URL}/api/user/profile`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${savedToken}`
+              },
+              body: JSON.stringify({ profile: updated })
+            }).catch(() => {});
+          }
+          return updated;
+        });
       };
       reader.readAsDataURL(file);
     }

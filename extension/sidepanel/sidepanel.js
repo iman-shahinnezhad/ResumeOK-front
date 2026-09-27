@@ -286,32 +286,63 @@ document.addEventListener('DOMContentLoaded', async () => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
 
-      if (fixResumeBtn) fixResumeBtn.innerText = 'Uploading...';
+      if (fixResumeBtn) fixResumeBtn.innerText = '⚡ AI Extracting...';
 
       try {
         const reader = new FileReader();
         reader.onload = async (evt) => {
           const fileData = evt.target.result;
+          const cleanB64 = fileData.includes(',') ? fileData.split(',')[1] : fileData;
           
           const uploadedObj = { id: 'res_' + Date.now(), fileName: file.name, fileData };
           userResumes = [uploadedObj];
           currentProfile.resumeFileName = file.name;
+          currentProfile.resumeBase64 = cleanB64;
+
+          try {
+            const parseRes = await fetch(`${API_BASE}/api/parse-resume`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ base64Data: cleanB64, fileName: file.name })
+            });
+            if (parseRes.ok) {
+              const parseData = await parseRes.json();
+              if (parseData && parseData.success && parseData.parsed) {
+                const p = parseData.parsed;
+                if (p.firstName) currentProfile.firstName = p.firstName;
+                if (p.lastName) currentProfile.lastName = p.lastName;
+                if (p.email) currentProfile.email = p.email;
+                if (p.phone) currentProfile.phone = p.phone;
+                if (p.location) { currentProfile.location = p.location; currentProfile.city = p.location; }
+                if (p.country) currentProfile.country = p.country;
+                if (p.linkedinUrl) currentProfile.linkedinUrl = p.linkedinUrl;
+                if (p.githubUrl) currentProfile.githubUrl = p.githubUrl;
+                if (p.portfolioUrl) currentProfile.portfolioUrl = p.portfolioUrl;
+                if (p.skills && p.skills.length > 0) currentProfile.skills = p.skills;
+                if (p.workExperiences && p.workExperiences.length > 0) currentProfile.workExperiences = p.workExperiences;
+                if (p.education && p.education.length > 0) currentProfile.education = p.education;
+                if (p.projects && p.projects.length > 0) currentProfile.projects = p.projects;
+              }
+            }
+          } catch(err) {}
+
           await chrome.storage.local.set({
             resumeok_resumes: userResumes,
             resumeok_profile: currentProfile
           });
 
-          const targetUserId = (activeUser && (activeUser.id || activeUser._id || activeUser.email)) || 'me';
-          try {
-            await fetch(`${API_BASE}/api/user/${targetUserId}/resume`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${activeToken}`
-              },
-              body: JSON.stringify({ fileName: file.name, fileData })
-            });
-          } catch(err) {}
+          if (activeToken) {
+            try {
+              await fetch(`${API_BASE}/api/user/profile`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${activeToken}`
+                },
+                body: JSON.stringify({ profile: currentProfile })
+              });
+            } catch(err) {}
+          }
 
           await checkAuthAndLoadData();
         };
