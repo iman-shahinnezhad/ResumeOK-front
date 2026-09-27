@@ -534,3 +534,41 @@ html, body {
 
 .btn-update-pill:hover { opacity: 0.9; transform: translateY(-1px); }
 .btn-update-pill:active { transform: scale(0.98); }
+
+/* AI Resume Tailoring Steps Checklist Styles */
+.checklist-step {
+  transition: all 0.25s ease;
+}
+.checklist-step.step-pending .step-icon {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+.checklist-step.step-pending .step-label {
+  color: #64748b;
+  font-weight: 500;
+}
+.checklist-step.step-active .step-icon {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1.5px solid #60a5fa;
+  animation: pulseStepIcon 1.2s infinite ease-in-out;
+}
+.checklist-step.step-active .step-label {
+  color: #0f172a;
+  font-weight: 700;
+}
+.checklist-step.step-completed .step-icon {
+  background: #dcfce7 !important;
+  color: #166534 !important;
+  border: 1.5px solid #86efac;
+}
+.checklist-step.step-completed .step-label {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+@keyframes pulseStepIcon {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
