@@ -1318,8 +1318,26 @@
       const ve = currentProfile.veteran || currentProfile.veteranStatus || '';
       const di = currentProfile.disability || currentProfile.disabilityStatus || '';
 
-      const experiences = currentProfile.workExperiences || currentProfile.experiences || [];
-      const education = currentProfile.education || [];
+      let experiences = currentProfile.workExperiences || currentProfile.experiences || [];
+      if ((!experiences || experiences.length === 0) && (currentProfile.companyName || currentProfile.jobTitle)) {
+        experiences = [{
+          company: currentProfile.companyName || '',
+          role: currentProfile.jobTitle || '',
+          startDate: currentProfile.workStartDate || '',
+          endDate: currentProfile.workEndDate || '',
+          description: currentProfile.workDescription || ''
+        }];
+      }
+      let education = currentProfile.education || [];
+      if ((!education || education.length === 0) && (currentProfile.schoolName || currentProfile.degree)) {
+        education = [{
+          school: currentProfile.schoolName || '',
+          degree: currentProfile.degree || '',
+          discipline: currentProfile.discipline || '',
+          startDate: currentProfile.eduStartDate || '',
+          endDate: currentProfile.eduEndDate || ''
+        }];
+      }
       const projects = currentProfile.projects || [];
 
       const hasResume = (userResumes && userResumes.length > 0) || Boolean(currentProfile && (currentProfile.resumeFileName || currentProfile.resumeName || currentProfile.resumeBase64 || currentProfile.resumeFile || currentProfile.firstName || currentProfile.skills));
