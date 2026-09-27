@@ -1407,19 +1407,7 @@
                         📤 Upload Resume
                       </button>
                     </div>
-                  ` : `
-                    <div class="no-resume-banner" style="background: #f0fdf4; border-color: #bbf7d0;">
-                      <div class="banner-icon-box">✅</div>
-                      <div class="banner-content">
-                        <div class="banner-title" style="color: #166534;">Resume Uploaded: ${resumeName}</div>
-                        <div class="banner-desc" style="color: #15803d;">Your profile fields are synchronized with your resume and MongoDB database.</div>
-                      </div>
-                      <input type="file" id="modal-resume-file-input" accept=".pdf,.doc,.docx" style="display: none;" />
-                      <button type="button" id="modal-upload-resume-btn" class="banner-upload-btn" style="background: #166534;">
-                        🔄 Replace Resume
-                      </button>
-                    </div>
-                  `}
+                  ` : ''}
                 </div>
 
                 <!-- Personal Info Tab -->
@@ -1675,20 +1663,7 @@
 
               const bannerContainer = shadow.getElementById('modal-banner-container');
               if (bannerContainer) {
-                bannerContainer.innerHTML = `
-                  <div class="no-resume-banner" style="background: #f0fdf4; border-color: #bbf7d0;">
-                    <div class="banner-icon-box">✅</div>
-                    <div class="banner-content">
-                      <div class="banner-title" style="color: #166534;">Resume Uploaded & Parsed: ${file.name}</div>
-                      <div class="banner-desc" style="color: #15803d;">Gemini AI has extracted your contact details, work history, and skills.</div>
-                    </div>
-                    <input type="file" id="modal-resume-file-input" accept=".pdf,.doc,.docx" style="display: none;" />
-                    <button type="button" id="modal-upload-resume-btn" class="banner-upload-btn" style="background: #166534;">
-                      🔄 Replace Resume
-                    </button>
-                  </div>
-                `;
-                attachUploadHandler();
+                bannerContainer.innerHTML = '';
               }
             };
             reader.readAsDataURL(file);
