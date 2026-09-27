@@ -1125,7 +1125,7 @@
           padding: 24px;
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
+          justify-content: flex-start;
           overflow-y: auto;
           background: #ffffff;
         }
@@ -1275,7 +1275,8 @@
           display: flex;
           justify-content: flex-end;
           align-items: center;
-          margin-top: 24px;
+          margin-top: auto;
+          padding-top: 24px;
           flex-shrink: 0;
         }
 
