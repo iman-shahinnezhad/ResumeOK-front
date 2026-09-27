@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Check Web App Auth & Load Real User Data from MongoDB
   async function checkAuthAndLoadData() {
     try {
-      const storage = await chrome.storage.local.get(['resumeok_explicit_logout', 'resumeok_token', 'resumeok_user', 'resumeok_profile']);
+      const storage = await chrome.storage.local.get(['resumeok_explicit_logout', 'resumeok_token', 'resumeok_user', 'resumeok_profile', 'resumeok_resumes']);
       if (storage.resumeok_explicit_logout) {
         if (loadingView) loadingView.style.display = 'none';
         if (loginRequiredView) loginRequiredView.style.display = 'block';
@@ -92,6 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try { activeUser = JSON.parse(activeUser); } catch(e) {}
       }
       if (storage.resumeok_profile) currentProfile = storage.resumeok_profile;
+      if (storage.resumeok_resumes) userResumes = storage.resumeok_resumes;
     } catch(e) {}
 
     // If token not in extension storage, query open ApplyDesk web tabs to sync auth
@@ -230,11 +231,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     let hasResume = false;
     let resumeName = 'No resume uploaded';
 
-    if (userResumes && userResumes.length > 0 && userResumes[0].fileName) {
-      resumeName = userResumes[0].fileName;
+    if (userResumes && userResumes.length > 0 && (userResumes[0].fileName || userResumes[0].name || userResumes[0].title)) {
+      resumeName = userResumes[0].fileName || userResumes[0].name || userResumes[0].title;
       hasResume = true;
-    } else if (currentProfile.resumeFileName) {
-      resumeName = currentProfile.resumeFileName;
+    } else if (currentProfile && (currentProfile.resumeFileName || currentProfile.resumeName || currentProfile.resumeBase64 || currentProfile.resumeFile)) {
+      resumeName = currentProfile.resumeFileName || currentProfile.resumeName || 'Resume.pdf';
+      hasResume = true;
+    } else if (activeUser && (activeUser.resumeFileName || activeUser.resumeUrl || activeUser.resumeFile)) {
+      resumeName = activeUser.resumeFileName || 'Resume.pdf';
+      hasResume = true;
+    } else if (currentProfile && (currentProfile.firstName || currentProfile.skills || (Array.isArray(currentProfile.workExperiences) && currentProfile.workExperiences.length > 0))) {
+      resumeName = currentProfile.resumeFileName || `${currentProfile.firstName || 'Candidate'}_Resume.pdf`;
       hasResume = true;
     }
 

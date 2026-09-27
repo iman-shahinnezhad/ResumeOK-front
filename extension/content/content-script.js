@@ -1322,8 +1322,8 @@
       const education = currentProfile.education || [];
       const projects = currentProfile.projects || [];
 
-      const hasResume = (userResumes && userResumes.length > 0) || currentProfile.resumeFileName || currentProfile.resumeFile;
-      const resumeName = (userResumes && userResumes[0] && userResumes[0].fileName) || currentProfile.resumeFileName || 'Resume';
+      const hasResume = (userResumes && userResumes.length > 0) || Boolean(currentProfile && (currentProfile.resumeFileName || currentProfile.resumeName || currentProfile.resumeBase64 || currentProfile.resumeFile || currentProfile.firstName || currentProfile.skills));
+      const resumeName = (userResumes && userResumes[0] && (userResumes[0].fileName || userResumes[0].name)) || (currentProfile && (currentProfile.resumeFileName || currentProfile.resumeName)) || (currentProfile && currentProfile.firstName ? `${currentProfile.firstName}_Resume.pdf` : 'Resume.pdf');
 
       const modalWrapper = document.createElement('div');
       modalWrapper.innerHTML = `
