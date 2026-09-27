@@ -18,20 +18,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           storageUpdates.resumeok_user = userObj;
           console.log('[ServiceWorker] Synced user auth session from web app:', userObj.email || userObj.id || message.token);
 
-          // Fetch full user details if missing
-          if (!userObj.id || !userObj.email) {
-            try {
-              const res = await fetch('https://api.applydesk.io/api/auth/me', {
-                headers: { 'Authorization': `Bearer ${message.token}` }
-              });
-              if (res.ok) {
-                const data = await res.json();
-                if (data && data.user) {
-                  storageUpdates.resumeok_user = data.user;
-                }
+          // Fetch full user details, profile, & documents from MongoDB
+          try {
+            const userId = (userObj && (userObj.id || userObj._id || userObj.email)) || 'me';
+            const headers = { 'Authorization': `Bearer ${message.token}` };
+            
+            const [meRes, profRes, docRes] = await Promise.all([
+              fetch('https://api.applydesk.io/api/auth/me', { headers }).catch(() => null),
+              fetch(`https://api.applydesk.io/api/user/${userId}/profile`, { headers }).catch(() => null),
+              fetch(`https://api.applydesk.io/api/user/${userId}/documents`, { headers }).catch(() => null)
+            ]);
+
+            if (meRes && meRes.ok) {
+              const meData = await meRes.json();
+              if (meData && meData.user) {
+                storageUpdates.resumeok_user = meData.user;
               }
-            } catch(e) {}
-          }
+            }
+            if (profRes && profRes.ok) {
+              const profData = await profRes.json();
+              if (profData && profData.profile) {
+                storageUpdates.resumeok_profile = profData.profile;
+              }
+            }
+            if (docRes && docRes.ok) {
+              const docData = await docRes.json();
+              if (docData && (docData.resumes || docData.documents)) {
+                storageUpdates.resumeok_resumes = docData.resumes || docData.documents;
+              }
+            }
+          } catch(e) {}
         }
         if (message.profile && typeof message.profile === 'object' && Object.keys(message.profile).length > 0) {
           storageUpdates.resumeok_profile = message.profile;
