@@ -287,42 +287,150 @@
   function extractJobDetails() {
     let title = '';
     let company = '';
+    let location = '';
     let description = '';
+    let companyOverview = '';
 
-    // Title heuristics
-    const h1 = document.querySelector('h1, .job-title, [class*="title" i]');
-    if (h1) title = h1.innerText.trim();
-    if (!title) title = document.title.split('-')[0].split('|')[0].trim();
+    const url = window.location.href;
+    const hostname = window.location.hostname.toLowerCase();
+    const pathname = window.location.pathname;
 
-    // Company heuristics
-    const companyEl = document.querySelector('.company-name, [class*="company" i], meta[property="og:site_name"]');
-    if (companyEl) {
-      company = companyEl.getAttribute('content') || companyEl.innerText || '';
+    // 1. Company extraction from URL structure & meta tags
+    if (hostname.includes('greenhouse.io')) {
+      const parts = pathname.split('/').filter(Boolean);
+      if (parts[0] && parts[0] !== 'embed' && parts[0] !== 'jobs') company = parts[0];
+      else if (parts[1]) company = parts[1];
+    } else if (hostname.includes('lever.co')) {
+      const parts = pathname.split('/').filter(Boolean);
+      if (parts[0]) company = parts[0];
+    } else if (hostname.includes('ashbyhq.com')) {
+      const parts = pathname.split('/').filter(Boolean);
+      if (parts[0]) company = parts[0];
+    } else if (hostname.includes('workday.com') || hostname.includes('myworkdayjobs.com')) {
+      company = hostname.split('.')[0].replace(/-.*/, '');
+    } else if (hostname.includes('bamboohr.com')) {
+      company = hostname.split('.')[0];
     }
+
     if (!company) {
-      const host = window.location.hostname.replace('www.', '');
-      company = host.split('.')[0].toUpperCase();
+      const compMeta = document.querySelector('meta[property="og:site_name"], meta[name="author"], meta[name="twitter:site"]');
+      if (compMeta && compMeta.content) company = compMeta.content.trim();
     }
 
-    // Description
-    const descEl = document.querySelector('#job-description, .job-description, [class*="description" i], article, main');
-    if (descEl) description = descEl.innerText.substring(0, 3000);
+    if (!company) {
+      const compEl = document.querySelector('.company-name, [class*="companyName" i], [class*="company-name" i], [data-qa="company-name"], .topcard__org-name-link, [data-automation-id="companyName"]');
+      if (compEl) company = compEl.innerText.trim();
+    }
+
+    if (!company) {
+      const hostClean = hostname.replace(/^www\./, '').replace(/\.(com|co|io|org|net|app|dev).*/, '');
+      company = hostClean.charAt(0).toUpperCase() + hostClean.slice(1);
+    }
+    // Clean company formatting
+    company = company.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
+
+    // 2. Job Title extraction from ATS DOM structures
+    const titleSelectors = [
+      '.job-details-jobs-unified-top-card__job-title', // LinkedIn
+      'h1.jobsearch-JobInfoHeader-title', // Indeed
+      '.app-title', // Greenhouse
+      '.posting-headline h2', // Lever
+      '[data-automation-id="jobPostingHeader"]', // Workday
+      '[data-automation-id="jobTitle"]',
+      'h1[class*="title" i]',
+      'h1[class*="heading" i]',
+      'h1.title',
+      'h1'
+    ];
+
+    for (const sel of titleSelectors) {
+      const el = document.querySelector(sel);
+      if (el && el.innerText && el.innerText.trim().length > 2) {
+        const text = el.innerText.trim();
+        if (!/^(careers|jobs|search|apply|welcome|login|sign in|openings|all jobs)$/i.test(text)) {
+          title = text;
+          break;
+        }
+      }
+    }
+
+    if (!title) {
+      const docTitle = document.title || '';
+      const cleanDocTitle = docTitle.split(/[-|–•]/)[0].trim();
+      if (cleanDocTitle && cleanDocTitle.length > 2 && !/^(careers|jobs|apply)$/i.test(cleanDocTitle)) {
+        title = cleanDocTitle;
+      }
+    }
+
+    title = title.replace(/^(apply for|job application for|opening for)\s+/i, '').trim();
+
+    // 3. Location extraction
+    const locSelectors = [
+      '.location',
+      '[class*="location" i]',
+      '[data-automation-id="locations"]',
+      '.job-details-jobs-unified-top-card__bullet',
+      '.posting-category.location'
+    ];
+
+    for (const sel of locSelectors) {
+      const el = document.querySelector(sel);
+      if (el && el.innerText) {
+        const txt = el.innerText.trim();
+        if (txt && txt.length < 80 && !txt.toLowerCase().includes('apply')) {
+          location = txt;
+          break;
+        }
+      }
+    }
+
+    // 4. Job Description & Company Overview extraction
+    const descSelectors = [
+      '#job-description',
+      '.job-description',
+      '[class*="description" i]',
+      '[data-automation-id="jobPostingDescription"]',
+      '#content .content',
+      'article',
+      'main'
+    ];
+
+    for (const sel of descSelectors) {
+      const el = document.querySelector(sel);
+      if (el && el.innerText && el.innerText.trim().length > 100) {
+        description = el.innerText.trim();
+        break;
+      }
+    }
+
+    if (!description && document.body) {
+      description = document.body.innerText.substring(0, 5000);
+    }
+
+    const aboutMatch = description.match(/(?:about us|who we are|about the company|our mission)[\s\S]{50,600}/i);
+    if (aboutMatch) {
+      companyOverview = aboutMatch[0].trim();
+    } else {
+      companyOverview = `${company} is hiring a ${title || 'candidate'} in ${location || 'their team'}.`;
+    }
 
     return {
-      title: title || 'Software Engineer',
+      title: title || 'Position Applied',
       company: company || 'Company',
-      location: location || 'Kota',
-      industry: industry || 'Computer Software',
-      description,
-      url: window.location.href
+      location: location || 'Remote / Unspecified',
+      companyOverview,
+      description: description.substring(0, 10000),
+      url
     };
   }
 
   // Real Job & Resume Match Scoring Calculation Algorithm
   function calculateRealJobMatch(job, profile) {
-    const jobText = `${job.title} ${job.description} ${job.industry || ''}`.toLowerCase();
+    if (!job) job = {};
+    if (!profile) profile = {};
+
+    const jobText = `${job.title || ''} ${job.description || ''} ${job.companyOverview || ''}`.toLowerCase();
     
-    // User skills array
     let userSkills = [];
     if (typeof profile.skills === 'string') {
       userSkills = profile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
@@ -330,70 +438,101 @@
       userSkills = profile.skills.map(s => String(s).trim().toLowerCase()).filter(Boolean);
     }
 
-    const userTitle = (profile.jobTitle || '').toLowerCase();
-    const userSummary = (profile.workSummary || '').toLowerCase();
-    const userFullText = `${userTitle} ${userSummary} ${userSkills.join(' ')}`.toLowerCase();
+    let userExpText = '';
+    if (Array.isArray(profile.workExperiences)) {
+      userExpText = profile.workExperiences.map(e => `${e.role || e.title || ''} ${e.company || ''} ${e.description || ''}`).join(' ');
+    }
 
-    // Extract key technical/domain keywords from job description
+    const userTitle = (profile.jobTitle || '').toLowerCase();
+    const userSummary = (profile.summary || profile.workSummary || '').toLowerCase();
+    const userFullText = `${userTitle} ${userSummary} ${userExpText} ${userSkills.join(' ')}`.toLowerCase();
+
     const commonKeywords = [
       'react', 'react native', 'javascript', 'typescript', 'node.js', 'node', 'express',
-      'python', 'java', 'c++', 'sql', 'postgresql', 'mongodb', 'docker', 'kubernetes',
-      'aws', 'git', 'html', 'css', 'tailwind', 'ui/ux', 'design', 'figma', 'agile',
-      'scrum', 'testing', 'cypress', 'jest', 'graphql', 'rest', 'api', 'frontend', 'backend', 'fullstack', 'web developer'
+      'python', 'java', 'c++', 'c#', 'ruby', 'go', 'php', 'sql', 'postgresql', 'mongodb', 'redis', 'docker', 'kubernetes',
+      'aws', 'gcp', 'azure', 'git', 'html', 'css', 'tailwind', 'ui/ux', 'design', 'figma', 'agile',
+      'scrum', 'testing', 'cypress', 'jest', 'graphql', 'rest', 'api', 'frontend', 'backend', 'fullstack', 'mobile',
+      'management', 'leadership', 'communication', 'logistics', 'customer service', 'sales', 'marketing'
     ];
 
     const jobKeywords = commonKeywords.filter(k => jobText.includes(k));
+    const matchedSkills = [];
+    const missingSkills = [];
 
-    let matchedSkillsCount = 0;
     jobKeywords.forEach(k => {
       if (userFullText.includes(k)) {
-        matchedSkillsCount++;
+        matchedSkills.push(k);
+      } else {
+        missingSkills.push(k);
       }
     });
 
     const totalJobKeywords = Math.max(1, jobKeywords.length);
-    const skillsRatio = matchedSkillsCount / totalJobKeywords;
+    const skillsRatio = matchedSkills.length / totalJobKeywords;
     const skillsScore = Math.min(98, Math.max(30, Math.round(skillsRatio * 100)));
 
-    // Role / Title Alignment
-    const titleWords = job.title.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const titleWords = (job.title || '').toLowerCase().split(/\s+/).filter(w => w.length > 2);
     let titleMatches = 0;
     titleWords.forEach(w => {
       if (userFullText.includes(w)) titleMatches++;
     });
     const titleScore = titleWords.length > 0 ? Math.round((titleMatches / titleWords.length) * 100) : 60;
 
-    // Resume Quality Score
-    let rawResume = 30;
+    let rawResume = 25;
     if (profile.resumeFileName || profile.resumeFile || profile.resumeBase64) rawResume += 25;
-    if (userSkills.length > 3) rawResume += 20;
-    if (profile.firstName && profile.email && profile.phone) rawResume += 15;
-    if (profile.workSummary && profile.workSummary.length > 20) rawResume += 10;
+    if (userSkills.length > 2) rawResume += 25;
+    if (profile.firstName && profile.email && profile.phone) rawResume += 25;
     const resumeScore = Math.min(98, Math.max(20, rawResume));
 
-    // Combined Job Match Score
-    const jobMatch = Math.min(98, Math.max(25, Math.round(skillsScore * 0.40 + titleScore * 0.40 + resumeScore * 0.20)));
+    const jobMatch = Math.min(98, Math.max(25, Math.round(skillsScore * 0.45 + titleScore * 0.35 + resumeScore * 0.20)));
 
     return {
       jobMatch,
       skillsScore,
       resumeScore,
-      matchedSkillsCount,
-      totalJobKeywords
+      matchedSkillsCount: matchedSkills.length,
+      totalJobKeywords,
+      matchedSkills,
+      missingSkills: missingSkills.slice(0, 5)
     };
+  }
+
+  // Generate Professional Tailored AI Cover Letter
+  function generateTailoredCoverLetter(job, profile) {
+    if (profile && profile.coverLetterText && profile.coverLetterText.trim().length > 50) {
+      return profile.coverLetterText.trim();
+    }
+
+    const candidateName = profile ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() : '';
+    const jobTitle = job ? (job.title || 'the open position') : 'the position';
+    const company = job ? (job.company || 'your company') : 'your team';
+    const skills = Array.isArray(profile?.skills) ? profile.skills.slice(0, 5).join(', ') : (profile?.skills || 'software engineering and problem solving');
+
+    return `Dear Hiring Team at ${company},\n\nI am writing to express my strong interest in the ${jobTitle} position. With my background in ${skills}, I am confident in my ability to bring immediate value and technical excellence to ${company}.\n\nThroughout my career, I have consistently focused on delivering scalable solutions, driving key projects, and collaborating effectively across cross-functional teams. I am particularly drawn to ${company}'s work and values, and I welcome the opportunity to contribute my skills in ${skills} to support your team's goals.\n\nThank you for your time and consideration. I look forward to discussing how my experience aligns with the needs of ${company}.\n\nSincerely,\n${candidateName || 'Applicant'}`;
   }
 
   // Perform 1-Click Autofill
   function runAutofill(profile) {
-    if (!profile) return { count: 0 };
+    if (!profile) return { count: 0, reason: 'no_profile' };
+
+    // Check if candidate profile actually has data
+    const hasCandidateData = Boolean(
+      profile.firstName || profile.lastName || profile.email || profile.phone || profile.resumeBase64 || profile.resumeFileName
+    );
+
+    if (!hasCandidateData) {
+      return { count: 0, reason: 'profile_empty' };
+    }
+
     let filled = 0;
+    const jobDetails = extractJobDetails();
 
     const docs = [document];
     document.querySelectorAll('iframe').forEach(f => {
       try { if (f.contentDocument) docs.push(f.contentDocument); } catch(e) {}
     });
 
-    const fn = (profile.firstName || 'Candidate').trim();
+    const fn = (profile.firstName || '').trim();
     const ln = (profile.lastName || '').trim();
     const full = `${fn} ${ln}`.trim();
     const em = (profile.email || '').trim();
@@ -401,18 +540,15 @@
     const li = (profile.linkedinUrl || '').trim();
     const po = (profile.portfolioUrl || '').trim();
     const ci = (profile.city || profile.location || '').trim();
+    const co = (profile.country || '').trim();
 
     const eduItem = Array.isArray(profile.education) && profile.education.length > 0 ? profile.education[0] : {};
-    const sch = (profile.schoolName || profile.school || eduItem.school || eduItem.institution || 'University of Toronto').trim();
-    const deg = (profile.degree || eduItem.degree || 'Bachelor of Science').trim();
-    const dis = (profile.discipline || profile.fieldOfStudy || eduItem.fieldOfStudy || eduItem.major || 'Computer Science').trim();
+    const sch = (profile.schoolName || profile.school || eduItem.school || eduItem.institution || '').trim();
+    const deg = (profile.degree || eduItem.degree || '').trim();
+    const dis = (profile.discipline || profile.fieldOfStudy || eduItem.fieldOfStudy || eduItem.major || '').trim();
 
     const emp = (profile.companyName || '').trim();
     const tit = (profile.jobTitle || '').trim();
-
-    const gen = (profile.gender || '').trim();
-    const race = (profile.race || '').trim();
-    const vet = (profile.veteranStatus || '').trim();
 
     docs.forEach(doc => {
       // First Name
@@ -499,7 +635,7 @@
         }
       }
 
-      // City / Location / Address
+      // City / Location
       if (ci) {
         const inputs = findInputsByLabel(doc, ['location', 'city', 'address', 'current location']);
         if (inputs.length > 0) {
@@ -512,23 +648,24 @@
       }
 
       // Country
-      const countryVal = profile.country || 'United States';
-      const countryInputs = findInputsByLabel(doc, ['country', 'nation']);
-      if (countryInputs.length > 0) {
-        countryInputs.forEach(e => { setVal(e, countryVal); filled++; });
-      } else {
-        doc.querySelectorAll('select[name*="country" i], select[id*="country" i]').forEach(s => {
-          setVal(s, countryVal); filled++;
-        });
+      if (co) {
+        const countryInputs = findInputsByLabel(doc, ['country', 'nation']);
+        if (countryInputs.length > 0) {
+          countryInputs.forEach(e => { setVal(e, co); filled++; });
+        } else {
+          doc.querySelectorAll('select[name*="country" i], select[id*="country" i]').forEach(s => {
+            setVal(s, co); filled++;
+          });
+        }
       }
 
-      // Education - School / University
+      // Education - School
       if (sch) {
         const schoolInputs = findInputsByLabel(doc, ['school', 'university', 'institution']);
         if (schoolInputs.length > 0) {
           schoolInputs.forEach(e => { setVal(e, sch); filled++; });
         } else {
-          doc.querySelectorAll('select[name*="school" i], select[id*="school" i], input[name*="school" i], input[id*="school" i], select[id*="education" i]').forEach(e => {
+          doc.querySelectorAll('select[name*="school" i], select[id*="school" i], input[name*="school" i], input[id*="school" i]').forEach(e => {
             setVal(e, sch); filled++;
           });
         }
@@ -546,7 +683,7 @@
         }
       }
 
-      // Education - Discipline / Major
+      // Education - Major
       if (dis) {
         const disInputs = findInputsByLabel(doc, ['discipline', 'major', 'field of study']);
         if (disInputs.length > 0) {
@@ -570,58 +707,77 @@
         });
       }
 
-      // Cover Letter Manual Input Button Trigger (e.g. Greenhouse / Lever "Enter manually" button)
-      doc.querySelectorAll('button, a, div[role="button"], [data-source="manual"]').forEach(btn => {
-        const txt = (btn.innerText || btn.getAttribute('data-source') || '').toLowerCase();
-        if (txt.includes('enter manually') || txt.includes('type cover letter') || txt === 'manual') {
-          try {
-            ['mousedown', 'mouseup', 'click'].forEach(evtName => {
-              btn.dispatchEvent(new MouseEvent(evtName, { bubbles: true, cancelable: true, view: window }));
-            });
-            btn.click();
-          } catch(e) {}
-        }
-      });
-
-      // Cover Letter Text & Textareas
-      const clText = profile.coverLetterText || profile.workSummary || `Dear Hiring Manager,\n\nI am thrilled to apply for this position at your company. With my solid technical background in software engineering, frontend development, and project execution, I am confident in bringing immediate value to your team.\n\nBest regards,\n${full || 'Candidate'}`;
-      
+      // Cover Letter Text & Textareas (Tailored AI Cover Letter)
+      const clText = generateTailoredCoverLetter(jobDetails, profile);
       const fillCoverLetterTextareas = () => {
-        const coverEls = findInputsByLabel(doc, ['cover letter', 'cover_letter', 'letter']);
+        const coverEls = findInputsByLabel(doc, ['cover letter', 'cover_letter', 'letter of motivation', 'why do you want to work']);
         if (coverEls.length > 0) {
-          coverEls.forEach(ta => { setVal(ta, clText); filled++; });
+          coverEls.forEach(ta => {
+            if (ta.tagName === 'TEXTAREA' || ta.tagName === 'INPUT') {
+              setVal(ta, clText);
+              filled++;
+            }
+          });
+        } else {
+          doc.querySelectorAll('textarea[name*="cover" i], textarea[id*="cover" i], textarea[placeholder*="cover" i]').forEach(ta => {
+            setVal(ta, clText);
+            filled++;
+          });
         }
-        doc.querySelectorAll('textarea[name*="cover" i], textarea[id*="cover" i], textarea[placeholder*="cover" i], textarea[name*="letter" i], textarea, #cover_letter_text').forEach(ta => {
-          setVal(ta, clText);
-          filled++;
-        });
       };
 
       fillCoverLetterTextareas();
-      setTimeout(fillCoverLetterTextareas, 150);
-      setTimeout(fillCoverLetterTextareas, 400);
 
-      // Attach Resume & Cover Letter PDF Files to all input[type="file"]
+      // Attach Resume & Cover Letter PDF Files to input[type="file"] WITHOUT duplicates
       try {
-        const resB64 = profile.resumeBase64 || VALID_SAMPLE_PDF_B64;
-        const resBlob = b64ToBlob(resB64, 'application/pdf');
-        
-        const clB64 = profile.coverLetterBase64 || profile.resumeBase64 || VALID_SAMPLE_PDF_B64;
-        const clBlob = b64ToBlob(clB64, 'application/pdf');
+        const attachedInputs = new Set();
+        const resB64 = profile.resumeBase64 || (profile.resumeFile ? profile.resumeFile : null);
+        const resBlob = resB64 ? b64ToBlob(resB64, 'application/pdf') : null;
+        const resFileName = profile.resumeFileName || `${fn || 'Candidate'}_Resume.pdf`;
 
-        if (resBlob) {
-          const resFileName = profile.resumeFileName || `${fn}_Resume.pdf`;
-          const clFileName = `${fn}_CoverLetter.pdf`;
+        const clB64 = profile.coverLetterBase64 || resB64;
+        const clBlob = clB64 ? b64ToBlob(clB64, 'application/pdf') : null;
+        const clFileName = `${fn || 'Candidate'}_CoverLetter.pdf`;
 
-          doc.querySelectorAll('input[type="file"]').forEach(fileInp => {
-            const n = (fileInp.name || fileInp.id || fileInp.getAttribute('aria-label') || fileInp.parentElement?.innerText || '').toLowerCase();
-            if (n.includes('cover')) {
-              if (clBlob) attachFileToInput(fileInp, clBlob, clFileName);
-            } else {
-              attachFileToInput(fileInp, resBlob, resFileName);
+        const fileInputs = Array.from(doc.querySelectorAll('input[type="file"]'));
+
+        if (fileInputs.length > 0) {
+          // 1. Cover letter file inputs
+          fileInputs.forEach(fileInp => {
+            if (attachedInputs.has(fileInp)) return;
+            const container = fileInp.closest('.field, .form-group, label, div') || fileInp.parentElement;
+            const labelText = ((fileInp.name || '') + ' ' + (fileInp.id || '') + ' ' + (fileInp.getAttribute('aria-label') || '') + ' ' + (container ? container.innerText : '')).toLowerCase();
+
+            if (labelText.includes('cover') || labelText.includes('letter')) {
+              if (clBlob) {
+                attachFileToInput(fileInp, clBlob, clFileName);
+                attachedInputs.add(fileInp);
+                filled++;
+              }
             }
-            filled++;
           });
+
+          // 2. Resume / CV file inputs
+          fileInputs.forEach(fileInp => {
+            if (attachedInputs.has(fileInp)) return;
+            const container = fileInp.closest('.field, .form-group, label, div') || fileInp.parentElement;
+            const labelText = ((fileInp.name || '') + ' ' + (fileInp.id || '') + ' ' + (fileInp.getAttribute('aria-label') || '') + ' ' + (container ? container.innerText : '')).toLowerCase();
+
+            if (labelText.includes('resume') || labelText.includes('cv') || labelText.includes('curriculum')) {
+              if (resBlob) {
+                attachFileToInput(fileInp, resBlob, resFileName);
+                attachedInputs.add(fileInp);
+                filled++;
+              }
+            }
+          });
+
+          // 3. Fallback: If no input matched 'resume' or 'cover', attach resume ONLY to the FIRST unattached file input
+          if (attachedInputs.size === 0 && resBlob && fileInputs[0]) {
+            attachFileToInput(fileInputs[0], resBlob, resFileName);
+            attachedInputs.add(fileInputs[0]);
+            filled++;
+          }
         }
       } catch(e) {}
     });
@@ -638,86 +794,55 @@
     });
 
     const knownFieldSpecs = [
-      { key: 'fn', label: 'First Name', profileProp: 'firstName', selector: 'input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]' },
-      { key: 'ln', label: 'Last Name', profileProp: 'lastName', selector: 'input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]' },
-      { key: 'em', label: 'Email Address', profileProp: 'email', selector: 'input[type="email" i], input[name*="email" i], input[id*="email" i]' },
-      { key: 'ph', label: 'Phone', profileProp: 'phone', selector: 'input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]' },
-      { key: 'res', label: 'Resume/CV', profileProp: 'resumeBase64', selector: 'input[type="file"][name*="resume" i], input[type="file"][id*="resume" i], input[type="file"]' },
-      { key: 'cl', label: 'Cover Letter', profileProp: 'coverLetterText', selector: 'textarea[name*="cover" i], textarea[id*="cover" i]' },
-      { key: 'li', label: 'LinkedIn Profile', profileProp: 'linkedinUrl', selector: 'input[name*="linkedin" i], input[id*="linkedin" i]' },
-      { key: 'po', label: 'Portfolio Website', profileProp: 'portfolioUrl', selector: 'input[name*="website" i], input[name*="portfolio" i]' },
-      { key: 'ci', label: 'Current Location', profileProp: 'city', selector: 'input[name*="city" i], input[id*="city" i], input[name*="location" i]' },
-      { key: 'emp', label: 'Current Employer', profileProp: 'companyName', selector: 'input[name*="company" i], input[name*="employer" i]' },
-      { key: 'tit', label: 'Current Job Title', profileProp: 'jobTitle', selector: 'input[name*="title" i], input[id*="title" i], input[name*="position" i]' },
-      { key: 'sch', label: 'Education / School', profileProp: 'schoolName', selector: 'input[name*="school" i], input[name*="university" i]' },
-      { key: 'np', label: 'Notice Period', profileProp: 'noticePeriod', selector: 'input[name*="notice" i], input[id*="notice" i]' },
-      { key: 'sal', label: 'Yearly Salary Expectations', profileProp: 'salaryExpectation', selector: 'input[name*="salary" i], input[id*="salary" i]' }
+      { key: 'fn', label: 'First Name', profileProp: 'firstName', terms: ['first name', 'given name', 'first_name', 'fname'] },
+      { key: 'ln', label: 'Last Name', profileProp: 'lastName', terms: ['last name', 'family name', 'surname', 'last_name', 'lname'] },
+      { key: 'em', label: 'Email Address', profileProp: 'email', terms: ['email', 'email address', 'e-mail'] },
+      { key: 'ph', label: 'Phone Number', profileProp: 'phone', terms: ['phone', 'mobile', 'telephone', 'phone number'] },
+      { key: 'res', label: 'Resume/CV PDF', profileProp: 'resumeFileName', terms: ['resume', 'cv', 'curriculum'] },
+      { key: 'cl', label: 'Cover Letter', profileProp: 'coverLetterText', terms: ['cover letter', 'cover_letter', 'letter'] },
+      { key: 'li', label: 'LinkedIn URL', profileProp: 'linkedinUrl', terms: ['linkedin', 'linkedin profile', 'linkedin_url'] },
+      { key: 'po', label: 'Portfolio Website', profileProp: 'portfolioUrl', terms: ['portfolio', 'website', 'personal website'] },
+      { key: 'ci', label: 'Location / City', profileProp: 'city', terms: ['city', 'location', 'current location'] },
+      { key: 'emp', label: 'Current Employer', profileProp: 'companyName', terms: ['company', 'employer', 'current company'] }
     ];
 
-    const missingProfileFieldsSet = new Set();
-
-    knownFieldSpecs.forEach(spec => {
-      let foundEl = null;
-      for (const doc of docs) {
-        foundEl = doc.querySelector(spec.selector);
-        if (foundEl) break;
-      }
-
-      if (foundEl) {
-        const isFilledOnForm = Boolean(
-          foundEl.value || (foundEl.files && foundEl.files.length > 0)
-        );
-        const profileVal = profile ? (profile[spec.profileProp] || '') : '';
-        const isMissingInProfile = !profileVal;
-
-        let status = 'unfilled';
-        if (isFilledOnForm) {
-          status = 'filled';
-        } else if (isMissingInProfile) {
-          status = 'missing_profile';
-          missingProfileFieldsSet.add(spec.label);
-        }
-
-        const isRequired = foundEl.required || foundEl.getAttribute('aria-required') === 'true' || Boolean(foundEl.closest('.required, [class*="required" i]'));
-
-        fields.push({
-          key: spec.key,
-          label: spec.label,
-          status, // 'filled' | 'missing_profile' | 'unfilled'
-          isRequired,
-          profileProp: spec.profileProp
-        });
-      }
-    });
-
-    // Also scan custom application textareas/questions
     docs.forEach(doc => {
-      doc.querySelectorAll('textarea').forEach((ta, idx) => {
-        const name = (ta.name || ta.id || ta.placeholder || '').toLowerCase();
-        if (!name.includes('cover') && ta.offsetParent !== null) {
-          const labelEl = doc.querySelector(`label[for="${ta.id}"]`) || ta.closest('.form-group, .field, [class*="question" i]')?.querySelector('label, .label-text');
-          const labelText = labelEl ? labelEl.innerText.trim().replace(/\*/g, '').slice(0, 50) : `Custom Question ${idx + 1}`;
-          const isFilled = Boolean(ta.value);
+      knownFieldSpecs.forEach(spec => {
+        const inputs = findInputsByLabel(doc, spec.terms);
+        if (inputs.length > 0) {
+          const inp = inputs[0];
+          const hasUserVal = profile && Boolean(profile[spec.profileProp] || (spec.key === 'ci' && profile.location));
+          const currentDOMVal = (inp.value || inp.innerText || (inp.files && inp.files.length > 0 ? inp.files[0].name : '')).trim();
+          
+          let status = 'empty';
+          if (currentDOMVal.length > 0) {
+            status = 'filled';
+          } else if (hasUserVal) {
+            status = 'ready_to_autofill';
+          } else {
+            status = 'missing_profile_data';
+          }
+
           fields.push({
-            key: `custom_q_${idx}`,
-            label: labelText,
-            status: isFilled ? 'filled' : 'unfilled',
-            isRequired: ta.required || Boolean(ta.closest('.required, [class*="required" i]'))
+            key: spec.key,
+            label: spec.label,
+            status,
+            hasDataInProfile: hasUserVal,
+            currentValue: currentDOMVal
           });
         }
       });
     });
 
     const filledCount = fields.filter(f => f.status === 'filled').length;
-    const totalCount = fields.length > 0 ? fields.length : 1;
-    const percentage = Math.round((filledCount / totalCount) * 100);
+    const readyCount = fields.filter(f => f.status === 'ready_to_autofill').length;
 
     return {
       fields,
       filledCount,
-      totalCount,
-      percentage,
-      missingProfileFields: Array.from(missingProfileFieldsSet)
+      readyCount,
+      totalCount: fields.length,
+      percentage: fields.length > 0 ? Math.round((filledCount / fields.length) * 100) : 0
     };
   }
 

@@ -242,7 +242,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (hasResume) {
       if (resumeFileNameVal) resumeFileNameVal.innerText = resumeName;
-      if (resumeScoreVal) resumeScoreVal.innerText = '82/100';
+      const initialMatch = calculateRealJobMatch({ title: 'Candidate Resume', description: '' }, currentProfile || {});
+      if (resumeScoreVal) resumeScoreVal.innerText = `${initialMatch.resumeScore}/100`;
       if (fixResumeBtn) {
         fixResumeBtn.className = 'btn-outline-pill';
         fixResumeBtn.style.marginTop = '12px';
