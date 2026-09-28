@@ -857,10 +857,82 @@
     }
 
     // PHASE 1: DOM SCANNER & FIELD NORMALIZER
+    // Label Extractor for Lever, Workday, Greenhouse, Ashby & Custom Forms
+    static getLabelForElement(el, doc) {
+      let label = '';
+      if (!el) return 'Form Field';
+
+      // 1. Check aria-label / aria-labelledby
+      if (el.getAttribute('aria-label')) {
+        label = el.getAttribute('aria-label');
+      } else if (el.getAttribute('aria-labelledby')) {
+        const lEl = doc.getElementById(el.getAttribute('aria-labelledby'));
+        if (lEl) label = lEl.innerText;
+      }
+
+      // 2. Check label[for="id"]
+      const id = el.getAttribute('id');
+      if (!label && id) {
+        const lEl = doc.querySelector(`label[for="${id}"]`);
+        if (lEl) label = lEl.innerText;
+      }
+
+      // 3. Check parent label
+      if (!label) {
+        const parentLabel = el.closest('label');
+        if (parentLabel) {
+          const clone = parentLabel.cloneNode(true);
+          clone.querySelectorAll('input, select, textarea, button').forEach(c => c.remove());
+          label = clone.innerText;
+        }
+      }
+
+      // 4. Check Lever / Greenhouse / Workday question wrappers
+      if (!label) {
+        const qContainer = el.closest('.application-question, .form-question, [class*="question" i], .field, .form-group, .input-wrapper, td, li');
+        if (qContainer) {
+          const lblEl = qContainer.querySelector('.application-label, label, .label, [class*="label" i], h3, h4, legend, .field-label');
+          if (lblEl) label = lblEl.innerText;
+        }
+      }
+
+      // 5. Check placeholder / name attribute
+      if (!label) {
+        const placeholder = el.getAttribute('placeholder');
+        const name = el.getAttribute('name');
+        if (placeholder) {
+          label = placeholder;
+        } else if (name) {
+          label = name.replace(/^urls\[(.*)\]$/i, '$1 URL')
+                      .replace(/([A-Z])/g, ' $1')
+                      .replace(/[_-]/g, ' ')
+                      .trim();
+        } else if (id) {
+          label = id.replace(/([A-Z])/g, ' $1').replace(/[_-]/g, ' ').trim();
+        }
+      }
+
+      // Clean formatting
+      if (label) {
+        label = label.replace(/\s+/g, ' ').replace(/[*:]/g, '').trim();
+      }
+
+      // Fallback label
+      if (!label) {
+        const type = (el.getAttribute('type') || el.tagName).toLowerCase();
+        if (type === 'file') label = 'Resume / CV File';
+        else label = `Field (${el.tagName.toLowerCase()})`;
+      }
+
+      return label;
+    }
+
+    // PHASE 1: DOM SCANNER & FIELD NORMALIZER
     static scanAndNormalizeFields() {
       const normalizedFields = [];
       const docs = this.getAccessibleDocs();
       let index = 0;
+      const processedRadioNames = new Set();
 
       docs.forEach(doc => {
         const rawElements = Array.from(doc.querySelectorAll('input, select, textarea, [role="combobox"], [role="listbox"], [role="radiogroup"], [role="checkbox"]'));
@@ -868,45 +940,23 @@
         rawElements.forEach(el => {
           if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button') return;
 
-          // Compute label
-          let label = '';
-          const id = el.getAttribute('id');
-          if (id) {
-            const lEl = doc.querySelector(`label[for="${id}"]`);
-            if (lEl) label = lEl.innerText || '';
-          }
-          if (!label) {
-            const parentLabel = el.closest('label');
-            if (parentLabel) {
-              const clone = parentLabel.cloneNode(true);
-              clone.querySelectorAll('input, select, textarea').forEach(c => c.remove());
-              label = clone.innerText || '';
-            }
-          }
-          if (!label) {
-            const wrapper = el.closest('.field, .form-group, [class*="field" i], [class*="form-group" i], tr, li');
-            if (wrapper) {
-              const lblEl = wrapper.querySelector('label, .label, [class*="label" i], .field-label');
-              if (lblEl) label = lblEl.innerText || '';
-            }
-          }
-          if (!label) {
-            label = el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.getAttribute('name') || id || '';
-          }
-          label = label.replace(/\s+/g, ' ').replace(/[*:]/g, '').trim();
+          const typeAttr = (el.getAttribute('type') || '').toLowerCase();
+          const nameAttr = el.getAttribute('name') || '';
 
-          if (!label && el.type !== 'file') return;
+          // Group radio buttons by name attribute
+          if (typeAttr === 'radio' && nameAttr) {
+            if (processedRadioNames.has(nameAttr)) return;
+            processedRadioNames.add(nameAttr);
+          }
 
-          // Compute required status
+          const label = this.getLabelForElement(el, doc);
           const isReqAttr = el.hasAttribute('required') || el.getAttribute('aria-required') === 'true';
           const parentTxt = (el.parentElement ? el.parentElement.innerText : '') + ' ' + label;
           const hasAsterisk = parentTxt.includes('*') || /required/i.test(parentTxt);
           const required = isReqAttr || hasAsterisk;
 
-          // Compute field type
           let fieldType = 'TEXT';
           const tag = el.tagName;
-          const typeAttr = (el.getAttribute('type') || '').toLowerCase();
           const roleAttr = (el.getAttribute('role') || '').toLowerCase();
 
           if (typeAttr === 'file') fieldType = 'FILE_UPLOAD';
@@ -919,37 +969,33 @@
           else if (typeAttr === 'date') fieldType = 'DATE';
           else if (tag === 'SELECT') fieldType = 'NATIVE_SELECT';
           else if (roleAttr === 'combobox' || roleAttr === 'listbox' || el.classList.contains('select2-choice') || el.closest('[class*="select" i]')) fieldType = 'COMBOBOX';
-          else if (el.getAttribute('autocomplete') || roleAttr === 'searchbox') fieldType = 'AUTOCOMPLETE';
 
-          // Extract options
           let options = [];
           if (tag === 'SELECT') {
             options = Array.from(el.options || []).map(o => (o.text || o.value).trim()).filter(Boolean);
           } else if (fieldType === 'RADIO' || fieldType === 'CHECKBOX') {
-            const container = el.closest('fieldset, .form-group, [class*="group" i]') || el.parentElement;
+            const container = el.closest('.application-question, fieldset, .form-group, [class*="group" i]') || el.parentElement;
             if (container) {
               options = Array.from(container.querySelectorAll('label')).map(l => l.innerText.trim()).filter(Boolean);
             }
           }
 
           index++;
-          const labelSlug = label.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 20);
-          const fieldId = `f_${index}_${fieldType.toLowerCase()}_${labelSlug || 'inp'}`;
-
+          const fieldId = `f_${index}_${fieldType.toLowerCase()}_${index}`;
           const currentValue = (el.value || el.innerText || (el.files && el.files.length > 0 ? el.files[0].name : '')).trim();
 
           normalizedFields.push({
             fieldId,
-            label: label || (fieldType === 'FILE_UPLOAD' ? 'Resume / CV File' : 'Field'),
+            label,
             type: fieldType,
             required,
             value: currentValue,
             options,
             disabled: el.disabled || false,
             readonly: el.readOnly || false,
-            visible: el.offsetWidth > 0 && el.offsetHeight > 0,
+            visible: true,
             element: el,
-            selector: id ? `#${id}` : (el.name ? `[name="${el.name}"]` : `.field_${index}`),
+            selector: el.id ? `#${el.id}` : (nameAttr ? `[name="${nameAttr}"]` : ''),
             status: currentValue ? 'VERIFIED' : 'DISCOVERED'
           });
         });
@@ -1002,14 +1048,14 @@
         if (field.type === 'FILE_UPLOAD') {
           const fn = profile?.firstName || 'Candidate';
           const resB64 = profile?.resumeBase64 || profile?.resumeFile;
-          const resBlob = resB64 ? b64ToBlob(resB64, 'application/pdf') : null;
+          let resBlob = resB64 ? b64ToBlob(resB64, 'application/pdf') : null;
+          if (!resBlob) {
+            resBlob = generateCandidatePdfBlob(profile);
+          }
           const fileName = profile?.resumeFileName || `${fn}_Resume.pdf`;
 
-          if (resBlob) {
-            const attached = attachFileToInput(el, resBlob, fileName);
-            return attached;
-          }
-          return false;
+          const attached = attachFileToInput(el, resBlob, fileName);
+          return attached;
         }
 
         if (field.type === 'NATIVE_SELECT') {
@@ -1228,27 +1274,37 @@
       let optionalCount = 0;
 
       for (const field of fields) {
+        // Smooth scroll to each field on webpage so user sees agent in action live!
+        if (field.element && typeof field.element.scrollIntoView === 'function') {
+          try {
+            field.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } catch(e) {}
+        }
+        await new Promise(r => setTimeout(r, 200));
+
         const resolution = this.resolveFieldTargetValue(field, profile, jobDetails);
 
         if (resolution.decision === 'fill' && resolution.confidence >= 0.80) {
           await this.executeAction(field, resolution.value, profile);
-          await new Promise(r => setTimeout(r, 180));
+          await new Promise(r => setTimeout(r, 220));
 
           const verified = this.verifyFieldAction(field, resolution.value);
           if (verified) {
             field.status = 'VERIFIED';
+            field.reason = `Verified: filled ${String(resolution.value).substring(0, 30)}`;
             verifiedCount++;
           } else {
             field.status = 'REVIEW_REQUIRED';
-            field.verificationError = 'DOM state could not be verified automatically';
+            field.reason = 'DOM state could not be verified automatically';
             reviewCount++;
           }
         } else if (resolution.decision === 'user_required' || field.required) {
           field.status = 'USER_REQUIRED';
-          field.reason = resolution.reason;
+          field.reason = resolution.reason || 'User input required for this field';
           userRequiredCount++;
         } else {
           field.status = 'OPTIONAL';
+          field.reason = 'Optional field (not filled)';
           optionalCount++;
         }
       }
@@ -1258,13 +1314,14 @@
 
       return {
         success: true,
-        progressPercentage,
+        total: fields.length,
+        totalRequired,
         verifiedCount,
         reviewCount,
+        reviewRequiredCount: reviewCount,
         userRequiredCount,
         optionalCount,
-        totalFields: fields.length,
-        totalRequired,
+        progressPercentage,
         fields: fields.map(f => ({
           fieldId: f.fieldId,
           label: f.label,
@@ -1272,7 +1329,7 @@
           required: f.required,
           status: f.status,
           value: f.actualValue || f.value,
-          reason: f.reason || f.verificationError || null,
+          reason: f.reason || null,
           selector: f.selector
         }))
       };
