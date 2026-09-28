@@ -951,9 +951,15 @@
 
           const label = this.getLabelForElement(el, doc);
           const isReqAttr = el.hasAttribute('required') || el.getAttribute('aria-required') === 'true';
-          const parentTxt = (el.parentElement ? el.parentElement.innerText : '') + ' ' + label;
-          const hasAsterisk = parentTxt.includes('*') || /required/i.test(parentTxt);
-          const required = isReqAttr || hasAsterisk;
+          const container = el.closest('.application-question, .form-question, fieldset, .form-group, .field, [class*="question" i], [class*="group" i], [class*="field" i]') || el.parentElement;
+          const containerTxt = (container ? container.innerText : '') + ' ' + label;
+          const hasAsterisk = /[\*✱\u2731]/.test(containerTxt) || /required/i.test(containerTxt);
+          
+          const siblingLabel = container ? container.querySelector('label, .application-label, .label, [class*="label" i]') : null;
+          const siblingTxt = siblingLabel ? siblingLabel.innerText : '';
+          const siblingHasAsterisk = /[\*✱\u2731]/.test(siblingTxt);
+
+          const required = isReqAttr || hasAsterisk || siblingHasAsterisk;
 
           let fieldType = 'TEXT';
           const tag = el.tagName;
@@ -2597,6 +2603,12 @@
     try {
       chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (!isExtensionValid()) return false;
+
+        // Prevent sub-iframes (like extension drawer iframe) from handling page DOM scanning messages
+        const domScanTypes = ['TRIGGER_AUTOFILL', 'GET_FORM_FIELDS_STATUS', 'GET_JOB_DETAILS', 'SCROLL_TO_FIELD'];
+        if (window !== window.top && domScanTypes.includes(request.type)) {
+          return false;
+        }
 
         if (request.type === 'CLOSE_FLOATING_PANEL' || request.type === 'CLOSE_DRAWER') {
           if (window === window.top) closeFloatingRightOverlayDrawer();

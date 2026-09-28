@@ -912,7 +912,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const filledRequired = requiredFields.filter(f => f.status === 'VERIFIED' || (f.value && String(f.value).trim().length > 0)).length;
       const totalRequired = requiredFields.length;
-      const pct = totalRequired > 0 ? Math.round((filledRequired / totalRequired) * 100) : 100;
+      
+      let pct = 0;
+      if (totalRequired > 0) {
+        pct = Math.round((filledRequired / totalRequired) * 100);
+      } else if (report.total > 0) {
+        pct = Math.round((report.verifiedCount / report.total) * 100);
+      }
 
       // Update Header Progress Bar matching Jobright
       if (filledCountEl) filledCountEl.innerText = `${filledRequired}/${totalRequired}`;
