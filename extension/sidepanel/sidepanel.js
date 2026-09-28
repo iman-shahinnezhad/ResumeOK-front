@@ -831,196 +831,189 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         runApplicationAgent(runBtn, statusMsg);
       }
+    });
+  }
 
-      // Application Agent UI Orchestrator
-      async function runApplicationAgent(triggerBtn, msgEl) {
+  // Application Agent UI Orchestrator
+  async function runApplicationAgent(triggerBtn, msgEl) {
+    if (triggerBtn) {
+      triggerBtn.innerText = '🤖 Scanning DOM & Form Fields...';
+      triggerBtn.disabled = true;
+    }
+    if (msgEl) msgEl.innerText = 'Running DOM inspection...';
+
+    const card = document.getElementById('application-agent-card');
+    const progressBar = document.getElementById('agent-progress-bar');
+    const progressLabel = document.getElementById('agent-progress-label');
+    const checklist = document.getElementById('agent-fields-checklist');
+    const reviewBox = document.getElementById('agent-submit-review-box');
+    const summaryBox = document.getElementById('agent-review-summary');
+
+    const pillVerified = document.getElementById('pill-count-verified') || document.getElementById('count-verified');
+    const pillReview = document.getElementById('pill-count-review') || document.getElementById('count-review');
+    const pillUser = document.getElementById('pill-count-user') || document.getElementById('count-required');
+    const pillOptional = document.getElementById('pill-count-optional') || document.getElementById('count-optional');
+
+    if (card) card.style.display = 'block';
+    if (checklist) {
+      checklist.innerHTML = `
+        <div style="text-align:center;padding:16px;color:#64748b;font-size:13px;font-weight:600;">
+          <span style="display:inline-block;animation:spin 1s linear infinite;margin-right:6px;">🔄</span>
+          Discovering controls & verifying DOM state...
+        </div>
+      `;
+    }
+
+    const tab = await getActiveTab();
+    if (!tab || !tab.id) {
+      if (triggerBtn) {
+        triggerBtn.innerText = '🤖 Run AI Application Agent';
+        triggerBtn.disabled = false;
+      }
+      if (msgEl) msgEl.innerText = '❌ Active browser tab not found.';
+      return;
+    }
+
+    const profileToSend = {
+      firstName: currentProfile?.firstName || (activeUser?.name ? activeUser.name.split(' ')[0] : 'Iman'),
+      lastName: currentProfile?.lastName || (activeUser?.name ? activeUser.name.split(' ').slice(1).join(' ') : 'Shahinnezhad'),
+      email: currentProfile?.email || activeUser?.email || 'iman.shahinnezhad68@gmail.com',
+      phone: currentProfile?.phone || '+1 555-019-2834',
+      city: currentProfile?.city || currentProfile?.location || 'Toronto, ON',
+      location: currentProfile?.location || currentProfile?.city || 'Toronto, ON',
+      country: currentProfile?.country || 'Canada',
+      linkedinUrl: currentProfile?.linkedinUrl || 'https://linkedin.com/in/imanshahinnezhad',
+      portfolioUrl: currentProfile?.portfolioUrl || currentProfile?.website || '',
+      githubUrl: currentProfile?.githubUrl || '',
+      ...(currentProfile || {})
+    };
+
+    chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: profileToSend }, (res) => {
+      if (chrome.runtime.lastError || !res || !res.success) {
         if (triggerBtn) {
-          triggerBtn.innerText = '🤖 Scanning DOM & Form Fields...';
-          triggerBtn.disabled = true;
+          triggerBtn.innerText = '🤖 Run AI Application Agent';
+          triggerBtn.disabled = false;
         }
-        if (msgEl) msgEl.innerText = 'Running DOM inspection...';
-
-        const card = document.getElementById('application-agent-card');
-        const progressBar = document.getElementById('agent-progress-bar');
-        const progressLabel = document.getElementById('agent-progress-label');
-        const checklist = document.getElementById('agent-fields-checklist');
-        const reviewBox = document.getElementById('agent-submit-review-box');
-        const summaryBox = document.getElementById('agent-review-summary');
-
-        const pillVerified = document.getElementById('pill-count-verified');
-        const pillReview = document.getElementById('pill-count-review');
-        const pillUser = document.getElementById('pill-count-user');
-        const pillOptional = document.getElementById('pill-count-optional');
-
-        if (card) card.style.display = 'block';
         if (checklist) {
           checklist.innerHTML = `
-            <div style="text-align:center;padding:16px;color:#64748b;font-size:13px;font-weight:600;">
-              <span style="display:inline-block;animation:spin 1s linear infinite;margin-right:6px;">🔄</span>
-              Discovering controls & verifying DOM state...
+            <div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b;font-size:13px;font-weight:600;">
+              ⚠️ Could not scan current tab. Refresh the job page and click Run Agent again.
             </div>
           `;
         }
+        return;
+      }
 
-        const tab = await getActiveTab();
-        if (!tab || !tab.id) {
-          if (triggerBtn) {
-            triggerBtn.innerText = '🤖 Run Job Application Agent';
-            triggerBtn.disabled = false;
-          }
-          if (msgEl) msgEl.innerText = '❌ Active browser tab not found.';
-          return;
+      const report = res.agentReport || res.report;
+      if (!report || !report.fields) {
+        if (triggerBtn) {
+          triggerBtn.innerText = '🤖 Run AI Application Agent';
+          triggerBtn.disabled = false;
         }
+        return;
+      }
 
-        const profileToSend = {
-          firstName: currentProfile?.firstName || (activeUser?.name ? activeUser.name.split(' ')[0] : 'Iman'),
-          lastName: currentProfile?.lastName || (activeUser?.name ? activeUser.name.split(' ').slice(1).join(' ') : 'Shahinnezhad'),
-          email: currentProfile?.email || activeUser?.email || 'iman.shahinnezhad68@gmail.com',
-          phone: currentProfile?.phone || '+1 555-019-2834',
-          city: currentProfile?.city || currentProfile?.location || 'Toronto, ON',
-          location: currentProfile?.location || currentProfile?.city || 'Toronto, ON',
-          country: currentProfile?.country || 'Canada',
-          linkedinUrl: currentProfile?.linkedinUrl || 'https://linkedin.com/in/imanshahinnezhad',
-          portfolioUrl: currentProfile?.portfolioUrl || currentProfile?.website || '',
-          githubUrl: currentProfile?.githubUrl || '',
-          ...(currentProfile || {})
-        };
+      // Update Progress Bar based strictly on Verified DOM State
+      const requiredTotal = Math.max(1, report.total - report.optionalCount);
+      const pct = Math.min(100, Math.round((report.verifiedCount / requiredTotal) * 100));
+      if (progressBar) progressBar.style.width = `${pct}%`;
+      if (progressLabel) progressLabel.innerText = `${report.verifiedCount} / ${requiredTotal} required fields verified (${pct}%)`;
+      const pctEl = document.getElementById('agent-progress-pct');
+      if (pctEl) pctEl.innerText = `${pct}%`;
 
-        chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: profileToSend }, (res) => {
-          if (chrome.runtime.lastError || !res || !res.success) {
-            if (triggerBtn) {
-              triggerBtn.innerText = '🤖 Run Job Application Agent';
-              triggerBtn.disabled = false;
-            }
-            if (checklist) {
-              checklist.innerHTML = `
-                <div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b;font-size:13px;font-weight:600;">
-                  ⚠️ Could not scan current tab. Refresh the job page and click Run Agent again.
+      // Update Pill Counts
+      if (pillVerified) pillVerified.innerText = report.verifiedCount;
+      if (pillReview) pillReview.innerText = report.reviewRequiredCount;
+      if (pillUser) pillUser.innerText = report.userRequiredCount;
+      if (pillOptional) pillOptional.innerText = report.optionalCount;
+
+      // Render Categorized Field Checklist
+      if (checklist) {
+        checklist.innerHTML = report.fields.map((f, i) => {
+          let badgeHtml = '';
+          let borderStyle = 'border:1px solid #e2e8f0;';
+          let bgStyle = 'background:#ffffff;';
+
+          if (f.status === 'VERIFIED') {
+            badgeHtml = `<span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;padding:3px 8px;border-radius:12px;">🟢 VERIFIED</span>`;
+            borderStyle = 'border:1px solid #bbf7d0;';
+          } else if (f.status === 'REVIEW_REQUIRED') {
+            badgeHtml = `<span style="font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;padding:3px 8px;border-radius:12px;">🟡 REVIEW</span>`;
+            borderStyle = 'border:1px solid #fde68a;';
+          } else if (f.status === 'USER_REQUIRED') {
+            badgeHtml = `<span style="font-size:11px;font-weight:700;color:#b91c1c;background:#fee2e2;padding:3px 8px;border-radius:12px;">🔴 USER REQUIRED</span>`;
+            borderStyle = 'border:1px solid #fca5a5;';
+            bgStyle = 'background:#fff5f5;';
+          } else {
+            badgeHtml = `<span style="font-size:11px;font-weight:700;color:#64748b;background:#f1f5f9;padding:3px 8px;border-radius:12px;">⚪ OPTIONAL</span>`;
+          }
+
+          const subtitle = f.reason ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${f.reason}</div>` : '';
+          const sectionBadge = f.section ? `<span style="font-size:10px;font-weight:600;color:#475569;background:#e2e8f0;padding:1px 5px;border-radius:4px;margin-left:6px;">${f.section}</span>` : '';
+
+          return `
+            <div class="agent-field-item" data-field-id="${f.fieldId}" data-selector="${encodeURIComponent(f.selector || '')}" style="display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:10px;${borderStyle}${bgStyle}cursor:pointer;transition:all 0.15s ease;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <div style="font-size:13px;font-weight:700;color:#0f172a;display:flex;align-items:center;">
+                  ${f.label} ${sectionBadge}
                 </div>
-              `;
-            }
-            return;
-          }
-
-          const report = res.report;
-          if (!report || !report.fields) {
-            if (triggerBtn) {
-              triggerBtn.innerText = '🤖 Run Job Application Agent';
-              triggerBtn.disabled = false;
-            }
-            return;
-          }
-
-          // Update Progress Bar based strictly on Verified DOM State
-          const requiredTotal = Math.max(1, report.total - report.optionalCount);
-          const pct = Math.min(100, Math.round((report.verifiedCount / requiredTotal) * 100));
-          if (progressBar) progressBar.style.width = `${pct}%`;
-          if (progressLabel) progressLabel.innerText = `${report.verifiedCount} / ${requiredTotal} required fields verified (${pct}%)`;
-
-          // Update Pill Counts
-          if (pillVerified) pillVerified.innerText = `${report.verifiedCount} Verified`;
-          if (pillReview) pillReview.innerText = `${report.reviewRequiredCount} Review`;
-          if (pillUser) pillUser.innerText = `${report.userRequiredCount} Required`;
-          if (pillOptional) pillOptional.innerText = `${report.optionalCount} Optional`;
-
-          // Render Categorized Field Checklist
-          if (checklist) {
-            checklist.innerHTML = report.fields.map((f, i) => {
-              let badgeHtml = '';
-              let borderStyle = 'border:1px solid #e2e8f0;';
-              let bgStyle = 'background:#ffffff;';
-
-              if (f.status === 'VERIFIED') {
-                badgeHtml = `<span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;padding:3px 8px;border-radius:12px;">🟢 VERIFIED</span>`;
-                borderStyle = 'border:1px solid #bbf7d0;';
-              } else if (f.status === 'REVIEW_REQUIRED') {
-                badgeHtml = `<span style="font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;padding:3px 8px;border-radius:12px;">🟡 REVIEW</span>`;
-                borderStyle = 'border:1px solid #fde68a;';
-              } else if (f.status === 'USER_REQUIRED') {
-                badgeHtml = `<span style="font-size:11px;font-weight:700;color:#b91c1c;background:#fee2e2;padding:3px 8px;border-radius:12px;">🔴 USER REQUIRED</span>`;
-                borderStyle = 'border:1px solid #fca5a5;';
-                bgStyle = 'background:#fff5f5;';
-              } else {
-                badgeHtml = `<span style="font-size:11px;font-weight:700;color:#64748b;background:#f1f5f9;padding:3px 8px;border-radius:12px;">⚪ OPTIONAL</span>`;
-              }
-
-              const subtitle = f.reason ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${f.reason}</div>` : '';
-              const sectionBadge = f.section ? `<span style="font-size:10px;font-weight:600;color:#475569;background:#e2e8f0;padding:1px 5px;border-radius:4px;margin-left:6px;">${f.section}</span>` : '';
-
-              return `
-                <div class="agent-field-item" data-field-id="${f.fieldId}" data-selector="${encodeURIComponent(f.selector || '')}" style="display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:10px;${borderStyle}${bgStyle}cursor:pointer;transition:all 0.15s ease;">
-                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                    <div style="font-size:13px;font-weight:700;color:#0f172a;display:flex;align-items:center;">
-                      ${f.label} ${sectionBadge}
-                    </div>
-                    <div>${badgeHtml}</div>
-                  </div>
-                  ${subtitle}
-                </div>
-              `;
-            }).join('');
-
-            // Click-to-scroll to DOM field on webpage
-            const items = checklist.querySelectorAll('.agent-field-item');
-            items.forEach(item => {
-              item.addEventListener('click', async () => {
-                const fieldId = item.getAttribute('data-field-id');
-                const selector = decodeURIComponent(item.getAttribute('data-selector') || '');
-                item.style.transform = 'scale(0.98)';
-                setTimeout(() => { item.style.transform = 'none'; }, 150);
-
-                const currentTab = await getActiveTab();
-                if (currentTab && currentTab.id) {
-                  chrome.tabs.sendMessage(currentTab.id, {
-                    type: 'SCROLL_TO_FIELD',
-                    fieldId: fieldId,
-                    selector: selector
-                  }, () => {
-                    if (chrome.runtime.lastError) {}
-                  });
-                }
-              });
-            });
-          }
-
-          // Show Review Box for manual verification
-          if (reviewBox) reviewBox.style.display = 'block';
-          if (summaryBox) {
-            summaryBox.innerHTML = `
-              <div style="margin-bottom:6px;">
-                <strong>Verified Fields:</strong> ${report.verifiedCount} / ${report.total}<br>
-                <strong>User Action Required:</strong> ${report.userRequiredCount}<br>
-                <strong>Review Required:</strong> ${report.reviewRequiredCount}
+                <div>${badgeHtml}</div>
               </div>
-              ${report.userRequiredCount > 0 ? `<div style="color:#b91c1c;font-weight:700;margin-top:4px;">⚠️ Please answer the ${report.userRequiredCount} user-required fields directly on the webpage.</div>` : '<div style="color:#15803d;font-weight:700;margin-top:4px;">✅ All required fields are verified and ready!</div>'}
-            `;
-          }
+              ${subtitle}
+            </div>
+          `;
+        }).join('');
 
-          if (triggerBtn) {
-            triggerBtn.innerText = '✨ Agent Completed';
-            triggerBtn.disabled = false;
-          }
-          if (msgEl) msgEl.innerText = `Verified ${report.verifiedCount} of ${report.total} fields!`;
+        // Click-to-scroll to DOM field on webpage
+        const items = checklist.querySelectorAll('.agent-field-item');
+        items.forEach(item => {
+          item.addEventListener('click', async () => {
+            const fieldId = item.getAttribute('data-field-id');
+            const selector = decodeURIComponent(item.getAttribute('data-selector') || '');
+            item.style.transform = 'scale(0.98)';
+            setTimeout(() => { item.style.transform = 'none'; }, 150);
+
+            const currentTab = await getActiveTab();
+            if (currentTab && currentTab.id) {
+              chrome.tabs.sendMessage(currentTab.id, {
+                type: 'SCROLL_TO_FIELD',
+                fieldId: fieldId,
+                selector: selector
+              }, () => {
+                if (chrome.runtime.lastError) {}
+              });
+            }
+          });
         });
       }
 
-      // Event listener for Run Job Application Agent button
-      const runAgentBtn = document.getElementById('run-agent-btn');
-      const agentMsg = document.getElementById('agent-status-msg');
-      if (runAgentBtn) {
-        runAgentBtn.addEventListener('click', () => {
-          runApplicationAgent(runAgentBtn, agentMsg);
-        });
+      // Show Review Box for manual verification
+      if (reviewBox) reviewBox.style.display = 'block';
+      if (summaryBox) {
+        summaryBox.innerHTML = `
+          <div style="margin-bottom:6px;">
+            <strong>Verified Fields:</strong> ${report.verifiedCount} / ${report.total}<br>
+            <strong>User Action Required:</strong> ${report.userRequiredCount}<br>
+            <strong>Review Required:</strong> ${report.reviewRequiredCount}
+          </div>
+          ${report.userRequiredCount > 0 ? `<div style="color:#b91c1c;font-weight:700;margin-top:4px;">⚠️ Please answer the ${report.userRequiredCount} user-required fields directly on the webpage.</div>` : '<div style="color:#15803d;font-weight:700;margin-top:4px;">✅ All required fields are verified and ready!</div>'}
+        `;
       }
 
-      // Event listener for Autofill Form button -> Triggers Application Agent
-      const autofillBtn = document.getElementById('results-autofill-btn');
-      const autofillMsg = document.getElementById('results-autofill-msg');
-      if (autofillBtn) {
-        autofillBtn.addEventListener('click', () => {
-          runApplicationAgent(autofillBtn, autofillMsg);
-        });
+      if (triggerBtn) {
+        triggerBtn.innerText = '✨ Agent Completed';
+        triggerBtn.disabled = false;
       }
+      if (msgEl) msgEl.innerText = `Verified ${report.verifiedCount} of ${report.total} fields!`;
+    });
+  }
+
+  // Bind Run AI Application Agent button on initial static view
+  const initialRunAgentBtn = document.getElementById('run-agent-btn');
+  const initialAgentMsg = document.getElementById('agent-status-msg');
+  if (initialRunAgentBtn) {
+    initialRunAgentBtn.addEventListener('click', () => {
+      runApplicationAgent(initialRunAgentBtn, initialAgentMsg);
     });
   }
 
