@@ -773,147 +773,193 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div id="autofill-progress-container"></div>
       `;
 
-      // Event listener for Autofill Form button -> Triggers Loading Checklist Card
-      const autofillBtn = document.getElementById('results-autofill-btn');
-      const autofillMsg = document.getElementById('results-autofill-msg');
-      const progressContainer = document.getElementById('autofill-progress-container');
+      // Application Agent UI Orchestrator
+      async function runApplicationAgent(triggerBtn, msgEl) {
+        if (triggerBtn) {
+          triggerBtn.innerText = '🤖 Scanning DOM & Form Fields...';
+          triggerBtn.disabled = true;
+        }
+        if (msgEl) msgEl.innerText = 'Running DOM inspection...';
 
-      if (autofillBtn) {
-        autofillBtn.addEventListener('click', async () => {
-          autofillBtn.innerText = 'Autofilling...';
-          autofillBtn.disabled = true;
+        const card = document.getElementById('application-agent-card');
+        const progressBar = document.getElementById('agent-progress-bar');
+        const progressLabel = document.getElementById('agent-progress-label');
+        const checklist = document.getElementById('agent-fields-checklist');
+        const reviewBox = document.getElementById('agent-submit-review-box');
+        const summaryBox = document.getElementById('agent-review-summary');
 
-          const fieldsList = [
-            { label: 'First name', key: 'firstName', searchTerms: ['first name', 'given name', 'first_name'] },
-            { label: 'Last name', key: 'lastName', searchTerms: ['last name', 'surname', 'last_name'] },
-            { label: 'Phone number', key: 'phone', searchTerms: ['phone', 'mobile', 'telephone'] },
-            { label: 'Email', key: 'email', searchTerms: ['email', 'e-mail'] },
-            { label: 'Current location', key: 'location', searchTerms: ['location', 'city', 'address'] },
-            { label: 'Education School', key: 'school', searchTerms: ['school', 'university', 'institution'] },
-            { label: 'Education Degree', key: 'degree', searchTerms: ['degree', 'education level'] },
-            { label: 'Resume / CV File', key: 'resume', searchTerms: ['resume', 'cv'] },
-            { label: 'Cover letter', key: 'coverLetter', searchTerms: ['cover letter', 'cover_letter'] },
-            { label: 'Work Authorization', key: 'auth', searchTerms: ['authorized', 'legally', 'sponsor'] },
-            { label: 'Demographics / Gender', key: 'gender', searchTerms: ['gender', 'sex', 'race', 'veteran'] }
-          ];
+        const pillVerified = document.getElementById('pill-count-verified');
+        const pillReview = document.getElementById('pill-count-review');
+        const pillUser = document.getElementById('pill-count-user');
+        const pillOptional = document.getElementById('pill-count-optional');
 
-          // Render Auto filling Fields loading card
-          progressContainer.innerHTML = `
-            <div class="card-white" style="margin-top:12px;padding:20px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                <div style="font-size:16px;font-weight:800;color:#0f172a;">Auto filling Fields</div>
-                <div id="autofill-percent-val" style="font-size:16px;font-weight:800;color:#0f172a;">0%</div>
-              </div>
-              <div id="autofill-checklist-items" style="display:flex;flex-direction:column;gap:6px;">
-                ${fieldsList.map((f, i) => `
-                  <div id="check-item-${i}" class="check-item-row" data-index="${i}" title="Click to scroll to ${f.label} on webpage" style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#475569;padding:6px 10px;border-radius:10px;cursor:pointer;transition:background 0.15s ease, transform 0.1s ease;">
-                    <div class="check-circle-icon" style="width:18px;height:18px;border-radius:50%;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center;flex-shrink:0;"></div>
-                    <span style="flex:1;">${f.label}</span>
-                    <span style="font-size:11px;color:#94a3b8;">🔍</span>
-                  </div>
-                `).join('')}
-              </div>
+        if (card) card.style.display = 'block';
+        if (checklist) {
+          checklist.innerHTML = `
+            <div style="text-align:center;padding:16px;color:#64748b;font-size:13px;font-weight:600;">
+              <span style="display:inline-block;animation:spin 1s linear infinite;margin-right:6px;">🔄</span>
+              Discovering controls & verifying DOM state...
             </div>
           `;
+        }
 
-          // Attach Click-to-Scroll Field Highlight Event Listeners
-          const attachChecklistClickListeners = () => {
-            const rows = progressContainer.querySelectorAll('.check-item-row');
-            rows.forEach(row => {
-              row.addEventListener('click', async () => {
-                const idx = parseInt(row.getAttribute('data-index'));
-                const item = fieldsList[idx];
-                if (item && item.searchTerms) {
-                  row.style.background = '#f1f5f9';
-                  setTimeout(() => { row.style.background = 'transparent'; }, 400);
+        const tab = await getActiveTab();
+        if (!tab || !tab.id) {
+          if (triggerBtn) {
+            triggerBtn.innerText = '🤖 Run Job Application Agent';
+            triggerBtn.disabled = false;
+          }
+          if (msgEl) msgEl.innerText = '❌ Active browser tab not found.';
+          return;
+        }
 
-                  const tab = await getActiveTab();
-                  if (tab && tab.id) {
-                    chrome.tabs.sendMessage(tab.id, {
-                      type: 'SCROLL_TO_FIELD',
-                      searchTerms: item.searchTerms,
-                      key: item.key
-                    }, () => {
-                      if (chrome.runtime.lastError) {}
-                    });
-                  }
+        const profileToSend = {
+          firstName: currentProfile?.firstName || (activeUser?.name ? activeUser.name.split(' ')[0] : 'Iman'),
+          lastName: currentProfile?.lastName || (activeUser?.name ? activeUser.name.split(' ').slice(1).join(' ') : 'Shahinnezhad'),
+          email: currentProfile?.email || activeUser?.email || 'iman.shahinnezhad68@gmail.com',
+          phone: currentProfile?.phone || '+1 555-019-2834',
+          city: currentProfile?.city || currentProfile?.location || 'Toronto, ON',
+          location: currentProfile?.location || currentProfile?.city || 'Toronto, ON',
+          country: currentProfile?.country || 'Canada',
+          linkedinUrl: currentProfile?.linkedinUrl || 'https://linkedin.com/in/imanshahinnezhad',
+          portfolioUrl: currentProfile?.portfolioUrl || currentProfile?.website || '',
+          githubUrl: currentProfile?.githubUrl || '',
+          ...(currentProfile || {})
+        };
+
+        chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: profileToSend }, (res) => {
+          if (chrome.runtime.lastError || !res || !res.success) {
+            if (triggerBtn) {
+              triggerBtn.innerText = '🤖 Run Job Application Agent';
+              triggerBtn.disabled = false;
+            }
+            if (checklist) {
+              checklist.innerHTML = `
+                <div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b;font-size:13px;font-weight:600;">
+                  ⚠️ Could not scan current tab. Refresh the job page and click Run Agent again.
+                </div>
+              `;
+            }
+            return;
+          }
+
+          const report = res.report;
+          if (!report || !report.fields) {
+            if (triggerBtn) {
+              triggerBtn.innerText = '🤖 Run Job Application Agent';
+              triggerBtn.disabled = false;
+            }
+            return;
+          }
+
+          // Update Progress Bar based strictly on Verified DOM State
+          const requiredTotal = Math.max(1, report.total - report.optionalCount);
+          const pct = Math.min(100, Math.round((report.verifiedCount / requiredTotal) * 100));
+          if (progressBar) progressBar.style.width = `${pct}%`;
+          if (progressLabel) progressLabel.innerText = `${report.verifiedCount} / ${requiredTotal} required fields verified (${pct}%)`;
+
+          // Update Pill Counts
+          if (pillVerified) pillVerified.innerText = `${report.verifiedCount} Verified`;
+          if (pillReview) pillReview.innerText = `${report.reviewRequiredCount} Review`;
+          if (pillUser) pillUser.innerText = `${report.userRequiredCount} Required`;
+          if (pillOptional) pillOptional.innerText = `${report.optionalCount} Optional`;
+
+          // Render Categorized Field Checklist
+          if (checklist) {
+            checklist.innerHTML = report.fields.map((f, i) => {
+              let badgeHtml = '';
+              let borderStyle = 'border:1px solid #e2e8f0;';
+              let bgStyle = 'background:#ffffff;';
+
+              if (f.status === 'VERIFIED') {
+                badgeHtml = `<span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;padding:3px 8px;border-radius:12px;">🟢 VERIFIED</span>`;
+                borderStyle = 'border:1px solid #bbf7d0;';
+              } else if (f.status === 'REVIEW_REQUIRED') {
+                badgeHtml = `<span style="font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;padding:3px 8px;border-radius:12px;">🟡 REVIEW</span>`;
+                borderStyle = 'border:1px solid #fde68a;';
+              } else if (f.status === 'USER_REQUIRED') {
+                badgeHtml = `<span style="font-size:11px;font-weight:700;color:#b91c1c;background:#fee2e2;padding:3px 8px;border-radius:12px;">🔴 USER REQUIRED</span>`;
+                borderStyle = 'border:1px solid #fca5a5;';
+                bgStyle = 'background:#fff5f5;';
+              } else {
+                badgeHtml = `<span style="font-size:11px;font-weight:700;color:#64748b;background:#f1f5f9;padding:3px 8px;border-radius:12px;">⚪ OPTIONAL</span>`;
+              }
+
+              const subtitle = f.reason ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${f.reason}</div>` : '';
+              const sectionBadge = f.section ? `<span style="font-size:10px;font-weight:600;color:#475569;background:#e2e8f0;padding:1px 5px;border-radius:4px;margin-left:6px;">${f.section}</span>` : '';
+
+              return `
+                <div class="agent-field-item" data-field-id="${f.fieldId}" data-selector="${encodeURIComponent(f.selector || '')}" style="display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:10px;${borderStyle}${bgStyle}cursor:pointer;transition:all 0.15s ease;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                    <div style="font-size:13px;font-weight:700;color:#0f172a;display:flex;align-items:center;">
+                      ${f.label} ${sectionBadge}
+                    </div>
+                    <div>${badgeHtml}</div>
+                  </div>
+                  ${subtitle}
+                </div>
+              `;
+            }).join('');
+
+            // Click-to-scroll to DOM field on webpage
+            const items = checklist.querySelectorAll('.agent-field-item');
+            items.forEach(item => {
+              item.addEventListener('click', async () => {
+                const fieldId = item.getAttribute('data-field-id');
+                const selector = decodeURIComponent(item.getAttribute('data-selector') || '');
+                item.style.transform = 'scale(0.98)';
+                setTimeout(() => { item.style.transform = 'none'; }, 150);
+
+                const currentTab = await getActiveTab();
+                if (currentTab && currentTab.id) {
+                  chrome.tabs.sendMessage(currentTab.id, {
+                    type: 'SCROLL_TO_FIELD',
+                    fieldId: fieldId,
+                    selector: selector
+                  }, () => {
+                    if (chrome.runtime.lastError) {}
+                  });
                 }
               });
             });
-          };
-
-          attachChecklistClickListeners();
-
-          const tab = await getActiveTab();
-          if (tab && tab.id) {
-            const profileToSend = {
-              firstName: currentProfile?.firstName || (activeUser?.name ? activeUser.name.split(' ')[0] : 'Iman'),
-              lastName: currentProfile?.lastName || (activeUser?.name ? activeUser.name.split(' ').slice(1).join(' ') : 'Shahinnezhad'),
-              email: currentProfile?.email || activeUser?.email || 'iman.shahinnezhad68@gmail.com',
-              phone: currentProfile?.phone || '+1 555-019-2834',
-              city: currentProfile?.city || currentProfile?.location || 'Toronto, ON',
-              location: currentProfile?.location || currentProfile?.city || 'Toronto, ON',
-              country: currentProfile?.country || 'Canada',
-              linkedinUrl: currentProfile?.linkedinUrl || 'https://linkedin.com/in/imanshahinnezhad',
-              portfolioUrl: currentProfile?.portfolioUrl || currentProfile?.website || '',
-              githubUrl: currentProfile?.githubUrl || '',
-              ...(currentProfile || {})
-            };
-
-            let totalFilledCount = 0;
-            try {
-              const frames = await chrome.webNavigation.getAllFrames({ tabId: tab.id });
-              if (frames && frames.length > 0) {
-                for (const frame of frames) {
-                  await new Promise((resolve) => {
-                    chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: profileToSend }, { frameId: frame.frameId }, (res) => {
-                      if (chrome.runtime.lastError) resolve(0);
-                      else {
-                        if (res && res.count) totalFilledCount += res.count;
-                        resolve(res ? res.count : 0);
-                      }
-                    });
-                  });
-                }
-              }
-            } catch(e) {
-              await new Promise((resolve) => {
-                chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: profileToSend }, (res) => {
-                  if (res && res.count) totalFilledCount = res.count;
-                  resolve(res);
-                });
-              });
-            }
-
-            // Animate checklist progress step-by-step
-            const percentEl = document.getElementById('autofill-percent-val');
-            const total = fieldsList.length;
-
-            for (let i = 0; i < total; i++) {
-              await new Promise(r => setTimeout(r, 180));
-              const itemEl = document.getElementById(`check-item-${i}`);
-              if (itemEl) {
-                itemEl.style.color = '#16a34a';
-                itemEl.innerHTML = `
-                  <div style="width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </div>
-                  <span style="flex:1;font-weight:700;">${fieldsList[i].label}</span>
-                  <span style="font-size:11px;color:#16a34a;font-weight:700;">Filled</span>
-                `;
-              }
-              const currentPercent = Math.round(((i + 1) / total) * 100);
-              if (percentEl) percentEl.innerText = `${currentPercent}%`;
-            }
-
-            attachChecklistClickListeners();
-
-            autofillBtn.innerText = '✅ Form Autofilled!';
-            autofillBtn.disabled = false;
-            if (autofillMsg) autofillMsg.innerText = `✅ Autofilled ${totalFilledCount || total} fields!`;
           }
+
+          // Show Review Box for manual verification
+          if (reviewBox) reviewBox.style.display = 'block';
+          if (summaryBox) {
+            summaryBox.innerHTML = `
+              <div style="margin-bottom:6px;">
+                <strong>Verified Fields:</strong> ${report.verifiedCount} / ${report.total}<br>
+                <strong>User Action Required:</strong> ${report.userRequiredCount}<br>
+                <strong>Review Required:</strong> ${report.reviewRequiredCount}
+              </div>
+              ${report.userRequiredCount > 0 ? `<div style="color:#b91c1c;font-weight:700;margin-top:4px;">⚠️ Please answer the ${report.userRequiredCount} user-required fields directly on the webpage.</div>` : '<div style="color:#15803d;font-weight:700;margin-top:4px;">✅ All required fields are verified and ready!</div>'}
+            `;
+          }
+
+          if (triggerBtn) {
+            triggerBtn.innerText = '✨ Agent Completed';
+            triggerBtn.disabled = false;
+          }
+          if (msgEl) msgEl.innerText = `Verified ${report.verifiedCount} of ${report.total} fields!`;
+        });
+      }
+
+      // Event listener for Run Job Application Agent button
+      const runAgentBtn = document.getElementById('run-agent-btn');
+      const agentMsg = document.getElementById('agent-status-msg');
+      if (runAgentBtn) {
+        runAgentBtn.addEventListener('click', () => {
+          runApplicationAgent(runAgentBtn, agentMsg);
+        });
+      }
+
+      // Event listener for Autofill Form button -> Triggers Application Agent
+      const autofillBtn = document.getElementById('results-autofill-btn');
+      const autofillMsg = document.getElementById('results-autofill-msg');
+      if (autofillBtn) {
+        autofillBtn.addEventListener('click', () => {
+          runApplicationAgent(autofillBtn, autofillMsg);
         });
       }
     });

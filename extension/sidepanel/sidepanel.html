@@ -73,6 +73,52 @@
         <div id="add-job-msg" style="font-size:12px;color:#64748b;text-align:center;margin-top:8px;"></div>
       </div>
 
+      <!-- Card 1b: Application Assistant Agent (Verified Agent) -->
+      <div id="application-agent-card" class="card-white" style="margin-top: 10px; padding: 18px 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="font-size: 15px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">🤖</span> Application Agent
+          </div>
+          <span id="agent-verified-badge" style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 12px; background: #f1f5f9; color: #64748b;">
+            Ready to Scan
+          </span>
+        </div>
+
+        <!-- Real Progress Bar strictly based on VERIFIED fields -->
+        <div style="margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+            <span id="agent-progress-label">0 / 0 required verified</span>
+            <span id="agent-progress-pct" style="color: #10b981;">0%</span>
+          </div>
+          <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+            <div id="agent-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); transition: width 0.4s ease;"></div>
+          </div>
+        </div>
+
+        <button id="run-agent-btn" class="btn-black-pill" style="margin-bottom: 12px; font-weight: 800;">
+          ✨ Run AI Application Agent
+        </button>
+
+        <!-- Categorized Summary Pills -->
+        <div id="agent-summary-pills" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; font-size: 11px; font-weight: 700;">
+          <span style="padding: 4px 8px; border-radius: 8px; background: #dcfce7; color: #166534;">🟢 <span id="count-verified">0</span> Verified</span>
+          <span style="padding: 4px 8px; border-radius: 8px; background: #fef9c3; color: #854d0e;">🟡 <span id="count-review">0</span> Review</span>
+          <span style="padding: 4px 8px; border-radius: 8px; background: #fee2e2; color: #991b1b;">🔴 <span id="count-required">0</span> Required</span>
+          <span style="padding: 4px 8px; border-radius: 8px; background: #f1f5f9; color: #475569;">⚪ <span id="count-optional">0</span> Opt</span>
+        </div>
+
+        <!-- Live Verified Field Checklist -->
+        <div id="agent-fields-checklist" style="display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; padding-right: 2px;">
+          <div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 12px 0;">Click "Run AI Application Agent" to scan & autofill with DOM verification.</div>
+        </div>
+
+        <!-- Final Submission Notice (NO automatic submit) -->
+        <div id="agent-submit-review-box" style="display: none; margin-top: 14px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 12px; text-align: center;">
+          <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">Application Ready for Review</div>
+          <div style="font-size: 11px; color: #64748b; margin-bottom: 10px;">Please review all fields in the page above before submitting manually.</div>
+        </div>
+      </div>
+
       <!-- Card 2: Resume Score -->
       <div class="card-white" style="margin-top: 10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">

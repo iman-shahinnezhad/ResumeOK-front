@@ -843,338 +843,476 @@
     return `Dear Hiring Team at ${company},\n\nI am writing to express my strong interest in the ${jobTitle} position. With my background in ${skills}, I am confident in my ability to bring immediate value and technical excellence to ${company}.\n\nThroughout my career, I have consistently focused on delivering scalable solutions, driving key projects, and collaborating effectively across cross-functional teams. I am particularly drawn to ${company}'s work and values, and I welcome the opportunity to contribute my skills in ${skills} to support your team's goals.\n\nThank you for your time and consideration. I look forward to discussing how my experience aligns with the needs of ${company}.\n\nSincerely,\n${candidateName || 'Applicant'}`;
   }
 
-  // Perform 1-Click Autofill
-  function runAutofill(profile) {
-    if (!profile) return { count: 0, reason: 'no_profile' };
+  // =========================================================================
+  // AUTONOMOUS JOB APPLICATION AGENT ENGINE (PHASE 1 - 6 ENGINE)
+  // =========================================================================
 
-    // Check if candidate profile actually has data
-    const hasCandidateData = Boolean(
-      profile.firstName || profile.lastName || profile.email || profile.phone || profile.resumeBase64 || profile.resumeFileName
-    );
-
-    if (!hasCandidateData) {
-      return { count: 0, reason: 'profile_empty' };
+  class ApplicationAgentEngine {
+    static getAccessibleDocs() {
+      const docs = [document];
+      document.querySelectorAll('iframe').forEach(f => {
+        try { if (f.contentDocument) docs.push(f.contentDocument); } catch(e) {}
+      });
+      return docs;
     }
 
-    let filled = 0;
-    const jobDetails = extractJobDetails();
+    // PHASE 1: DOM SCANNER & FIELD NORMALIZER
+    static scanAndNormalizeFields() {
+      const normalizedFields = [];
+      const docs = this.getAccessibleDocs();
+      let index = 0;
 
-    const docs = [document];
-    document.querySelectorAll('iframe').forEach(f => {
-      try { if (f.contentDocument) docs.push(f.contentDocument); } catch(e) {}
-    });
+      docs.forEach(doc => {
+        const rawElements = Array.from(doc.querySelectorAll('input, select, textarea, [role="combobox"], [role="listbox"], [role="radiogroup"], [role="checkbox"]'));
 
-    const fn = (profile.firstName || '').trim();
-    const ln = (profile.lastName || '').trim();
-    const full = `${fn} ${ln}`.trim();
-    const em = (profile.email || '').trim();
-    const ph = (profile.phone || '').trim();
-    const li = (profile.linkedinUrl || '').trim();
-    const po = (profile.portfolioUrl || '').trim();
-    const ci = (profile.city || profile.location || '').trim();
-    const co = (profile.country || '').trim();
+        rawElements.forEach(el => {
+          if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button') return;
 
-    const eduItem = Array.isArray(profile.education) && profile.education.length > 0 ? profile.education[0] : {};
-    const sch = (profile.schoolName || profile.school || eduItem.school || eduItem.institution || '').trim();
-    const deg = (profile.degree || eduItem.degree || '').trim();
-    const dis = (profile.discipline || profile.fieldOfStudy || eduItem.fieldOfStudy || eduItem.major || '').trim();
-
-    const emp = (profile.companyName || '').trim();
-    const tit = (profile.jobTitle || '').trim();
-
-    docs.forEach(doc => {
-      // First Name
-      if (fn) {
-        const inputs = findInputsByLabel(doc, ['first name', 'given name', 'first_name', 'fname']);
-        if (inputs.length > 0) {
-          inputs.forEach(e => { setVal(e, fn); filled++; });
-        } else {
-          doc.querySelectorAll('input[name*="first" i], input[id*="first" i], input[autocomplete="given-name"]').forEach(e => {
-            setVal(e, fn); filled++;
-          });
-        }
-      }
-
-      // Last Name
-      if (ln) {
-        const inputs = findInputsByLabel(doc, ['last name', 'family name', 'surname', 'last_name', 'lname']);
-        if (inputs.length > 0) {
-          inputs.forEach(e => { setVal(e, ln); filled++; });
-        } else {
-          doc.querySelectorAll('input[name*="last" i], input[id*="last" i], input[autocomplete="family-name"]').forEach(e => {
-            setVal(e, ln); filled++;
-          });
-        }
-      }
-
-      // Full Name
-      if (full) {
-        const inputs = findInputsByLabel(doc, ['full name', 'candidate name', 'your name']);
-        if (inputs.length > 0) {
-          inputs.forEach(e => { setVal(e, full); filled++; });
-        } else {
-          doc.querySelectorAll('input[name="name" i], input[id="name" i], input[placeholder*="full name" i]').forEach(e => {
-            setVal(e, full); filled++;
-          });
-        }
-      }
-
-      // Email
-      if (em) {
-        const inputs = findInputsByLabel(doc, ['email', 'e-mail', 'email address']);
-        if (inputs.length > 0) {
-          inputs.forEach(e => { setVal(e, em); filled++; });
-        } else {
-          doc.querySelectorAll('input[type="email" i], input[name*="email" i], input[id*="email" i]').forEach(e => {
-            setVal(e, em); filled++;
-          });
-        }
-      }
-
-      // Phone
-      if (ph) {
-        const inputs = findInputsByLabel(doc, ['phone', 'mobile', 'telephone', 'phone number']);
-        if (inputs.length > 0) {
-          inputs.forEach(e => { setVal(e, ph); filled++; });
-        } else {
-          doc.querySelectorAll('input[type="tel" i], input[name*="phone" i], input[id*="phone" i], input[name*="mobile" i]').forEach(e => {
-            setVal(e, ph); filled++;
-          });
-        }
-      }
-
-      // LinkedIn
-      if (li) {
-        const inputs = findInputsByLabel(doc, ['linkedin', 'linkedin url', 'linkedin profile']);
-        if (inputs.length > 0) {
-          inputs.forEach(e => { setVal(e, li); filled++; });
-        } else {
-          doc.querySelectorAll('input[name*="linkedin" i], input[id*="linkedin" i], input[placeholder*="linkedin" i]').forEach(e => {
-            setVal(e, li); filled++;
-          });
-        }
-      }
-
-      // Portfolio / Website
-      if (po) {
-        const inputs = findInputsByLabel(doc, ['website', 'portfolio', 'personal website']);
-        if (inputs.length > 0) {
-          inputs.forEach(e => { setVal(e, po); filled++; });
-        } else {
-          doc.querySelectorAll('input[name*="website" i], input[name*="portfolio" i], input[id*="website" i], input[id*="portfolio" i]').forEach(e => {
-            setVal(e, po); filled++;
-          });
-        }
-      }
-
-      // City / Location
-      if (ci) {
-        const inputs = findInputsByLabel(doc, ['location', 'city', 'address', 'current location']);
-        if (inputs.length > 0) {
-          inputs.forEach(e => { setVal(e, ci); filled++; });
-        } else {
-          doc.querySelectorAll('input[name*="city" i], input[id*="city" i], input[name*="location" i], input[id*="location" i]').forEach(e => {
-            setVal(e, ci); filled++;
-          });
-        }
-      }
-
-      // Country
-      if (co) {
-        const countryInputs = findInputsByLabel(doc, ['country', 'nation']);
-        if (countryInputs.length > 0) {
-          countryInputs.forEach(e => { setVal(e, co); filled++; });
-        } else {
-          doc.querySelectorAll('select[name*="country" i], select[id*="country" i]').forEach(s => {
-            setVal(s, co); filled++;
-          });
-        }
-      }
-
-      // Education - School
-      if (sch) {
-        const schoolInputs = findInputsByLabel(doc, ['school', 'university', 'institution']);
-        if (schoolInputs.length > 0) {
-          schoolInputs.forEach(e => { setVal(e, sch); filled++; });
-        } else {
-          doc.querySelectorAll('select[name*="school" i], select[id*="school" i], input[name*="school" i], input[id*="school" i]').forEach(e => {
-            setVal(e, sch); filled++;
-          });
-        }
-      }
-
-      // Education - Degree
-      if (deg) {
-        const degreeInputs = findInputsByLabel(doc, ['degree', 'education level']);
-        if (degreeInputs.length > 0) {
-          degreeInputs.forEach(e => { setVal(e, deg); filled++; });
-        } else {
-          doc.querySelectorAll('select[name*="degree" i], select[id*="degree" i], input[name*="degree" i], input[id*="degree" i]').forEach(e => {
-            setVal(e, deg); filled++;
-          });
-        }
-      }
-
-      // Education - Major
-      if (dis) {
-        const disInputs = findInputsByLabel(doc, ['discipline', 'major', 'field of study']);
-        if (disInputs.length > 0) {
-          disInputs.forEach(e => { setVal(e, dis); filled++; });
-        } else {
-          doc.querySelectorAll('input[name*="discipline" i], input[name*="major" i]').forEach(e => {
-            setVal(e, dis); filled++;
-          });
-        }
-      }
-
-      // Current Employer & Title
-      if (emp) {
-        doc.querySelectorAll('input[name*="company" i], input[name*="employer" i], input[id*="company" i]').forEach(e => {
-          if (!e.value) { setVal(e, emp); filled++; }
-        });
-      }
-      if (tit) {
-        doc.querySelectorAll('input[name*="title" i], input[id*="title" i], input[name*="position" i]').forEach(e => {
-          if (!e.value) { setVal(e, tit); filled++; }
-        });
-      }
-
-      // Cover Letter Text & Textareas (Tailored AI Cover Letter)
-      const clText = generateTailoredCoverLetter(jobDetails, profile);
-      const fillCoverLetterTextareas = () => {
-        const coverEls = findInputsByLabel(doc, ['cover letter', 'cover_letter', 'letter of motivation', 'why do you want to work']);
-        if (coverEls.length > 0) {
-          coverEls.forEach(ta => {
-            if (ta.tagName === 'TEXTAREA' || ta.tagName === 'INPUT') {
-              setVal(ta, clText);
-              filled++;
-            }
-          });
-        } else {
-          doc.querySelectorAll('textarea[name*="cover" i], textarea[id*="cover" i], textarea[placeholder*="cover" i]').forEach(ta => {
-            setVal(ta, clText);
-            filled++;
-          });
-        }
-      };
-
-      fillCoverLetterTextareas();
-
-      // Attach Resume & Cover Letter PDF Files to input[type="file"] WITHOUT duplicates
-      try {
-        const attachedInputs = new Set();
-        const resB64 = profile.resumeBase64 || (profile.resumeFile ? profile.resumeFile : null);
-        const resBlob = resB64 ? b64ToBlob(resB64, 'application/pdf') : null;
-        const resFileName = profile.resumeFileName || `${fn || 'Candidate'}_Resume.pdf`;
-
-        const clB64 = profile.coverLetterBase64 || resB64;
-        const clBlob = clB64 ? b64ToBlob(clB64, 'application/pdf') : null;
-        const clFileName = `${fn || 'Candidate'}_CoverLetter.pdf`;
-
-        const fileInputs = Array.from(doc.querySelectorAll('input[type="file"]'));
-
-        if (fileInputs.length > 0) {
-          // 1. Cover letter file inputs
-          fileInputs.forEach(fileInp => {
-            if (attachedInputs.has(fileInp)) return;
-            const container = fileInp.closest('.field, .form-group, label, div') || fileInp.parentElement;
-            const labelText = ((fileInp.name || '') + ' ' + (fileInp.id || '') + ' ' + (fileInp.getAttribute('aria-label') || '') + ' ' + (container ? container.innerText : '')).toLowerCase();
-
-            if (labelText.includes('cover') || labelText.includes('letter')) {
-              if (clBlob) {
-                attachFileToInput(fileInp, clBlob, clFileName);
-                attachedInputs.add(fileInp);
-                filled++;
-              }
-            }
-          });
-
-          // 2. Resume / CV file inputs
-          fileInputs.forEach(fileInp => {
-            if (attachedInputs.has(fileInp)) return;
-            const container = fileInp.closest('.field, .form-group, label, div') || fileInp.parentElement;
-            const labelText = ((fileInp.name || '') + ' ' + (fileInp.id || '') + ' ' + (fileInp.getAttribute('aria-label') || '') + ' ' + (container ? container.innerText : '')).toLowerCase();
-
-            if (labelText.includes('resume') || labelText.includes('cv') || labelText.includes('curriculum')) {
-              if (resBlob) {
-                attachFileToInput(fileInp, resBlob, resFileName);
-                attachedInputs.add(fileInp);
-                filled++;
-              }
-            }
-          });
-
-          // 3. Fallback: If no input matched 'resume' or 'cover', attach resume ONLY to the FIRST unattached file input
-          if (attachedInputs.size === 0 && resBlob && fileInputs[0]) {
-            attachFileToInput(fileInputs[0], resBlob, resFileName);
-            attachedInputs.add(fileInputs[0]);
-            filled++;
+          // Compute label
+          let label = '';
+          const id = el.getAttribute('id');
+          if (id) {
+            const lEl = doc.querySelector(`label[for="${id}"]`);
+            if (lEl) label = lEl.innerText || '';
           }
+          if (!label) {
+            const parentLabel = el.closest('label');
+            if (parentLabel) {
+              const clone = parentLabel.cloneNode(true);
+              clone.querySelectorAll('input, select, textarea').forEach(c => c.remove());
+              label = clone.innerText || '';
+            }
+          }
+          if (!label) {
+            const wrapper = el.closest('.field, .form-group, [class*="field" i], [class*="form-group" i], tr, li');
+            if (wrapper) {
+              const lblEl = wrapper.querySelector('label, .label, [class*="label" i], .field-label');
+              if (lblEl) label = lblEl.innerText || '';
+            }
+          }
+          if (!label) {
+            label = el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.getAttribute('name') || id || '';
+          }
+          label = label.replace(/\s+/g, ' ').replace(/[*:]/g, '').trim();
+
+          if (!label && el.type !== 'file') return;
+
+          // Compute required status
+          const isReqAttr = el.hasAttribute('required') || el.getAttribute('aria-required') === 'true';
+          const parentTxt = (el.parentElement ? el.parentElement.innerText : '') + ' ' + label;
+          const hasAsterisk = parentTxt.includes('*') || /required/i.test(parentTxt);
+          const required = isReqAttr || hasAsterisk;
+
+          // Compute field type
+          let fieldType = 'TEXT';
+          const tag = el.tagName;
+          const typeAttr = (el.getAttribute('type') || '').toLowerCase();
+          const roleAttr = (el.getAttribute('role') || '').toLowerCase();
+
+          if (typeAttr === 'file') fieldType = 'FILE_UPLOAD';
+          else if (typeAttr === 'checkbox' || roleAttr === 'checkbox') fieldType = 'CHECKBOX';
+          else if (typeAttr === 'radio' || roleAttr === 'radiogroup') fieldType = 'RADIO';
+          else if (tag === 'TEXTAREA') fieldType = 'TEXTAREA';
+          else if (typeAttr === 'email') fieldType = 'EMAIL';
+          else if (typeAttr === 'tel') fieldType = 'PHONE';
+          else if (typeAttr === 'number') fieldType = 'NUMBER';
+          else if (typeAttr === 'date') fieldType = 'DATE';
+          else if (tag === 'SELECT') fieldType = 'NATIVE_SELECT';
+          else if (roleAttr === 'combobox' || roleAttr === 'listbox' || el.classList.contains('select2-choice') || el.closest('[class*="select" i]')) fieldType = 'COMBOBOX';
+          else if (el.getAttribute('autocomplete') || roleAttr === 'searchbox') fieldType = 'AUTOCOMPLETE';
+
+          // Extract options
+          let options = [];
+          if (tag === 'SELECT') {
+            options = Array.from(el.options || []).map(o => (o.text || o.value).trim()).filter(Boolean);
+          } else if (fieldType === 'RADIO' || fieldType === 'CHECKBOX') {
+            const container = el.closest('fieldset, .form-group, [class*="group" i]') || el.parentElement;
+            if (container) {
+              options = Array.from(container.querySelectorAll('label')).map(l => l.innerText.trim()).filter(Boolean);
+            }
+          }
+
+          index++;
+          const labelSlug = label.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 20);
+          const fieldId = `f_${index}_${fieldType.toLowerCase()}_${labelSlug || 'inp'}`;
+
+          const currentValue = (el.value || el.innerText || (el.files && el.files.length > 0 ? el.files[0].name : '')).trim();
+
+          normalizedFields.push({
+            fieldId,
+            label: label || (fieldType === 'FILE_UPLOAD' ? 'Resume / CV File' : 'Field'),
+            type: fieldType,
+            required,
+            value: currentValue,
+            options,
+            disabled: el.disabled || false,
+            readonly: el.readOnly || false,
+            visible: el.offsetWidth > 0 && el.offsetHeight > 0,
+            element: el,
+            selector: id ? `#${id}` : (el.name ? `[name="${el.name}"]` : `.field_${index}`),
+            status: currentValue ? 'VERIFIED' : 'DISCOVERED'
+          });
+        });
+      });
+
+      return normalizedFields;
+    }
+
+    // PHASE 4: DROPDOWN & COMBOBOX ENGINE
+    static async selectCustomOption(element, targetValue) {
+      if (!element || !targetValue) return false;
+      try {
+        element.focus();
+        element.click();
+        element.dispatchEvent(new Event('mousedown', { bubbles: true }));
+
+        await new Promise(r => setTimeout(r, 250));
+
+        const docs = this.getAccessibleDocs();
+        let menuOptions = [];
+        docs.forEach(doc => {
+          const optElements = Array.from(doc.querySelectorAll('[role="option"], .select2-result, [class*="option" i], .select2-results li, ul[role="listbox"] li'));
+          if (optElements.length > 0) menuOptions = optElements;
+        });
+
+        const targetLower = targetValue.toLowerCase();
+        let matchEl = menuOptions.find(o => (o.innerText || '').toLowerCase() === targetLower);
+        if (!matchEl) {
+          matchEl = menuOptions.find(o => (o.innerText || '').toLowerCase().includes(targetLower) || targetLower.includes((o.innerText || '').toLowerCase()));
+        }
+
+        if (matchEl) {
+          matchEl.click();
+          matchEl.dispatchEvent(new Event('mouseup', { bubbles: true }));
+          await new Promise(r => setTimeout(r, 150));
+          return true;
         }
       } catch(e) {}
-    });
+      return false;
+    }
 
-    return { count: filled };
+    // PHASE 3: ACTION EXECUTOR
+    static async executeAction(field, targetValue, profile) {
+      const el = field.element;
+      if (!el) return false;
+
+      field.status = 'FILLING';
+
+      try {
+        if (field.type === 'FILE_UPLOAD') {
+          const fn = profile?.firstName || 'Candidate';
+          const resB64 = profile?.resumeBase64 || profile?.resumeFile;
+          const resBlob = resB64 ? b64ToBlob(resB64, 'application/pdf') : null;
+          const fileName = profile?.resumeFileName || `${fn}_Resume.pdf`;
+
+          if (resBlob) {
+            const attached = attachFileToInput(el, resBlob, fileName);
+            return attached;
+          }
+          return false;
+        }
+
+        if (field.type === 'NATIVE_SELECT') {
+          setVal(el, targetValue);
+          return true;
+        }
+
+        if (field.type === 'COMBOBOX' || field.type === 'CUSTOM_SELECT') {
+          const ok = await this.selectCustomOption(el, targetValue);
+          if (!ok) setVal(el, targetValue);
+          return true;
+        }
+
+        if (field.type === 'CHECKBOX') {
+          setVal(el, targetValue);
+          return true;
+        }
+
+        if (field.type === 'RADIO') {
+          const container = el.closest('fieldset, .form-group, [class*="group" i]') || el.parentElement;
+          if (container) {
+            const radios = Array.from(container.querySelectorAll('input[type="radio"]'));
+            const targetLower = String(targetValue).toLowerCase();
+            const matchRadio = radios.find(r => {
+              const lbl = r.closest('label')?.innerText || r.value || '';
+              return lbl.toLowerCase().includes(targetLower);
+            });
+            if (matchRadio) {
+              setVal(matchRadio, targetValue);
+              return true;
+            }
+          }
+          setVal(el, targetValue);
+          return true;
+        }
+
+        setVal(el, targetValue);
+        return true;
+      } catch(e) {
+        return false;
+      }
+    }
+
+    // PHASE 2: VERIFICATION ENGINE
+    static verifyFieldAction(field, expectedValue) {
+      const el = field.element;
+      if (!el) return false;
+
+      try {
+        const actualVal = (el.value || el.innerText || (el.files && el.files.length > 0 ? el.files[0].name : '')).trim();
+        field.actualValue = actualVal;
+
+        if (field.type === 'FILE_UPLOAD') {
+          return Boolean(actualVal.length > 0 || (el.files && el.files.length > 0));
+        }
+
+        if (field.type === 'CHECKBOX') {
+          return el.checked === Boolean(expectedValue);
+        }
+
+        if (field.type === 'RADIO') {
+          const container = el.closest('fieldset, .form-group') || el.parentElement;
+          const checkedRadio = container ? container.querySelector('input[type="radio"]:checked') : (el.checked ? el : null);
+          return Boolean(checkedRadio);
+        }
+
+        if (!expectedValue) return false;
+
+        const expLower = String(expectedValue).toLowerCase().trim();
+        const actLower = actualVal.toLowerCase().trim();
+
+        const isMatch = actLower === expLower || actLower.includes(expLower) || expLower.includes(actLower);
+        return isMatch;
+      } catch(e) {
+        return false;
+      }
+    }
+
+    // PHASE 5: AI & USER PROFILE RESOLVER (STRICT ANTI-GUESSING POLICY)
+    static resolveFieldTargetValue(field, profile, jobDetails) {
+      if (!profile) return { decision: 'user_required', confidence: 0, reason: 'Profile empty' };
+
+      const labelLower = field.label.toLowerCase();
+
+      // SENSITIVE EEO / LEGAL QUESTIONS -> STRICT ANTI-GUESSING PRIVACY POLICY
+      const isWorkAuth = labelLower.includes('authorized') || labelLower.includes('work in') || labelLower.includes('permit') || labelLower.includes('eligibility');
+      const isSponsorship = labelLower.includes('sponsor') || labelLower.includes('visa') || labelLower.includes('require sponsorship');
+      const isGender = labelLower.includes('gender') || labelLower.includes('sex');
+      const isRace = labelLower.includes('race') || labelLower.includes('ethnicity') || labelLower.includes('hispanic');
+      const isVeteran = labelLower.includes('veteran') || labelLower.includes('military');
+      const isDisability = labelLower.includes('disability') || labelLower.includes('handicap');
+      const isClearance = labelLower.includes('clearance') || labelLower.includes('security clearance');
+      const isSalary = labelLower.includes('salary') || labelLower.includes('desired pay') || labelLower.includes('compensation');
+
+      if (isWorkAuth) {
+        const val = profile.usWorkAuth || profile.workAuth;
+        if (val) return { decision: 'fill', value: val, confidence: 0.99 };
+        return { decision: 'user_required', confidence: 0, reason: 'Requires explicit work authorization input' };
+      }
+
+      if (isSponsorship) {
+        const val = profile.sponsorshipRequired;
+        if (val) return { decision: 'fill', value: val, confidence: 0.99 };
+        return { decision: 'user_required', confidence: 0, reason: 'Requires explicit sponsorship preference input' };
+      }
+
+      if (isGender) {
+        const val = profile.gender;
+        if (val) return { decision: 'fill', value: val, confidence: 0.99 };
+        return { decision: 'user_required', confidence: 0, reason: 'Demographic gender question requiring user input' };
+      }
+
+      if (isRace) {
+        const val = profile.race || profile.raceEthnicity;
+        if (val) return { decision: 'fill', value: val, confidence: 0.99 };
+        return { decision: 'user_required', confidence: 0, reason: 'Demographic race question requiring user input' };
+      }
+
+      if (isVeteran) {
+        const val = profile.veteran;
+        if (val) return { decision: 'fill', value: val, confidence: 0.99 };
+        return { decision: 'user_required', confidence: 0, reason: 'Veteran status question requiring user input' };
+      }
+
+      if (isDisability) {
+        const val = profile.disability;
+        if (val) return { decision: 'fill', value: val, confidence: 0.99 };
+        return { decision: 'user_required', confidence: 0, reason: 'Disability question requiring user input' };
+      }
+
+      if (isClearance || isSalary) {
+        return { decision: 'user_required', confidence: 0, reason: 'Custom sensitive question requiring user input' };
+      }
+
+      // STANDARD PROFILE MAPPINGS
+      if (labelLower.includes('first name') || labelLower.includes('given name') || labelLower === 'fname') {
+        if (profile.firstName) return { decision: 'fill', value: profile.firstName, confidence: 1.0 };
+      }
+      if (labelLower.includes('last name') || labelLower.includes('family name') || labelLower === 'lname') {
+        if (profile.lastName) return { decision: 'fill', value: profile.lastName, confidence: 1.0 };
+      }
+      if (labelLower.includes('full name') || labelLower === 'name') {
+        const full = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+        if (full) return { decision: 'fill', value: full, confidence: 1.0 };
+      }
+      if (labelLower.includes('email')) {
+        if (profile.email) return { decision: 'fill', value: profile.email, confidence: 1.0 };
+      }
+      if (labelLower.includes('phone') || labelLower.includes('mobile')) {
+        if (profile.phone) return { decision: 'fill', value: profile.phone, confidence: 1.0 };
+      }
+      if (labelLower.includes('linkedin')) {
+        if (profile.linkedinUrl) return { decision: 'fill', value: profile.linkedinUrl, confidence: 1.0 };
+      }
+      if (labelLower.includes('github')) {
+        if (profile.githubUrl) return { decision: 'fill', value: profile.githubUrl, confidence: 1.0 };
+      }
+      if (labelLower.includes('website') || labelLower.includes('portfolio')) {
+        if (profile.portfolioUrl) return { decision: 'fill', value: profile.portfolioUrl, confidence: 1.0 };
+      }
+      if (labelLower.includes('city') || labelLower.includes('location') || labelLower.includes('address')) {
+        const loc = profile.location || profile.city;
+        if (loc) return { decision: 'fill', value: loc, confidence: 0.95 };
+      }
+      if (labelLower.includes('country')) {
+        if (profile.country) return { decision: 'fill', value: profile.country, confidence: 0.95 };
+      }
+
+      // EDUCATION
+      const edu = Array.isArray(profile.education) && profile.education.length > 0 ? profile.education[0] : {};
+      if (labelLower.includes('school') || labelLower.includes('university') || labelLower.includes('college')) {
+        const sch = profile.schoolName || edu.school;
+        if (sch) return { decision: 'fill', value: sch, confidence: 0.95 };
+      }
+      if (labelLower.includes('degree')) {
+        const deg = profile.degree || edu.degree;
+        if (deg) return { decision: 'fill', value: deg, confidence: 0.95 };
+      }
+      if (labelLower.includes('major') || labelLower.includes('discipline') || labelLower.includes('field of study')) {
+        const dis = profile.discipline || edu.major;
+        if (dis) return { decision: 'fill', value: dis, confidence: 0.95 };
+      }
+
+      // WORK EXPERIENCE
+      if (labelLower.includes('company') || labelLower.includes('employer')) {
+        if (profile.companyName) return { decision: 'fill', value: profile.companyName, confidence: 0.95 };
+      }
+      if (labelLower.includes('title') || labelLower.includes('position')) {
+        if (profile.jobTitle) return { decision: 'fill', value: profile.jobTitle, confidence: 0.95 };
+      }
+
+      // COVER LETTER & TEXTAREAS
+      if (field.type === 'TEXTAREA' || labelLower.includes('cover letter') || labelLower.includes('motivation')) {
+        const clText = generateTailoredCoverLetter(jobDetails, profile);
+        return { decision: 'fill', value: clText, confidence: 0.90 };
+      }
+
+      // RESUME FILE UPLOAD
+      if (field.type === 'FILE_UPLOAD') {
+        return { decision: 'fill', value: 'ATTACH_RESUME_FILE', confidence: 1.0 };
+      }
+
+      return { decision: 'user_required', confidence: 0, reason: 'Field data not found in profile' };
+    }
+
+    // PHASE 6: APPLICATION AGENT ORCHESTRATOR
+    static async runAgent(profile) {
+      if (!profile) return { success: false, reason: 'no_profile' };
+
+      const jobDetails = await extractJobDetails();
+      const fields = this.scanAndNormalizeFields();
+
+      let verifiedCount = 0;
+      let reviewCount = 0;
+      let userRequiredCount = 0;
+      let optionalCount = 0;
+
+      for (const field of fields) {
+        const resolution = this.resolveFieldTargetValue(field, profile, jobDetails);
+
+        if (resolution.decision === 'fill' && resolution.confidence >= 0.80) {
+          await this.executeAction(field, resolution.value, profile);
+          await new Promise(r => setTimeout(r, 180));
+
+          const verified = this.verifyFieldAction(field, resolution.value);
+          if (verified) {
+            field.status = 'VERIFIED';
+            verifiedCount++;
+          } else {
+            field.status = 'REVIEW_REQUIRED';
+            field.verificationError = 'DOM state could not be verified automatically';
+            reviewCount++;
+          }
+        } else if (resolution.decision === 'user_required' || field.required) {
+          field.status = 'USER_REQUIRED';
+          field.reason = resolution.reason;
+          userRequiredCount++;
+        } else {
+          field.status = 'OPTIONAL';
+          optionalCount++;
+        }
+      }
+
+      const totalRequired = fields.filter(f => f.required).length;
+      const progressPercentage = totalRequired > 0 ? Math.round((verifiedCount / totalRequired) * 100) : (fields.length > 0 ? Math.round((verifiedCount / fields.length) * 100) : 100);
+
+      return {
+        success: true,
+        progressPercentage,
+        verifiedCount,
+        reviewCount,
+        userRequiredCount,
+        optionalCount,
+        totalFields: fields.length,
+        totalRequired,
+        fields: fields.map(f => ({
+          fieldId: f.fieldId,
+          label: f.label,
+          type: f.type,
+          required: f.required,
+          status: f.status,
+          value: f.actualValue || f.value,
+          reason: f.reason || f.verificationError || null,
+          selector: f.selector
+        }))
+      };
+    }
+  }
+
+  // Perform 1-Click Autofill via ApplicationAgentEngine
+  async function runAutofill(profile) {
+    if (!profile) return { count: 0, reason: 'no_profile' };
+    const res = await ApplicationAgentEngine.runAgent(profile);
+    return { count: res.verifiedCount || 0, scan: res };
   }
 
   // Detect & Analyze Form Fields on Active Page for progress checklist
   function scanFormFields(profile) {
-    const fields = [];
-    const docs = [document];
-    document.querySelectorAll('iframe').forEach(f => {
-      try { if (f.contentDocument) docs.push(f.contentDocument); } catch(e) {}
+    const fields = ApplicationAgentEngine.scanAndNormalizeFields();
+    let verifiedCount = 0;
+    let readyCount = 0;
+
+    fields.forEach(f => {
+      const resolution = ApplicationAgentEngine.resolveFieldTargetValue(f, profile, null);
+      if (f.value) {
+        f.status = 'VERIFIED';
+        verifiedCount++;
+      } else if (resolution.decision === 'fill') {
+        f.status = 'REVIEW_REQUIRED';
+        readyCount++;
+      } else {
+        f.status = f.required ? 'USER_REQUIRED' : 'OPTIONAL';
+      }
     });
 
-    const knownFieldSpecs = [
-      { key: 'fn', label: 'First Name', profileProp: 'firstName', terms: ['first name', 'given name', 'first_name', 'fname'] },
-      { key: 'ln', label: 'Last Name', profileProp: 'lastName', terms: ['last name', 'family name', 'surname', 'last_name', 'lname'] },
-      { key: 'em', label: 'Email Address', profileProp: 'email', terms: ['email', 'email address', 'e-mail'] },
-      { key: 'ph', label: 'Phone Number', profileProp: 'phone', terms: ['phone', 'mobile', 'telephone', 'phone number'] },
-      { key: 'res', label: 'Resume/CV PDF', profileProp: 'resumeFileName', terms: ['resume', 'cv', 'curriculum'] },
-      { key: 'cl', label: 'Cover Letter', profileProp: 'coverLetterText', terms: ['cover letter', 'cover_letter', 'letter'] },
-      { key: 'li', label: 'LinkedIn URL', profileProp: 'linkedinUrl', terms: ['linkedin', 'linkedin profile', 'linkedin_url'] },
-      { key: 'po', label: 'Portfolio Website', profileProp: 'portfolioUrl', terms: ['portfolio', 'website', 'personal website'] },
-      { key: 'ci', label: 'Location / City', profileProp: 'city', terms: ['city', 'location', 'current location'] },
-      { key: 'emp', label: 'Current Employer', profileProp: 'companyName', terms: ['company', 'employer', 'current company'] }
-    ];
-
-    docs.forEach(doc => {
-      knownFieldSpecs.forEach(spec => {
-        const inputs = findInputsByLabel(doc, spec.terms);
-        if (inputs.length > 0) {
-          const inp = inputs[0];
-          const hasUserVal = profile && Boolean(profile[spec.profileProp] || (spec.key === 'ci' && profile.location));
-          const currentDOMVal = (inp.value || inp.innerText || (inp.files && inp.files.length > 0 ? inp.files[0].name : '')).trim();
-          
-          let status = 'empty';
-          if (currentDOMVal.length > 0) {
-            status = 'filled';
-          } else if (hasUserVal) {
-            status = 'ready_to_autofill';
-          } else {
-            status = 'missing_profile_data';
-          }
-
-          fields.push({
-            key: spec.key,
-            label: spec.label,
-            status,
-            hasDataInProfile: hasUserVal,
-            currentValue: currentDOMVal
-          });
-        }
-      });
-    });
-
-    const filledCount = fields.filter(f => f.status === 'filled').length;
-    const readyCount = fields.filter(f => f.status === 'ready_to_autofill').length;
+    const totalRequired = fields.filter(f => f.required).length;
 
     return {
       fields,
-      filledCount,
+      filledCount: verifiedCount,
       readyCount,
       totalCount: fields.length,
-      percentage: fields.length > 0 ? Math.round((filledCount / fields.length) * 100) : 0
+      percentage: totalRequired > 0 ? Math.round((verifiedCount / totalRequired) * 100) : 0
     };
   }
 
@@ -2454,9 +2592,15 @@
         } else if (request.type === 'GET_FORM_FIELDS_STATUS') {
           sendResponse(scanFormFields(request.profile));
         } else if (request.type === 'TRIGGER_AUTOFILL') {
-          const res = runAutofill(request.profile);
-          const scanRes = scanFormFields(request.profile);
-          sendResponse({ success: true, count: res.count, scan: scanRes });
+          (async () => {
+            try {
+              const agentReport = await ApplicationAgentEngine.runAgent(request.profile);
+              sendResponse({ success: true, count: agentReport.verifiedCount || 0, agentReport });
+            } catch(e) {
+              sendResponse({ success: false, error: String(e) });
+            }
+          })();
+          return true;
         } else if (request.type === 'SCROLL_TO_FIELD') {
           const ok = scrollToAndHighlightField(request.searchTerms, request.selector);
           sendResponse({ success: ok });
