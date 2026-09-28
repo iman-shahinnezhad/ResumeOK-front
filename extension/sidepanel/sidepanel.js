@@ -735,7 +735,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
 
           <button id="results-autofill-btn" class="btn-black-pill">
-            Autofill Form
+            🤖 Run AI Application Agent
           </button>
           <div id="results-autofill-msg" style="font-size:12px;color:#10b981;text-align:center;margin-top:6px;font-weight:700;">
             ✅ Saved to your ApplyDesk database!
