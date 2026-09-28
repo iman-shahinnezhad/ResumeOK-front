@@ -418,6 +418,95 @@
     }
   }
 
+  async function fetchLeverDetails(inputUrl) {
+    try {
+      const u = new URL(inputUrl);
+      if (!u.hostname.includes('lever.co')) return null;
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts.length < 2) return null;
+      const company = parts[0];
+      const jobId = parts[1];
+      if (!company || !jobId) return null;
+
+      const res = await fetch(`https://api.lever.co/v0/postings/${company}/${jobId}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+
+      const title = data.text || data.title;
+      const location = data.categories?.location || (Array.isArray(data.categories?.allLocations) ? data.categories.allLocations.join(', ') : 'Remote');
+
+      let description = (data.descriptionPlain || data.descriptionBodyPlain || '').replace(/\s+/g, ' ').trim();
+      if (Array.isArray(data.lists) && data.lists.length > 0) {
+        const listTexts = data.lists.map(item => {
+          const heading = item.text ? item.text.trim() : '';
+          const bodyHtml = item.content || '';
+          const bodyText = bodyHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          return heading ? `${heading}\n${bodyText}` : bodyText;
+        }).filter(Boolean);
+        description += '\n\n' + listTexts.join('\n\n');
+      }
+
+      const cleanCompany = (company || 'Company').toUpperCase();
+      const cleanUrl = data.hostedUrl || `https://jobs.lever.co/${company}/${jobId}`;
+
+      return {
+        source: 'lever',
+        title,
+        company: cleanCompany,
+        location,
+        description,
+        url: cleanUrl
+      };
+    } catch(e) {
+      return null;
+    }
+  }
+
+  async function fetchGreenhouseDetails(inputUrl) {
+    try {
+      const u = new URL(inputUrl);
+      if (!u.hostname.includes('greenhouse.io')) return null;
+      const parts = u.pathname.split('/').filter(Boolean);
+      let board = '';
+      let jobId = '';
+
+      if (parts[0] === 'embed' || parts[0] === 'jobs') {
+        board = u.searchParams.get('for') || parts[1];
+        jobId = u.searchParams.get('id') || parts[2] || parts[1];
+      } else {
+        board = parts[0];
+        jobId = parts[1];
+      }
+      if (!board || !jobId || jobId === 'apply') return null;
+
+      const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${board}/jobs/${jobId}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+
+      const title = data.title;
+      const company = data.company_name || board.toUpperCase();
+      const location = data.location?.name || 'Remote';
+      let description = (data.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      if (typeof DOMParser !== 'undefined' && data.content && data.content.includes('<')) {
+        try {
+          const doc = new DOMParser().parseFromString(data.content, 'text/html');
+          description = doc.body.textContent.replace(/\s+/g, ' ').trim();
+        } catch(e) {}
+      }
+
+      return {
+        source: 'greenhouse',
+        title,
+        company,
+        location,
+        description,
+        url: data.absolute_url || `https://boards.greenhouse.io/${board}/jobs/${jobId}`
+      };
+    } catch(e) {
+      return null;
+    }
+  }
+
   function extractJsonLdJobDetails() {
     try {
       const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -471,7 +560,37 @@
   async function extractJobDetails() {
     const url = window.location.href;
 
-    // 0. Workday CXS Direct API fetch if on Workday domain
+    // 0a. Lever Direct API Fetch
+    if (url.includes('lever.co')) {
+      const leverJob = await fetchLeverDetails(url);
+      if (leverJob && leverJob.title && leverJob.description && leverJob.description.length > 50) {
+        return {
+          title: leverJob.title,
+          company: leverJob.company,
+          location: leverJob.location,
+          companyOverview: `${leverJob.company} is hiring a ${leverJob.title} in ${leverJob.location}.`,
+          description: leverJob.description.substring(0, 15000),
+          url: leverJob.url
+        };
+      }
+    }
+
+    // 0b. Greenhouse Direct API Fetch
+    if (url.includes('greenhouse.io')) {
+      const ghJob = await fetchGreenhouseDetails(url);
+      if (ghJob && ghJob.title && ghJob.description && ghJob.description.length > 50) {
+        return {
+          title: ghJob.title,
+          company: ghJob.company,
+          location: ghJob.location,
+          companyOverview: `${ghJob.company} is hiring a ${ghJob.title} in ${ghJob.location}.`,
+          description: ghJob.description.substring(0, 15000),
+          url: ghJob.url
+        };
+      }
+    }
+
+    // 0c. Workday CXS Direct API fetch if on Workday domain
     if (url.includes('myworkdayjobs.com') || url.includes('workday.com')) {
       const workdayDetails = await fetchWorkdayCxsDetails(url);
       if (workdayDetails && workdayDetails.title) {
@@ -481,10 +600,10 @@
           company: workdayDetails.company,
           location: workdayDetails.location,
           companyOverview,
-          description: workdayDetails.description.substring(0, 10000),
+          description: workdayDetails.description.substring(0, 15000),
           employmentType: workdayDetails.employmentType,
           requisitionId: workdayDetails.requisitionId || null,
-          url
+          url: workdayDetails.url || url
         };
       }
     }
