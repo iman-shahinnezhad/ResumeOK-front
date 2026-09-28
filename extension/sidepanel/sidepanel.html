@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ApplyDesk Copilot</title>
   <link rel="stylesheet" href="sidepanel.css">
 </head>
+
 <body>
   <div class="panel-container">
     <!-- Header -->
     <header class="panel-header">
       <div class="brand">
-        <div class="brand-logo-box" style="display: flex; align-items: center; justify-content: center; background: transparent; border: none;">
-          <img src="../assets/extension-logo.svg" width="36" height="36" style="border-radius: 9px; object-fit: contain;" alt="ApplyDesk Logo">
+        <div class="brand-logo-box"
+          style="display: flex; align-items: center; justify-content: center; background: transparent; border: none;">
+          <img src="../assets/extension-logo.svg" width="36" height="36"
+            style="border-radius: 9px; object-fit: contain;" alt="ApplyDesk Logo">
         </div>
         <div>
           <div class="brand-title">Applydesk.io</div>
@@ -25,14 +29,16 @@
           <span style="color:#f97316;">✦</span>
         </div>
         <button id="logout-btn" class="header-logout-btn" title="Log out" style="display: none;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16 17 21 12 16 7"></polyline>
             <line x1="21" y1="12" x2="9" y2="12"></line>
           </svg>
         </button>
         <button id="collapse-btn" class="collapse-btn-circle" title="Collapse Panel">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
             <polyline points="9 18 15 12 9 6"></polyline>
           </svg>
         </button>
@@ -40,7 +46,8 @@
     </header>
 
     <!-- Initial Loading View (Prevents UI flicker while checking web & local auth state) -->
-    <div id="sidepanel-loading-view" class="card-white" style="text-align: center; padding: 40px 16px; margin-top: 12px;">
+    <div id="sidepanel-loading-view" class="card-white"
+      style="text-align: center; padding: 40px 16px; margin-top: 12px;">
       <div style="font-size: 28px; margin-bottom: 12px; animation: pulse 1.5s infinite;">⚡</div>
       <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">Syncing ApplyDesk...</div>
       <div style="font-size: 11px; color: #64748b;">Verifying authentication</div>
@@ -51,7 +58,8 @@
       <div style="font-size: 32px; margin-bottom: 8px;">🔐</div>
       <div class="card-title-lg" style="margin-bottom: 8px;">Log in to ApplyDesk</div>
       <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px;">
-        Please log in to your ApplyDesk account to access your candidate profile, sync jobs to your database, and auto-fill applications.
+        Please log in to your ApplyDesk account to access your candidate profile, sync jobs to your database, and
+        auto-fill applications.
       </p>
       <button id="login-web-btn" class="btn-black-pill" style="margin-bottom: 10px;">
         Log In / Sign Up
@@ -79,31 +87,51 @@
           <div style="font-size: 15px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 18px;">🤖</span> Application Agent
           </div>
-          <span id="agent-verified-badge" style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 12px; background: #dcfce7; color: #166534;">
+          <span id="agent-verified-badge"
+            style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 12px; background: #dcfce7; color: #166534;">
             Active Agent
           </span>
         </div>
 
         <button id="run-agent-btn" class="btn-black-pill" style="margin-bottom: 10px; font-weight: 800;">
-          🤖 Run AI Application Agent
+          ✨ Run AI Application Agent
         </button>
-        <div id="agent-status-msg" style="font-size:12px;color:#10b981;text-align:center;margin-top:2px;font-weight:700;"></div>
+        <div id="agent-status-msg"
+          style="font-size:12px;color:#10b981;text-align:center;margin-top:2px;font-weight:700;"></div>
 
-        <!-- Detected Form Fields Header -->
-        <div style="font-size: 13px; font-weight: 800; color: #334155; margin-top: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-          <span>Form Fields Detected</span>
-          <span id="agent-fields-count-badge" style="font-size: 11px; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 10px;">0 fields</span>
+        <!-- Jobright-Style Progress Header -->
+        <div class="jobright-progress-card">
+          <div class="jobright-progress-header">
+            <div class="jobright-progress-title">
+              <span id="agent-filled-count">0/0</span> required fields filled
+              <span class="jobright-divider">|</span>
+              <span id="agent-percentage">0%</span>
+            </div>
+            <div class="jobright-chevron" id="toggle-checklist-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="jobright-progress-track">
+            <div id="agent-progress-fill" class="jobright-progress-fill" style="width: 0%;"></div>
+          </div>
         </div>
 
-        <!-- Live Verified Field Checklist -->
-        <div id="agent-fields-checklist" style="display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 2px;">
-          <div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 16px 0;">Click "Run AI Application Agent" to scan form controls & fill fields.</div>
+        <!-- Live Field Checklist (Required & Optional Sections) -->
+        <div id="agent-fields-checklist" class="jobright-checklist-container">
+          <div style="font-size: 12px; color: #94a3b8; text-align: center; padding: 16px 0;">
+            Click "Run AI Application Agent" to scan form controls & fill fields.
+          </div>
         </div>
 
         <!-- Final Submission Notice (NO automatic submit) -->
-        <div id="agent-submit-review-box" style="display: none; margin-top: 14px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 12px; text-align: center;">
-          <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">Application Ready for Review</div>
-          <div style="font-size: 11px; color: #64748b; margin-bottom: 6px;">Please review all fields in the page above before submitting manually.</div>
+        <div id="agent-submit-review-box"
+          style="display: none; margin-top: 14px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 12px; text-align: center;">
+          <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">Application Ready for
+            Review</div>
+          <div style="font-size: 11px; color: #64748b; margin-bottom: 6px;">Please review all fields in the page above
+            before submitting manually.</div>
           <div id="agent-review-summary" style="font-size:12px;color:#334155;"></div>
         </div>
       </div>
@@ -116,7 +144,9 @@
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
           <span style="font-size:20px;">📁</span>
-          <span id="resume-filename-val" style="font-size:13px;font-weight:600;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">No resume attached</span>
+          <span id="resume-filename-val"
+            style="font-size:13px;font-weight:600;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">No
+            resume attached</span>
         </div>
         <input type="file" id="resume-file-input" accept=".pdf,.doc,.docx" style="display:none;" />
         <button id="fix-resume-btn" class="btn-outline-pill">
@@ -125,53 +155,79 @@
       </div>
 
       <!-- AI Resume Tailoring Progress View (Matching Mobile App Step Checklist) -->
-      <div id="fix-resume-progress-view" class="card-white" style="display: none; margin-top: 10px; padding: 20px 16px;">
+      <div id="fix-resume-progress-view" class="card-white"
+        style="display: none; margin-top: 10px; padding: 20px 16px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
           <div style="font-size: 15px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 18px;">⚡</span> AI Resume Optimizer
           </div>
-          <button id="close-fix-progress-btn" style="background: none; border: none; font-size: 16px; cursor: pointer; color: #64748b;" title="Close">✕</button>
+          <button id="close-fix-progress-btn"
+            style="background: none; border: none; font-size: 16px; cursor: pointer; color: #64748b;"
+            title="Close">✕</button>
         </div>
 
         <div style="font-size: 12px; color: #64748b; margin-bottom: 16px; line-height: 1.4;">
-          Tailoring resume & skills for <strong id="fix-job-target-name" style="color: #0f172a;">Current Position</strong>
+          Tailoring resume & skills for <strong id="fix-job-target-name" style="color: #0f172a;">Current
+            Position</strong>
         </div>
 
         <!-- Progress Steps Checklist -->
-        <div class="steps-checklist-container" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+        <div class="steps-checklist-container"
+          style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
           <!-- Step 1 -->
-          <div id="fix-step-1" class="checklist-step step-pending" style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
-            <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #94a3b8; flex-shrink: 0;">1</div>
+          <div id="fix-step-1" class="checklist-step step-pending"
+            style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+            <div class="step-icon"
+              style="width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #94a3b8; flex-shrink: 0;">
+              1</div>
             <div class="step-label" style="flex: 1; color: #64748b;">Extracting job requirements & criteria</div>
           </div>
           <!-- Step 2 -->
-          <div id="fix-step-2" class="checklist-step step-pending" style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
-            <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #94a3b8; flex-shrink: 0;">2</div>
+          <div id="fix-step-2" class="checklist-step step-pending"
+            style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+            <div class="step-icon"
+              style="width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #94a3b8; flex-shrink: 0;">
+              2</div>
             <div class="step-label" style="flex: 1; color: #64748b;">Scanning resume & identifying skill gaps</div>
           </div>
           <!-- Step 3 -->
-          <div id="fix-step-3" class="checklist-step step-pending" style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
-            <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #94a3b8; flex-shrink: 0;">3</div>
+          <div id="fix-step-3" class="checklist-step step-pending"
+            style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+            <div class="step-icon"
+              style="width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #94a3b8; flex-shrink: 0;">
+              3</div>
             <div class="step-label" style="flex: 1; color: #64748b;">Rewriting & optimizing bullet points with AI</div>
           </div>
           <!-- Step 4 -->
-          <div id="fix-step-4" class="checklist-step step-pending" style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
-            <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #94a3b8; flex-shrink: 0;">4</div>
+          <div id="fix-step-4" class="checklist-step step-pending"
+            style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+            <div class="step-icon"
+              style="width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #94a3b8; flex-shrink: 0;">
+              4</div>
             <div class="step-label" style="flex: 1; color: #64748b;">Optimizing ATS keywords & match score</div>
           </div>
           <!-- Step 5 -->
-          <div id="fix-step-5" class="checklist-step step-pending" style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
-            <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #94a3b8; flex-shrink: 0;">5</div>
+          <div id="fix-step-5" class="checklist-step step-pending"
+            style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+            <div class="step-icon"
+              style="width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #94a3b8; flex-shrink: 0;">
+              5</div>
             <div class="step-label" style="flex: 1; color: #64748b;">Generating tailored PDF resume & syncing</div>
           </div>
         </div>
 
         <!-- Completion Box -->
-        <div id="fix-complete-box" style="display: none; background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 16px; padding: 16px; text-align: center;">
+        <div id="fix-complete-box"
+          style="display: none; background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 16px; padding: 16px; text-align: center;">
           <div style="font-size: 24px; margin-bottom: 4px;">🎉</div>
-          <div style="font-size: 14px; font-weight: 800; color: #166534; margin-bottom: 2px;">Resume Optimization Complete!</div>
-          <div style="font-size: 12px; color: #15803d; font-weight: 600; margin-bottom: 14px;">Match score boosted to <span id="boosted-score-tag" style="background: #166534; color: #ffffff; padding: 2px 8px; border-radius: 10px; font-weight: 800;">98/100</span></div>
-          <button id="apply-tailored-resume-btn" class="btn-black-pill" style="background: #166534; margin-bottom: 6px;">
+          <div style="font-size: 14px; font-weight: 800; color: #166534; margin-bottom: 2px;">Resume Optimization
+            Complete!</div>
+          <div style="font-size: 12px; color: #15803d; font-weight: 600; margin-bottom: 14px;">Match score boosted to
+            <span id="boosted-score-tag"
+              style="background: #166534; color: #ffffff; padding: 2px 8px; border-radius: 10px; font-weight: 800;">98/100</span>
+          </div>
+          <button id="apply-tailored-resume-btn" class="btn-black-pill"
+            style="background: #166534; margin-bottom: 6px;">
             🤖 Run AI Application Agent
           </button>
         </div>
@@ -184,197 +240,204 @@
       </a>
     </main>
 
-  <!-- Edit Profile Modal Overlay (Matching Image 2 Design) -->
-  <div id="edit-info-modal-overlay" class="modal-overlay" style="display: none;">
-    <div class="modal-window">
-      <!-- Modal Header -->
-      <div class="modal-header">
-        <div class="brand">
-          <div class="brand-logo-box" style="width: 36px; height: 36px; border-radius: 10px;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 18V10C4 6.68629 6.68629 4 10 4H14C17.3137 4 20 6.68629 20 10V18"></path>
-            </svg>
+    <!-- Edit Profile Modal Overlay (Matching Image 2 Design) -->
+    <div id="edit-info-modal-overlay" class="modal-overlay" style="display: none;">
+      <div class="modal-window">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <div class="brand">
+            <div class="brand-logo-box" style="width: 36px; height: 36px; border-radius: 10px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2.6"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 18V10C4 6.68629 6.68629 4 10 4H14C17.3137 4 20 6.68629 20 10V18"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="brand-title" style="font-size: 14px;">Applydesk.io</div>
+              <div class="brand-sub" style="font-size: 11px;">Auto-Apply with confidence.</div>
+            </div>
           </div>
-          <div>
-            <div class="brand-title" style="font-size: 14px;">Applydesk.io</div>
-            <div class="brand-sub" style="font-size: 11px;">Auto-Apply with confidence.</div>
+          <button id="modal-close-btn" class="modal-close-circle" title="Close Modal">✕</button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body">
+          <!-- Sidebar Navigation -->
+          <nav class="modal-sidebar">
+            <button class="modal-tab-btn active" data-tab="tab-personal">
+              <span class="tab-icon">👤</span> Personal info
+            </button>
+            <button class="modal-tab-btn" data-tab="tab-work">
+              <span class="tab-icon">💼</span> Work Experience
+            </button>
+            <button class="modal-tab-btn" data-tab="tab-education">
+              <span class="tab-icon">🎓</span> Education
+            </button>
+            <button class="modal-tab-btn" data-tab="tab-skills">
+              <span class="tab-icon">🛠</span> Skills & Tools
+            </button>
+            <button class="modal-tab-btn" data-tab="tab-projects">
+              <span class="tab-icon">📁</span> Projects & Portfolio
+            </button>
+          </nav>
+
+          <!-- Main Form Content Area -->
+          <div class="modal-content-area">
+            <!-- Tab 1: Personal Info -->
+            <div id="tab-personal" class="tab-pane active">
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">First Name</label>
+                  <input type="text" id="profile-firstName" class="form-input" placeholder="Donald" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Last Name</label>
+                  <input type="text" id="profile-lastName" class="form-input" placeholder="Miller" />
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Email Address</label>
+                  <input type="email" id="profile-email" class="form-input" placeholder="candidate@example.com" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phone Number</label>
+                  <input type="tel" id="profile-phone" class="form-input" placeholder="+1 (555) 123-4567" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Current Location (City, State / Country)</label>
+                <input type="text" id="profile-location" class="form-input" placeholder="San Francisco, CA, USA" />
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">LinkedIn Profile URL</label>
+                  <input type="url" id="profile-linkedinUrl" class="form-input"
+                    placeholder="https://linkedin.com/in/username" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">GitHub Profile URL</label>
+                  <input type="url" id="profile-githubUrl" class="form-input"
+                    placeholder="https://github.com/username" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Portfolio / Personal Website</label>
+                <input type="url" id="profile-portfolioUrl" class="form-input" placeholder="https://myportfolio.com" />
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Authorized to work in US?</label>
+                  <select id="profile-usWorkAuth" class="form-select">
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Require Visa Sponsorship?</label>
+                  <select id="profile-sponsorshipRequired" class="form-select">
+                    <option value="No">No</option>
+                    <option value="Yes">Yes</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Gender</label>
+                  <select id="profile-gender" class="form-select">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Non-Binary">Non-Binary</option>
+                    <option value="Decline to state">Decline to state</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Race / Ethnicity</label>
+                  <select id="profile-race" class="form-select">
+                    <option value="Decline to state">Decline to state</option>
+                    <option value="Asian">Asian</option>
+                    <option value="White / Caucasian">White / Caucasian</option>
+                    <option value="Black / African American">Black / African American</option>
+                    <option value="Hispanic / Latino">Hispanic / Latino</option>
+                    <option value="Two or more races">Two or more races</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Veteran Status</label>
+                  <select id="profile-veteran" class="form-select">
+                    <option value="No">I am not a veteran</option>
+                    <option value="Yes">Yes, protected veteran</option>
+                    <option value="Decline to state">Decline to state</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Disability Status</label>
+                  <select id="profile-disability" class="form-select">
+                    <option value="No">No, I do not have a disability</option>
+                    <option value="Yes">Yes, I have a disability</option>
+                    <option value="Decline to state">Decline to state</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab 2: Work Experience -->
+            <div id="tab-work" class="tab-pane">
+              <div id="work-experience-list"></div>
+              <button id="add-work-btn" class="add-entry-btn">+ Add Work Experience</button>
+            </div>
+
+            <!-- Tab 3: Education -->
+            <div id="tab-education" class="tab-pane">
+              <div id="education-list"></div>
+              <button id="add-education-btn" class="add-entry-btn">+ Add Education</button>
+            </div>
+
+            <!-- Tab 4: Skills & Tools -->
+            <div id="tab-skills" class="tab-pane">
+              <div class="form-group">
+                <label class="form-label">Technical & Professional Skills (Comma Separated)</label>
+                <textarea id="profile-skills" class="form-textarea"
+                  placeholder="JavaScript, React, Node.js, TypeScript, Python, HTML/CSS, AWS, Docker..."></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Languages Spoken (Comma Separated)</label>
+                <input type="text" id="profile-languages" class="form-input"
+                  placeholder="English (Native), Spanish (Fluent), German" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Certifications & Licenses</label>
+                <textarea id="profile-certifications" class="form-textarea"
+                  placeholder="AWS Certified Solutions Architect, PMP..."></textarea>
+              </div>
+            </div>
+
+            <!-- Tab 5: Projects & Portfolio -->
+            <div id="tab-projects" class="tab-pane">
+              <div id="projects-list"></div>
+              <button id="add-project-btn" class="add-entry-btn">+ Add Project</button>
+            </div>
           </div>
         </div>
-        <button id="modal-close-btn" class="modal-close-circle" title="Close Modal">✕</button>
-      </div>
 
-      <!-- Modal Body -->
-      <div class="modal-body">
-        <!-- Sidebar Navigation -->
-        <nav class="modal-sidebar">
-          <button class="modal-tab-btn active" data-tab="tab-personal">
-            <span class="tab-icon">👤</span> Personal info
-          </button>
-          <button class="modal-tab-btn" data-tab="tab-work">
-            <span class="tab-icon">💼</span> Work Experience
-          </button>
-          <button class="modal-tab-btn" data-tab="tab-education">
-            <span class="tab-icon">🎓</span> Education
-          </button>
-          <button class="modal-tab-btn" data-tab="tab-skills">
-            <span class="tab-icon">🛠</span> Skills & Tools
-          </button>
-          <button class="modal-tab-btn" data-tab="tab-projects">
-            <span class="tab-icon">📁</span> Projects & Portfolio
-          </button>
-        </nav>
-
-        <!-- Main Form Content Area -->
-        <div class="modal-content-area">
-          <!-- Tab 1: Personal Info -->
-          <div id="tab-personal" class="tab-pane active">
-            <div class="form-grid-2">
-              <div class="form-group">
-                <label class="form-label">First Name</label>
-                <input type="text" id="profile-firstName" class="form-input" placeholder="Donald" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Last Name</label>
-                <input type="text" id="profile-lastName" class="form-input" placeholder="Miller" />
-              </div>
-            </div>
-
-            <div class="form-grid-2">
-              <div class="form-group">
-                <label class="form-label">Email Address</label>
-                <input type="email" id="profile-email" class="form-input" placeholder="candidate@example.com" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Phone Number</label>
-                <input type="tel" id="profile-phone" class="form-input" placeholder="+1 (555) 123-4567" />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Current Location (City, State / Country)</label>
-              <input type="text" id="profile-location" class="form-input" placeholder="San Francisco, CA, USA" />
-            </div>
-
-            <div class="form-grid-2">
-              <div class="form-group">
-                <label class="form-label">LinkedIn Profile URL</label>
-                <input type="url" id="profile-linkedinUrl" class="form-input" placeholder="https://linkedin.com/in/username" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">GitHub Profile URL</label>
-                <input type="url" id="profile-githubUrl" class="form-input" placeholder="https://github.com/username" />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Portfolio / Personal Website</label>
-              <input type="url" id="profile-portfolioUrl" class="form-input" placeholder="https://myportfolio.com" />
-            </div>
-
-            <div class="form-grid-2">
-              <div class="form-group">
-                <label class="form-label">Authorized to work in US?</label>
-                <select id="profile-usWorkAuth" class="form-select">
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Require Visa Sponsorship?</label>
-                <select id="profile-sponsorshipRequired" class="form-select">
-                  <option value="No">No</option>
-                  <option value="Yes">Yes</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-grid-2">
-              <div class="form-group">
-                <label class="form-label">Gender</label>
-                <select id="profile-gender" class="form-select">
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Non-Binary">Non-Binary</option>
-                  <option value="Decline to state">Decline to state</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Race / Ethnicity</label>
-                <select id="profile-race" class="form-select">
-                  <option value="Decline to state">Decline to state</option>
-                  <option value="Asian">Asian</option>
-                  <option value="White / Caucasian">White / Caucasian</option>
-                  <option value="Black / African American">Black / African American</option>
-                  <option value="Hispanic / Latino">Hispanic / Latino</option>
-                  <option value="Two or more races">Two or more races</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-grid-2">
-              <div class="form-group">
-                <label class="form-label">Veteran Status</label>
-                <select id="profile-veteran" class="form-select">
-                  <option value="No">I am not a veteran</option>
-                  <option value="Yes">Yes, protected veteran</option>
-                  <option value="Decline to state">Decline to state</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Disability Status</label>
-                <select id="profile-disability" class="form-select">
-                  <option value="No">No, I do not have a disability</option>
-                  <option value="Yes">Yes, I have a disability</option>
-                  <option value="Decline to state">Decline to state</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab 2: Work Experience -->
-          <div id="tab-work" class="tab-pane">
-            <div id="work-experience-list"></div>
-            <button id="add-work-btn" class="add-entry-btn">+ Add Work Experience</button>
-          </div>
-
-          <!-- Tab 3: Education -->
-          <div id="tab-education" class="tab-pane">
-            <div id="education-list"></div>
-            <button id="add-education-btn" class="add-entry-btn">+ Add Education</button>
-          </div>
-
-          <!-- Tab 4: Skills & Tools -->
-          <div id="tab-skills" class="tab-pane">
-            <div class="form-group">
-              <label class="form-label">Technical & Professional Skills (Comma Separated)</label>
-              <textarea id="profile-skills" class="form-textarea" placeholder="JavaScript, React, Node.js, TypeScript, Python, HTML/CSS, AWS, Docker..."></textarea>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Languages Spoken (Comma Separated)</label>
-              <input type="text" id="profile-languages" class="form-input" placeholder="English (Native), Spanish (Fluent), German" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Certifications & Licenses</label>
-              <textarea id="profile-certifications" class="form-textarea" placeholder="AWS Certified Solutions Architect, PMP..."></textarea>
-            </div>
-          </div>
-
-          <!-- Tab 5: Projects & Portfolio -->
-          <div id="tab-projects" class="tab-pane">
-            <div id="projects-list"></div>
-            <button id="add-project-btn" class="add-entry-btn">+ Add Project</button>
-          </div>
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+          <div id="modal-save-msg" class="modal-save-msg"></div>
+          <button id="modal-save-btn" class="btn-update-pill">Update</button>
         </div>
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="modal-footer">
-        <div id="modal-save-msg" class="modal-save-msg"></div>
-        <button id="modal-save-btn" class="btn-update-pill">Update</button>
       </div>
     </div>
-  </div>
 
-  <script src="sidepanel.js"></script>
+    <script src="sidepanel.js"></script>
 </body>
+
 </html>

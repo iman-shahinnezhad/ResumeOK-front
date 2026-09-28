@@ -843,16 +843,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (msgEl) msgEl.innerText = 'Running DOM inspection...';
 
     const card = document.getElementById('application-agent-card');
-    const progressBar = document.getElementById('agent-progress-bar');
-    const progressLabel = document.getElementById('agent-progress-label');
+    const filledCountEl = document.getElementById('agent-filled-count');
+    const percentageEl = document.getElementById('agent-percentage');
+    const progressFillEl = document.getElementById('agent-progress-fill');
     const checklist = document.getElementById('agent-fields-checklist');
     const reviewBox = document.getElementById('agent-submit-review-box');
     const summaryBox = document.getElementById('agent-review-summary');
-
-    const pillVerified = document.getElementById('pill-count-verified') || document.getElementById('count-verified');
-    const pillReview = document.getElementById('pill-count-review') || document.getElementById('count-review');
-    const pillUser = document.getElementById('pill-count-user') || document.getElementById('count-required');
-    const pillOptional = document.getElementById('pill-count-optional') || document.getElementById('count-optional');
 
     if (card) card.style.display = 'block';
     if (checklist) {
@@ -867,7 +863,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tab = await getActiveTab();
     if (!tab || !tab.id) {
       if (triggerBtn) {
-        triggerBtn.innerText = '🤖 Run AI Application Agent';
+        triggerBtn.innerText = '✨ Run AI Application Agent';
         triggerBtn.disabled = false;
       }
       if (msgEl) msgEl.innerText = '❌ Active browser tab not found.';
@@ -889,11 +885,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL', profile: profileToSend }, (res) => {
+      if (triggerBtn) {
+        triggerBtn.innerText = '✨ Run AI Application Agent';
+        triggerBtn.disabled = false;
+      }
+
       if (chrome.runtime.lastError || !res || !res.success) {
-        if (triggerBtn) {
-          triggerBtn.innerText = '🤖 Run AI Application Agent';
-          triggerBtn.disabled = false;
-        }
         if (checklist) {
           checklist.innerHTML = `
             <div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b;font-size:13px;font-weight:600;">
@@ -905,64 +902,64 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       const report = res.agentReport || res.report;
-      if (!report || !report.fields) {
-        if (triggerBtn) {
-          triggerBtn.innerText = '🤖 Run AI Application Agent';
-          triggerBtn.disabled = false;
-        }
-        return;
-      }
+      if (!report || !report.fields) return;
 
-      // Update Progress Bar based strictly on Verified DOM State
-      const requiredTotal = Math.max(1, report.total - report.optionalCount);
-      const pct = Math.min(100, Math.round((report.verifiedCount / requiredTotal) * 100));
-      if (progressBar) progressBar.style.width = `${pct}%`;
-      if (progressLabel) progressLabel.innerText = `${report.verifiedCount} / ${requiredTotal} required fields verified (${pct}%)`;
-      const pctEl = document.getElementById('agent-progress-pct');
-      if (pctEl) pctEl.innerText = `${pct}%`;
+      if (msgEl) msgEl.innerText = `Agent Completed (${report.verifiedCount} fields verified)`;
 
-      // Update Pill Counts
-      if (pillVerified) pillVerified.innerText = report.verifiedCount;
-      if (pillReview) pillReview.innerText = report.reviewRequiredCount;
-      if (pillUser) pillUser.innerText = report.userRequiredCount;
-      if (pillOptional) pillOptional.innerText = report.optionalCount;
+      // Group fields into Required and Optional
+      const requiredFields = report.fields.filter(f => f.required || f.section === 'REQUIRED');
+      const optionalFields = report.fields.filter(f => !f.required && f.section !== 'REQUIRED');
 
-      // Render Categorized Field Checklist
+      const filledRequired = requiredFields.filter(f => f.status === 'VERIFIED' || (f.value && String(f.value).trim().length > 0)).length;
+      const totalRequired = requiredFields.length;
+      const pct = totalRequired > 0 ? Math.round((filledRequired / totalRequired) * 100) : 100;
+
+      // Update Header Progress Bar matching Jobright
+      if (filledCountEl) filledCountEl.innerText = `${filledRequired}/${totalRequired}`;
+      if (percentageEl) percentageEl.innerText = `${pct}%`;
+      if (progressFillEl) progressFillEl.style.width = `${pct}%`;
+
+      // Render Jobright Checklist UI
       if (checklist) {
-        checklist.innerHTML = report.fields.map((f, i) => {
-          let badgeHtml = '';
-          let borderStyle = 'border:1px solid #e2e8f0;';
-          let bgStyle = 'background:#ffffff;';
+        const filledSvg = `
+          <div class="jobright-item-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" fill="#00d68f"/>
+              <path d="M8 12L11 15L16 9" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        `;
+        const unfilledSvg = `
+          <div class="jobright-item-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" fill="#e2e8f0"/>
+              <path d="M8 12H16" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        `;
 
-          if (f.status === 'VERIFIED') {
-            badgeHtml = `<span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;padding:3px 8px;border-radius:12px;">🟢 VERIFIED</span>`;
-            borderStyle = 'border:1px solid #bbf7d0;';
-          } else if (f.status === 'REVIEW_REQUIRED') {
-            badgeHtml = `<span style="font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;padding:3px 8px;border-radius:12px;">🟡 REVIEW</span>`;
-            borderStyle = 'border:1px solid #fde68a;';
-          } else if (f.status === 'USER_REQUIRED') {
-            badgeHtml = `<span style="font-size:11px;font-weight:700;color:#b91c1c;background:#fee2e2;padding:3px 8px;border-radius:12px;">🔴 USER REQUIRED</span>`;
-            borderStyle = 'border:1px solid #fca5a5;';
-            bgStyle = 'background:#fff5f5;';
-          } else {
-            badgeHtml = `<span style="font-size:11px;font-weight:700;color:#64748b;background:#f1f5f9;padding:3px 8px;border-radius:12px;">⚪ OPTIONAL</span>`;
-          }
-
-          const subtitle = f.reason ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${f.reason}</div>` : '';
-          const sectionBadge = f.section ? `<span style="font-size:10px;font-weight:600;color:#475569;background:#e2e8f0;padding:1px 5px;border-radius:4px;margin-left:6px;">${f.section}</span>` : '';
-
+        const renderRow = (f) => {
+          const isFilled = f.status === 'VERIFIED' || (f.value && String(f.value).trim().length > 0);
+          const icon = isFilled ? filledSvg : unfilledSvg;
           return `
-            <div class="agent-field-item" data-field-id="${f.fieldId}" data-selector="${encodeURIComponent(f.selector || '')}" style="display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:10px;${borderStyle}${bgStyle}cursor:pointer;transition:all 0.15s ease;">
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                <div style="font-size:13px;font-weight:700;color:#0f172a;display:flex;align-items:center;">
-                  ${f.label} ${sectionBadge}
-                </div>
-                <div>${badgeHtml}</div>
-              </div>
-              ${subtitle}
+            <div class="jobright-item-row agent-field-item" data-field-id="${f.fieldId}" data-selector="${encodeURIComponent(f.selector || '')}">
+              ${icon}
+              <div class="jobright-item-label">${f.label}</div>
             </div>
           `;
-        }).join('');
+        };
+
+        let html = '';
+        if (requiredFields.length > 0) {
+          html += `<div class="jobright-section-title">Required</div>`;
+          html += requiredFields.map(renderRow).join('');
+        }
+        if (optionalFields.length > 0) {
+          html += `<div class="jobright-section-title" style="margin-top: 14px;">Optional</div>`;
+          html += optionalFields.map(renderRow).join('');
+        }
+
+        checklist.innerHTML = html || `<div style="font-size: 12px; color: #94a3b8; text-align: center; padding: 12px 0;">No fields detected.</div>`;
 
         // Click-to-scroll to DOM field on webpage
         const items = checklist.querySelectorAll('.agent-field-item');
@@ -991,15 +988,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (reviewBox) reviewBox.style.display = 'block';
       if (summaryBox) {
         summaryBox.innerHTML = `
-          <div style="margin-bottom:6px;">
-            <strong>Verified Fields:</strong> ${report.verifiedCount} / ${report.total}<br>
-            <strong>User Action Required:</strong> ${report.userRequiredCount}<br>
-            <strong>Review Required:</strong> ${report.reviewRequiredCount}
-          </div>
-          ${report.userRequiredCount > 0 ? `<div style="color:#b91c1c;font-weight:700;margin-top:4px;">⚠️ Please answer the ${report.userRequiredCount} user-required fields directly on the webpage.</div>` : '<div style="color:#15803d;font-weight:700;margin-top:4px;">✅ All required fields are verified and ready!</div>'}
+          <strong>${report.verifiedCount}</strong> verified fields |
+          <strong>${totalRequired - filledRequired}</strong> required user input
         `;
       }
-
       if (triggerBtn) {
         triggerBtn.innerText = '✨ Agent Completed';
         triggerBtn.disabled = false;
@@ -1014,6 +1006,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (initialRunAgentBtn) {
     initialRunAgentBtn.addEventListener('click', () => {
       runApplicationAgent(initialRunAgentBtn, initialAgentMsg);
+    });
+  }
+
+  // Bind Toggle Chevron for Checklist Collapse / Expand
+  const toggleChecklistBtn = document.getElementById('toggle-checklist-btn');
+  if (toggleChecklistBtn) {
+    toggleChecklistBtn.addEventListener('click', () => {
+      const checklist = document.getElementById('agent-fields-checklist');
+      if (checklist) {
+        const isHidden = checklist.style.display === 'none';
+        checklist.style.display = isHidden ? 'flex' : 'none';
+        toggleChecklistBtn.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+      }
     });
   }
 
