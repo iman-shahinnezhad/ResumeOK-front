@@ -283,128 +283,341 @@
     return false;
   }
 
+  // --- WORKDAY CXS API & ATS JOB PARSER ---
+  function parseWorkdayUrl(inputUrl) {
+    let url;
+    try {
+      url = new URL(inputUrl);
+    } catch {
+      return null;
+    }
+    const hostname = url.hostname;
+    const match = hostname.match(/^([a-z0-9-]+)\.(wd[0-9]+)\.myworkdayjobs\.com$/i);
+
+    let tenant = '';
+    let shard = 'wd1';
+    if (match) {
+      tenant = match[1];
+      shard = match[2];
+    } else if (hostname.includes('myworkdayjobs.com') || hostname.includes('workday.com')) {
+      tenant = hostname.split('.')[0].replace(/-.*/, '');
+    } else {
+      return null;
+    }
+
+    const segments = url.pathname.split('/').filter(Boolean);
+    if (segments.length === 0) return null;
+
+    let locale = 'en-US';
+    let siteIndex = 0;
+
+    if (segments[0].match(/^[a-z]{2}-[A-Z]{2}$/)) {
+      locale = segments[0];
+      siteIndex = 1;
+    }
+
+    const site = segments[siteIndex];
+    if (!site) return null;
+
+    let remainingSegments = segments.slice(siteIndex + 1);
+    const applyIdx = remainingSegments.findIndex(s => s.toLowerCase() === 'apply');
+    if (applyIdx !== -1) {
+      remainingSegments = remainingSegments.slice(0, applyIdx);
+    }
+
+    if (remainingSegments.length === 0) return null;
+
+    const externalPath = '/' + remainingSegments.join('/');
+
+    return {
+      origin: url.origin,
+      tenant,
+      shard,
+      site,
+      locale,
+      externalPath
+    };
+  }
+
+  async function fetchWorkdayCxsDetails(inputUrl) {
+    const parsed = parseWorkdayUrl(inputUrl);
+    if (!parsed) return null;
+
+    const { origin, tenant, site, locale, externalPath } = parsed;
+    const apiUrl = `${origin}/wday/cxs/${tenant}/${site}${externalPath}`;
+
+    try {
+      const res = await fetch(apiUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'Accept-Language': locale
+        }
+      });
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      const info = data?.jobPostingInfo || data?.jobPosting || data;
+      if (!info) return null;
+
+      const cleanText = (val) => {
+        if (val === undefined || val === null) return null;
+        const text = String(val).replace(/\s+/g, ' ').trim();
+        return text || null;
+      };
+
+      const htmlToText = (html) => {
+        if (!html) return null;
+        try {
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          return doc.body.textContent.replace(/\s+/g, ' ').trim();
+        } catch(e) {
+          return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+      };
+
+      const title = cleanText(info.title || data.title);
+      const jobDescriptionHtml = info.jobDescription || info.jobDescriptionHtml || null;
+      const description = htmlToText(jobDescriptionHtml) || jobDescriptionHtml;
+
+      const locations = [];
+      const primaryLoc = cleanText(info.jobRequisitionLocation?.descriptor || info.location?.descriptor || info.location);
+      if (primaryLoc) locations.push(primaryLoc);
+
+      if (Array.isArray(info.additionalLocations)) {
+        for (const loc of info.additionalLocations) {
+          const v = cleanText(loc?.descriptor || loc?.location || loc);
+          if (v && !locations.includes(v)) locations.push(v);
+        }
+      }
+
+      const location = locations[0] || null;
+      const requisitionId = cleanText(info.jobReqId || data.jobReqId);
+      const company = cleanText(
+        info.hiringOrganization?.name ||
+        info.hiringOrganization?.descriptor ||
+        data.hiringOrganization?.name ||
+        tenant.toUpperCase()
+      );
+
+      const employmentType = cleanText(info.employmentType || info.timeType);
+
+      return {
+        source: 'workday',
+        title,
+        company: company || tenant.toUpperCase(),
+        location: location || 'Remote',
+        locations,
+        description: description || '',
+        employmentType: employmentType || 'Full-time',
+        requisitionId,
+        url: info.externalUrl || inputUrl
+      };
+    } catch(e) {
+      console.warn('[Workday CXS Fetch Warning]', e);
+      return null;
+    }
+  }
+
+  function extractJsonLdJobDetails() {
+    try {
+      const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+      for (const script of scripts) {
+        try {
+          const json = JSON.parse(script.textContent || script.innerText || '{}');
+          const items = Array.isArray(json) ? json : (json['@graph'] || [json]);
+          for (const item of items) {
+            if (item['@type'] === 'JobPosting') {
+              const title = item.title || item.name;
+              const company = item.hiringOrganization?.name || item.hiringOrganization?.descriptor;
+              let description = item.description || '';
+              if (description.includes('<')) {
+                try {
+                  const doc = new DOMParser().parseFromString(description, 'text/html');
+                  description = doc.body.textContent || description;
+                } catch(e) {}
+              }
+              description = description.replace(/\s+/g, ' ').trim();
+
+              let location = '';
+              if (item.jobLocation) {
+                const locObj = Array.isArray(item.jobLocation) ? item.jobLocation[0] : item.jobLocation;
+                const addr = locObj?.address;
+                if (typeof addr === 'string') location = addr;
+                else if (addr) {
+                  location = [addr.addressLocality, addr.addressRegion, addr.addressCountry].filter(Boolean).join(', ');
+                }
+              }
+              const employmentType = Array.isArray(item.employmentType) ? item.employmentType.join(', ') : item.employmentType;
+
+              if (title || company) {
+                return {
+                  title: title ? String(title).trim() : null,
+                  company: company ? String(company).trim() : null,
+                  location: location || null,
+                  description: description || null,
+                  employmentType: employmentType || null,
+                  source: 'json-ld'
+                };
+              }
+            }
+          }
+        } catch(e) {}
+      }
+    } catch(e) {}
+    return null;
+  }
+
   // Detect Job Details on Active Page
-  function extractJobDetails() {
-    let title = '';
-    let company = '';
-    let location = '';
-    let description = '';
+  async function extractJobDetails() {
+    const url = window.location.href;
+
+    // 0. Workday CXS Direct API fetch if on Workday domain
+    if (url.includes('myworkdayjobs.com') || url.includes('workday.com')) {
+      const workdayDetails = await fetchWorkdayCxsDetails(url);
+      if (workdayDetails && workdayDetails.title) {
+        const companyOverview = `${workdayDetails.company} is hiring a ${workdayDetails.title} (${workdayDetails.location}).`;
+        return {
+          title: workdayDetails.title,
+          company: workdayDetails.company,
+          location: workdayDetails.location,
+          companyOverview,
+          description: workdayDetails.description.substring(0, 10000),
+          employmentType: workdayDetails.employmentType,
+          requisitionId: workdayDetails.requisitionId || null,
+          url
+        };
+      }
+    }
+
+    // 0b. JSON-LD Microdata fetch
+    const jsonLdDetails = extractJsonLdJobDetails();
+
+    let title = jsonLdDetails?.title || '';
+    let company = jsonLdDetails?.company || '';
+    let location = jsonLdDetails?.location || '';
+    let description = jsonLdDetails?.description || '';
     let companyOverview = '';
 
-    const url = window.location.href;
     const hostname = window.location.hostname.toLowerCase();
     const pathname = window.location.pathname;
 
     // 1. Company extraction from URL structure & meta tags
-    if (hostname.includes('greenhouse.io')) {
-      const parts = pathname.split('/').filter(Boolean);
-      if (parts[0] && parts[0] !== 'embed' && parts[0] !== 'jobs') company = parts[0];
-      else if (parts[1]) company = parts[1];
-    } else if (hostname.includes('lever.co')) {
-      const parts = pathname.split('/').filter(Boolean);
-      if (parts[0]) company = parts[0];
-    } else if (hostname.includes('ashbyhq.com')) {
-      const parts = pathname.split('/').filter(Boolean);
-      if (parts[0]) company = parts[0];
-    } else if (hostname.includes('workday.com') || hostname.includes('myworkdayjobs.com')) {
-      company = hostname.split('.')[0].replace(/-.*/, '');
-    } else if (hostname.includes('bamboohr.com')) {
-      company = hostname.split('.')[0];
-    }
-
     if (!company) {
-      const compMeta = document.querySelector('meta[property="og:site_name"], meta[name="author"], meta[name="twitter:site"]');
-      if (compMeta && compMeta.content) company = compMeta.content.trim();
-    }
+      if (hostname.includes('greenhouse.io')) {
+        const parts = pathname.split('/').filter(Boolean);
+        if (parts[0] && parts[0] !== 'embed' && parts[0] !== 'jobs') company = parts[0];
+        else if (parts[1]) company = parts[1];
+      } else if (hostname.includes('lever.co')) {
+        const parts = pathname.split('/').filter(Boolean);
+        if (parts[0]) company = parts[0];
+      } else if (hostname.includes('ashbyhq.com')) {
+        const parts = pathname.split('/').filter(Boolean);
+        if (parts[0]) company = parts[0];
+      } else if (hostname.includes('workday.com') || hostname.includes('myworkdayjobs.com')) {
+        company = hostname.split('.')[0].replace(/-.*/, '');
+      } else if (hostname.includes('bamboohr.com')) {
+        company = hostname.split('.')[0];
+      }
 
-    if (!company) {
-      const compEl = document.querySelector('.company-name, [class*="companyName" i], [class*="company-name" i], [data-qa="company-name"], .topcard__org-name-link, [data-automation-id="companyName"]');
-      if (compEl) company = compEl.innerText.trim();
-    }
+      if (!company) {
+        const compMeta = document.querySelector('meta[property="og:site_name"], meta[name="author"], meta[name="twitter:site"]');
+        if (compMeta && compMeta.content) company = compMeta.content.trim();
+      }
 
-    if (!company) {
-      const hostClean = hostname.replace(/^www\./, '').replace(/\.(com|co|io|org|net|app|dev).*/, '');
-      company = hostClean.charAt(0).toUpperCase() + hostClean.slice(1);
+      if (!company) {
+        const compEl = document.querySelector('.company-name, [class*="companyName" i], [class*="company-name" i], [data-qa="company-name"], .topcard__org-name-link, [data-automation-id="companyName"]');
+        if (compEl) company = compEl.innerText.trim();
+      }
+
+      if (!company) {
+        const hostClean = hostname.replace(/^www\./, '').replace(/\.(com|co|io|org|net|app|dev).*/, '');
+        company = hostClean.charAt(0).toUpperCase() + hostClean.slice(1);
+      }
+      company = company.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
     }
-    // Clean company formatting
-    company = company.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
 
     // 2. Job Title extraction from ATS DOM structures
-    const titleSelectors = [
-      '.job-details-jobs-unified-top-card__job-title', // LinkedIn
-      'h1.jobsearch-JobInfoHeader-title', // Indeed
-      '.app-title', // Greenhouse
-      '.posting-headline h2', // Lever
-      '[data-automation-id="jobPostingHeader"]', // Workday
-      '[data-automation-id="jobTitle"]',
-      'h1[class*="title" i]',
-      'h1[class*="heading" i]',
-      'h1.title',
-      'h1'
-    ];
+    if (!title) {
+      const titleSelectors = [
+        '.job-details-jobs-unified-top-card__job-title', // LinkedIn
+        'h1.jobsearch-JobInfoHeader-title', // Indeed
+        '.app-title', // Greenhouse
+        '.posting-headline h2', // Lever
+        '[data-automation-id="jobPostingHeader"]', // Workday
+        '[data-automation-id="jobTitle"]',
+        'h1[class*="title" i]',
+        'h1[class*="heading" i]',
+        'h1.title',
+        'h1'
+      ];
 
-    for (const sel of titleSelectors) {
-      const el = document.querySelector(sel);
-      if (el && el.innerText && el.innerText.trim().length > 2) {
-        const text = el.innerText.trim();
-        if (!/^(careers|jobs|search|apply|welcome|login|sign in|openings|all jobs)$/i.test(text)) {
-          title = text;
-          break;
+      for (const sel of titleSelectors) {
+        const el = document.querySelector(sel);
+        if (el && el.innerText && el.innerText.trim().length > 2) {
+          const text = el.innerText.trim();
+          if (!/^(careers|jobs|search|apply|welcome|login|sign in|openings|all jobs)$/i.test(text)) {
+            title = text;
+            break;
+          }
         }
       }
-    }
 
-    if (!title) {
-      const docTitle = document.title || '';
-      const cleanDocTitle = docTitle.split(/[-|–•]/)[0].trim();
-      if (cleanDocTitle && cleanDocTitle.length > 2 && !/^(careers|jobs|apply)$/i.test(cleanDocTitle)) {
-        title = cleanDocTitle;
+      if (!title) {
+        const docTitle = document.title || '';
+        const cleanDocTitle = docTitle.split(/[-|–•]/)[0].trim();
+        if (cleanDocTitle && cleanDocTitle.length > 2 && !/^(careers|jobs|apply)$/i.test(cleanDocTitle)) {
+          title = cleanDocTitle;
+        }
       }
-    }
 
-    title = title.replace(/^(apply for|job application for|opening for)\s+/i, '').trim();
+      title = title.replace(/^(apply for|job application for|opening for)\s+/i, '').trim();
+    }
 
     // 3. Location extraction
-    const locSelectors = [
-      '.location',
-      '[class*="location" i]',
-      '[data-automation-id="locations"]',
-      '.job-details-jobs-unified-top-card__bullet',
-      '.posting-category.location'
-    ];
+    if (!location) {
+      const locSelectors = [
+        '.location',
+        '[class*="location" i]',
+        '[data-automation-id="locations"]',
+        '.job-details-jobs-unified-top-card__bullet',
+        '.posting-category.location'
+      ];
 
-    for (const sel of locSelectors) {
-      const el = document.querySelector(sel);
-      if (el && el.innerText) {
-        const txt = el.innerText.trim();
-        if (txt && txt.length < 80 && !txt.toLowerCase().includes('apply')) {
-          location = txt;
-          break;
+      for (const sel of locSelectors) {
+        const el = document.querySelector(sel);
+        if (el && el.innerText) {
+          const txt = el.innerText.trim();
+          if (txt && txt.length < 80 && !txt.toLowerCase().includes('apply')) {
+            location = txt;
+            break;
+          }
         }
       }
     }
 
     // 4. Job Description & Company Overview extraction
-    const descSelectors = [
-      '#job-description',
-      '.job-description',
-      '[class*="description" i]',
-      '[data-automation-id="jobPostingDescription"]',
-      '#content .content',
-      'article',
-      'main'
-    ];
+    if (!description) {
+      const descSelectors = [
+        '#job-description',
+        '.job-description',
+        '[class*="description" i]',
+        '[data-automation-id="jobPostingDescription"]',
+        '#content .content',
+        'article',
+        'main'
+      ];
 
-    for (const sel of descSelectors) {
-      const el = document.querySelector(sel);
-      if (el && el.innerText && el.innerText.trim().length > 100) {
-        description = el.innerText.trim();
-        break;
+      for (const sel of descSelectors) {
+        const el = document.querySelector(sel);
+        if (el && el.innerText && el.innerText.trim().length > 100) {
+          description = el.innerText.trim();
+          break;
+        }
       }
-    }
 
-    if (!description && document.body) {
-      description = document.body.innerText.substring(0, 5000);
+      if (!description && document.body) {
+        description = document.body.innerText.substring(0, 5000);
+      }
     }
 
     const aboutMatch = description.match(/(?:about us|who we are|about the company|our mission)[\s\S]{50,600}/i);
@@ -2105,7 +2318,20 @@
           if (window === window.top) openEditInfoModal();
           sendResponse({ success: true });
         } else if (request.type === 'GET_JOB_DETAILS') {
-          sendResponse(extractJobDetails());
+          (async () => {
+            try {
+              const details = await extractJobDetails();
+              sendResponse(details);
+            } catch(e) {
+              sendResponse({
+                title: 'Position Applied',
+                company: 'Company',
+                location: 'Remote',
+                url: window.location.href
+              });
+            }
+          })();
+          return true;
         } else if (request.type === 'GET_FORM_FIELDS_STATUS') {
           sendResponse(scanFormFields(request.profile));
         } else if (request.type === 'TRIGGER_AUTOFILL') {
