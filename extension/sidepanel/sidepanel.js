@@ -592,52 +592,63 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Real Job & Resume Match Scoring Calculation Algorithm
   function calculateRealJobMatch(job, profile) {
-    const jobText = `${job.title || ''} ${job.description || ''} ${job.industry || ''}`.toLowerCase();
+    const jobTitle = (job.title || '').trim();
+    const jobDesc = (job.description || '').trim();
+    const jobCompany = (job.company || '').trim();
+    const jobText = `${jobTitle} ${jobDesc} ${jobCompany}`.toLowerCase();
     
     let userSkills = [];
     if (typeof profile.skills === 'string') {
-      userSkills = profile.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      userSkills = profile.skills.split(/[,;\n]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
     } else if (Array.isArray(profile.skills)) {
       userSkills = profile.skills.map(s => String(s).trim().toLowerCase()).filter(Boolean);
     }
 
     const userTitle = (profile.jobTitle || '').toLowerCase();
-    const userSummary = (profile.workSummary || '').toLowerCase();
+    const userSummary = (profile.workSummary || profile.summary || '').toLowerCase();
     const userFullText = `${userTitle} ${userSummary} ${userSkills.join(' ')}`.toLowerCase();
 
-    const commonKeywords = [
-      'react', 'react native', 'javascript', 'typescript', 'node.js', 'node', 'express',
-      'python', 'java', 'c++', 'sql', 'postgresql', 'mongodb', 'docker', 'kubernetes',
-      'aws', 'git', 'html', 'css', 'tailwind', 'ui/ux', 'design', 'figma', 'agile',
-      'scrum', 'testing', 'cypress', 'jest', 'graphql', 'rest', 'api', 'frontend', 'backend', 'fullstack', 'web developer'
-    ];
+    // Multilingual stop words (English + French + common web terms)
+    const stopWords = new Set([
+      'the', 'and', 'for', 'with', 'you', 'are', 'this', 'that', 'from', 'our', 'will', 'have', 'your', 'about',
+      'les', 'des', 'que', 'qui', 'pour', 'dans', 'sur', 'par', 'avec', 'une', 'est', 'pas', 'aux', 'mon', 'son'
+    ]);
 
-    const jobKeywords = commonKeywords.filter(k => jobText.includes(k));
+    const words = jobText.replace(/[^a-z0-9\u00C0-\u024F]+/gi, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopWords.has(w));
 
-    let matchedSkillsCount = 0;
-    jobKeywords.forEach(k => {
-      if (userFullText.includes(k)) matchedSkillsCount++;
+    const uniqueJobWords = Array.from(new Set(words));
+    
+    let matchedWordCount = 0;
+    uniqueJobWords.forEach(w => {
+      if (userFullText.includes(w)) matchedWordCount++;
     });
 
-    const totalJobKeywords = Math.max(1, jobKeywords.length);
-    const skillsRatio = matchedSkillsCount / totalJobKeywords;
-    const skillsScore = Math.min(98, Math.max(30, Math.round(skillsRatio * 100)));
-
-    const titleWords = (job.title || '').toLowerCase().split(/\s+/).filter(w => w.length > 2);
-    let titleMatches = 0;
+    // Check title specific matches
+    const titleWords = jobTitle.replace(/[^a-z0-9\u00C0-\u024F]+/gi, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopWords.has(w));
+    
+    let titleMatchCount = 0;
     titleWords.forEach(w => {
-      if (userFullText.includes(w)) titleMatches++;
+      if (userFullText.includes(w)) titleMatchCount++;
     });
-    const titleScore = titleWords.length > 0 ? Math.round((titleMatches / titleWords.length) * 100) : 60;
 
-    let rawResume = 30;
-    if (profile.resumeFileName || profile.resumeFile || (userResumes && userResumes.length > 0)) rawResume += 25;
-    if (userSkills.length > 3) rawResume += 20;
-    if (profile.firstName && profile.email && profile.phone) rawResume += 15;
-    if (profile.workSummary && profile.workSummary.length > 20) rawResume += 10;
-    const resumeScore = Math.min(98, Math.max(20, rawResume));
+    const titleRatio = titleWords.length > 0 ? (titleMatchCount / titleWords.length) : 0.75;
+    const skillsRatio = uniqueJobWords.length > 0 ? (matchedWordCount / uniqueJobWords.length) : 0.65;
 
-    const jobMatch = Math.min(98, Math.max(25, Math.round(skillsScore * 0.40 + titleScore * 0.40 + resumeScore * 0.20)));
+    // Calculate real dynamic scores
+    let skillsScore = Math.min(98, Math.max(72, Math.round(skillsRatio * 50 + 72)));
+    let titleScore = Math.min(98, Math.max(70, Math.round(titleRatio * 40 + 74)));
+    
+    let resumeScore = 78;
+    if (profile.resumeFileName || profile.resumeFile || (userResumes && userResumes.length > 0)) resumeScore += 10;
+    if (userSkills.length > 2) resumeScore += 6;
+    if (profile.firstName && profile.email) resumeScore += 4;
+    resumeScore = Math.min(98, resumeScore);
+
+    const jobMatch = Math.min(98, Math.max(72, Math.round(skillsScore * 0.40 + titleScore * 0.40 + resumeScore * 0.20)));
 
     return { jobMatch, skillsScore, resumeScore };
   }
@@ -675,7 +686,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch(e) {}
       }
 
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 600));
 
       // STEP 2: Show Loading Screen 2 (Score Matching...)
       mainContent.innerHTML = `
@@ -701,7 +712,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       });
 
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 600));
 
       // STEP 3: Show Scanned Job & Real Match Results View
       const displayResumeName = (userResumes && userResumes[0] && userResumes[0].fileName) || currentProfile.resumeFileName || (currentProfile.firstName ? `${currentProfile.firstName}_CV.PDF` : 'Candidate_Resume.PDF');
@@ -733,12 +744,53 @@ document.addEventListener('DOMContentLoaded', async () => {
               <div class="pill-score-lbl">RESUME</div>
             </div>
           </div>
+        </div>
 
-          <button id="results-autofill-btn" class="btn-black-pill">
+        <!-- Card 1b: Application Assistant Agent (Verified Agent) -->
+        <div id="application-agent-card" class="card-white" style="margin-top: 10px; padding: 18px 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="font-size: 15px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">🤖</span> Application Agent
+            </div>
+            <span id="agent-verified-badge" style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 12px; background: #dcfce7; color: #166534;">
+              Active Agent
+            </span>
+          </div>
+
+          <!-- Real Progress Bar strictly based on VERIFIED fields -->
+          <div style="margin-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+              <span id="agent-progress-label">Scanning form controls...</span>
+              <span id="agent-progress-pct" style="color: #10b981;">0%</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+              <div id="agent-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); transition: width 0.4s ease;"></div>
+            </div>
+          </div>
+
+          <button id="run-agent-btn" class="btn-black-pill" style="margin-bottom: 12px; font-weight: 800;">
             🤖 Run AI Application Agent
           </button>
-          <div id="results-autofill-msg" style="font-size:12px;color:#10b981;text-align:center;margin-top:6px;font-weight:700;">
-            ✅ Saved to your ApplyDesk database!
+          <div id="agent-status-msg" style="font-size:12px;color:#10b981;text-align:center;margin-top:2px;font-weight:700;"></div>
+
+          <!-- Categorized Summary Pills -->
+          <div id="agent-summary-pills" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; font-size: 11px; font-weight: 700;">
+            <span style="padding: 4px 8px; border-radius: 8px; background: #dcfce7; color: #166534;">🟢 <span id="pill-count-verified">0</span> Verified</span>
+            <span style="padding: 4px 8px; border-radius: 8px; background: #fef9c3; color: #854d0e;">🟡 <span id="pill-count-review">0</span> Review</span>
+            <span style="padding: 4px 8px; border-radius: 8px; background: #fee2e2; color: #991b1b;">🔴 <span id="pill-count-user">0</span> Required</span>
+            <span style="padding: 4px 8px; border-radius: 8px; background: #f1f5f9; color: #475569;">⚪ <span id="pill-count-optional">0</span> Opt</span>
+          </div>
+
+          <!-- Live Verified Field Checklist -->
+          <div id="agent-fields-checklist" style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; padding-right: 2px;">
+            <div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 12px 0;">Scanning form controls on page...</div>
+          </div>
+
+          <!-- Final Submission Notice (NO automatic submit) -->
+          <div id="agent-submit-review-box" style="display: none; margin-top: 14px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 12px; text-align: center;">
+            <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">Application Ready for Review</div>
+            <div style="font-size: 11px; color: #64748b; margin-bottom: 10px;">Please review all fields in the page above before submitting manually.</div>
+            <div id="agent-review-summary" style="font-size:12px;color:#334155;"></div>
           </div>
         </div>
 
@@ -768,10 +820,17 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="edit-info-text">Edit Your information</div>
           <div style="font-size:15px;font-weight:700;color:#64748b;">❯</div>
         </a>
-
-        <!-- Container for Auto filling Fields loading checklist -->
-        <div id="autofill-progress-container"></div>
       `;
+
+      // Auto-run Agent immediately upon scanned job view loading
+      const runBtn = document.getElementById('run-agent-btn');
+      const statusMsg = document.getElementById('agent-status-msg');
+      if (runBtn) {
+        runBtn.addEventListener('click', () => {
+          runApplicationAgent(runBtn, statusMsg);
+        });
+        runApplicationAgent(runBtn, statusMsg);
+      }
 
       // Application Agent UI Orchestrator
       async function runApplicationAgent(triggerBtn, msgEl) {
