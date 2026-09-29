@@ -427,10 +427,167 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (resumeScoreVal) resumeScoreVal.innerText = '98/100';
       if (resumeFileNameVal) resumeFileNameVal.innerText = tailoredFileName;
 
-      // Show Completion Card
+      // Update Tailored Resume Preview Card
+      const docNameEl = document.getElementById('tailored-doc-name');
+      const snippetTitleEl = document.getElementById('tailored-snippet-title');
+      const snippetSkillsEl = document.getElementById('tailored-snippet-skills');
+
+      if (docNameEl) docNameEl.innerText = tailoredFileName;
+      if (snippetTitleEl) snippetTitleEl.innerText = `${activeJobTitle} • Tailored Resume`;
+      if (snippetSkillsEl) {
+        const skillsArr = typeof currentProfile.skills === 'string' ? currentProfile.skills.split(',') : (Array.isArray(currentProfile.skills) ? currentProfile.skills : []);
+        snippetSkillsEl.innerText = skillsArr.slice(0, 5).map(s => String(s).trim()).join(', ') || 'Tailored Skills Sync';
+      }
+
+      // Render Dynamic Resume Preview Sheet with Candidate's Real Data
+      renderResumePreviewModal(currentProfile || {}, { title: activeJobTitle, company: activeCompany });
+
+      // Show Completion Card with Resume Preview
       if (completeBox) {
         completeBox.style.display = 'block';
       }
+    });
+  }
+
+  // Render Dynamic Tailored Resume Preview Sheet
+  function renderResumePreviewModal(profile, job) {
+    const paperBody = document.getElementById('preview-doc-paper-body');
+    if (!paperBody) return;
+
+    const firstName = profile.firstName || (activeUser?.name ? activeUser.name.split(' ')[0] : '');
+    const lastName = profile.lastName || (activeUser?.name ? activeUser.name.split(' ').slice(1).join(' ') : '');
+    const name = `${firstName} ${lastName}`.trim() || profile.name || activeUser?.name || 'Candidate Name';
+
+    const title = job?.title || profile.jobTitle || 'Software Engineer';
+    const company = job?.company || profile.companyName || '';
+    const email = profile.email || activeUser?.email || '';
+    const phone = profile.phone || '';
+    const location = profile.location || profile.city || '';
+    const contactParts = [email, phone, location].filter(Boolean).join(' • ');
+
+    let summary = profile.summary || profile.workSummary || `Results-driven professional with strong technical expertise, tailored specifically for the ${title}${company ? ` position at ${company}` : ''}.`;
+
+    let skillsList = [];
+    if (typeof profile.skills === 'string') {
+      skillsList = profile.skills.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+    } else if (Array.isArray(profile.skills)) {
+      skillsList = profile.skills.map(s => String(s).trim()).filter(Boolean);
+    }
+
+    let workExps = Array.isArray(profile.workExperiences) && profile.workExperiences.length > 0 
+      ? profile.workExperiences 
+      : (Array.isArray(profile.experience) ? profile.experience : []);
+
+    let eduList = Array.isArray(profile.education) && profile.education.length > 0 ? profile.education : [];
+    let projList = Array.isArray(profile.projects) && profile.projects.length > 0 ? profile.projects : [];
+
+    let html = `
+      <div style="border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 12px;">
+        <div style="font-size: 17px; font-weight: 800; color: #0f172a;">${name}</div>
+        <div style="font-size: 12px; font-weight: 700; color: #2563eb; margin-top: 2px;">${title} ${company ? `at ${company}` : ''}</div>
+        <div style="font-size: 10px; color: #64748b; margin-top: 4px;">${contactParts}</div>
+      </div>
+      
+      <div style="font-size: 11px; margin-bottom: 12px;">
+        <div style="font-weight: 800; color: #0f172a; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">Professional Summary</div>
+        <div style="color: #334155; line-height: 1.45;">${summary}</div>
+      </div>
+    `;
+
+    if (skillsList.length > 0) {
+      html += `
+        <div style="font-size: 11px; margin-bottom: 12px;">
+          <div style="font-weight: 800; color: #0f172a; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">Skills & Competencies</div>
+          <div style="color: #334155; line-height: 1.45; font-weight: 600;">${skillsList.join(', ')}</div>
+        </div>
+      `;
+    }
+
+    if (workExps.length > 0) {
+      html += `
+        <div style="font-size: 11px; margin-bottom: 12px;">
+          <div style="font-weight: 800; color: #0f172a; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">Work Experience</div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+      `;
+      workExps.forEach(exp => {
+        const expTitle = exp.jobTitle || exp.title || 'Role';
+        const expComp = exp.companyName || exp.company || 'Company';
+        const expDates = [exp.startDate, exp.endDate || 'Present'].filter(Boolean).join(' – ');
+        const expLoc = exp.location || '';
+        const expDesc = exp.description || exp.workSummary || '';
+
+        html += `
+          <div>
+            <div style="font-weight: 700; color: #0f172a;">${expTitle}</div>
+            <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">${expComp} ${expLoc ? `• ${expLoc}` : ''} ${expDates ? `• ${expDates}` : ''}</div>
+            ${expDesc ? `<div style="color: #475569; font-size: 10.5px; line-height: 1.4;">${expDesc}</div>` : ''}
+          </div>
+        `;
+      });
+      html += `</div></div>`;
+    }
+
+    if (projList.length > 0) {
+      html += `
+        <div style="font-size: 11px; margin-bottom: 12px;">
+          <div style="font-weight: 800; color: #0f172a; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">Projects</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+      `;
+      projList.forEach(proj => {
+        const pName = proj.name || proj.title || 'Project';
+        const pRole = proj.role ? ` (${proj.role})` : '';
+        const pLink = proj.link || proj.url || '';
+        const pDesc = proj.description || '';
+
+        html += `
+          <div>
+            <div style="font-weight: 700; color: #0f172a;">${pName}${pRole} ${pLink ? `<a href="${pLink}" target="_blank" style="color: #2563eb; font-weight: 500; font-size: 10px;">[Link]</a>` : ''}</div>
+            ${pDesc ? `<div style="color: #475569; font-size: 10.5px; line-height: 1.4;">${pDesc}</div>` : ''}
+          </div>
+        `;
+      });
+      html += `</div></div>`;
+    }
+
+    if (eduList.length > 0) {
+      html += `
+        <div style="font-size: 11px; margin-bottom: 12px;">
+          <div style="font-weight: 800; color: #0f172a; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">Education</div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+      `;
+      eduList.forEach(edu => {
+        const sch = edu.school || edu.institution || 'University';
+        const deg = [edu.degree, edu.fieldOfStudy || edu.major].filter(Boolean).join(' in ');
+        const yr = edu.graduationYear || edu.endDate || '';
+
+        html += `
+          <div>
+            <div style="font-weight: 700; color: #0f172a;">${sch}</div>
+            <div style="font-size: 10px; color: #64748b;">${deg} ${yr ? `• ${yr}` : ''}</div>
+          </div>
+        `;
+      });
+      html += `</div></div>`;
+    }
+
+    paperBody.innerHTML = html;
+  }
+
+  // Bind Resume Preview Modal Handlers
+  const viewResumePreviewBtn = document.getElementById('view-resume-preview-btn');
+  const closeResumePreviewModal = document.getElementById('close-resume-preview-modal');
+  const resumePreviewModalOverlay = document.getElementById('resume-preview-modal-overlay');
+
+  if (viewResumePreviewBtn) {
+    viewResumePreviewBtn.addEventListener('click', () => {
+      renderResumePreviewModal(currentProfile || {}, {});
+      if (resumePreviewModalOverlay) resumePreviewModalOverlay.style.display = 'flex';
+    });
+  }
+
+  if (closeResumePreviewModal) {
+    closeResumePreviewModal.addEventListener('click', () => {
+      if (resumePreviewModalOverlay) resumePreviewModalOverlay.style.display = 'none';
     });
   }
 
