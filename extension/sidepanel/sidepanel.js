@@ -257,7 +257,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (fixResumeBtn) {
         fixResumeBtn.className = 'btn-outline-pill';
         fixResumeBtn.style.marginTop = '12px';
-        fixResumeBtn.innerHTML = '<span style="color:#eab308;">⚡</span> Fix resume issues';
+        fixResumeBtn.innerHTML = 'Fix resume issues';
         fixResumeBtn.setAttribute('data-mode', 'fix');
       }
     } else {
@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (fixResumeBtn) {
         fixResumeBtn.className = 'btn-black-pill';
         fixResumeBtn.style.marginTop = '12px';
-        fixResumeBtn.innerHTML = '📤 Upload Resume';
+        fixResumeBtn.innerHTML = 'Upload Resume';
         fixResumeBtn.setAttribute('data-mode', 'upload');
       }
     }
@@ -289,7 +289,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      // Show AI Resume Optimizer Progress View
+      // Hide Resume Score Card & Show AI Resume Optimizer Progress View
+      const scoreCard = document.getElementById('resume-score-card') || fixResumeBtn.closest('.card-white');
+      if (scoreCard) scoreCard.style.display = 'none';
+
       const progressView = document.getElementById('fix-resume-progress-view');
       const targetJobNameEl = document.getElementById('fix-job-target-name');
       const completeBox = document.getElementById('fix-complete-box');
@@ -345,7 +348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (status === 'active') {
           step.className = 'checklist-step step-active';
           if (icon) {
-            icon.innerText = '⚡';
+            icon.innerText = String(stepNum);
             icon.style.background = '#eff6ff';
             icon.style.color = '#2563eb';
           }
@@ -437,6 +440,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     closeFixProgressBtn.addEventListener('click', () => {
       const progressView = document.getElementById('fix-resume-progress-view');
       if (progressView) progressView.style.display = 'none';
+      const scoreCard = document.getElementById('resume-score-card') || document.querySelector('#fix-resume-btn')?.closest('.card-white');
+      if (scoreCard) scoreCard.style.display = 'block';
     });
   }
 
@@ -448,9 +453,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (tabs && tabs[0] && tabs[0].id) {
           chrome.tabs.sendMessage(tabs[0].id, { type: 'TRIGGER_AUTOFILL', profile: currentProfile }, (res) => {
             if (applyTailoredBtn) {
-              applyTailoredBtn.innerText = '✅ Form Auto-Filled!';
+              applyTailoredBtn.innerText = 'Form Auto-Filled!';
               setTimeout(() => {
-                applyTailoredBtn.innerText = '✨ Autofill Application with Tailored Resume';
+                applyTailoredBtn.innerText = 'Run AI Application Agent';
               }, 2500);
             }
           });
@@ -464,7 +469,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
 
-      if (fixResumeBtn) fixResumeBtn.innerText = '⚡ AI Extracting...';
+      if (fixResumeBtn) fixResumeBtn.innerText = 'Extracting Profile...';
 
       try {
         const reader = new FileReader();
