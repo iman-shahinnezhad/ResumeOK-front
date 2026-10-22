@@ -1877,7 +1877,9 @@ export default function Dashboard({ user, onReopenOnboarding }: DashboardProps) 
       match: calculateJobMatch(job, candidateProfile, userResumes).jobMatch
     }));
 
-    if (sortFilter === 'Newest') {
+    if (sortFilter === 'Match Score' || sortFilter === 'Highest Match') {
+      scored.sort((a, b) => (b.match - a.match) || (getJobTimestamp(b.job) - getJobTimestamp(a.job)));
+    } else if (sortFilter === 'Newest') {
       scored.sort((a, b) => getJobTimestamp(b.job) - getJobTimestamp(a.job));
     } else if (sortFilter === 'Highest Salary') {
       const maxSal = (j: any) => { const n = getJobSalaryRangeK(j); return n.length ? Math.max(...n) : -1; };
@@ -3171,7 +3173,7 @@ export default function Dashboard({ user, onReopenOnboarding }: DashboardProps) 
                 <img src={iconChevronDown} className="filter-pill-icon" alt="" />
                 {openDropdown === 'sort' && (
                   <div className="dropdown-menu" style={{ right: 0, left: 'auto' }} onClick={(e) => e.stopPropagation()}>
-                    {['Recommended', 'Newest', 'Highest Salary'].map(opt => (
+                    {['Recommended', 'Match Score', 'Newest', 'Highest Salary'].map(opt => (
                       <div key={opt} className={`dropdown-item ${sortFilter === opt ? 'selected' : ''}`} onClick={(e) => { e.stopPropagation(); setSortFilter(opt); setOpenDropdown(null); }}>
                         <span>{opt}</span>
                         {sortFilter === opt && <span>✓</span>}
