@@ -1,0 +1,972 @@
+/* ==========================================================================
+   USER ACCOUNT POPOVER & INTERNAL MODALS STYLES
+   Pixel-perfect implementation matching ApplyDesk design language
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Popover Container
+   -------------------------------------------------------------------------- */
+.user-account-popover {
+  position: absolute;
+  bottom: 58px;
+  left: 12px;
+  width: 270px;
+  background: #ffffff;
+  border-radius: 22px;
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.14), 0 0 1px 1px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  padding: 18px 18px 14px 18px;
+  z-index: 1000;
+  animation: popoverFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: bottom left;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+  color: #111827;
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* User Info Header */
+.uap-user-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.uap-avatar-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.uap-user-meta {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+.uap-user-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.uap-user-email {
+  font-size: 12px;
+  font-weight: 400;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+/* Credits & Plan Section */
+.uap-credits-section {
+  padding-top: 14px;
+}
+
+.uap-credits-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.uap-credits-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.uap-plan-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Progress Bar Row */
+.uap-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 6px 0;
+}
+
+.uap-progress-track {
+  flex: 1;
+  height: 7px;
+  background: #f1f3f5;
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.uap-progress-fill {
+  height: 100%;
+  background: #ff4d15;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.uap-credits-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.uap-star-icon {
+  width: 12px;
+  height: 12px;
+  fill: #ff4d15;
+  flex-shrink: 0;
+}
+
+.uap-replenish-note {
+  font-size: 11.5px;
+  color: #8f95a0;
+  margin: 0 0 14px 0;
+  line-height: 1.35;
+}
+
+/* Upgrade Button */
+.uap-btn-upgrade {
+  width: 100%;
+  height: 40px;
+  background: #000000;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  outline: none;
+}
+
+.uap-btn-upgrade:hover {
+  background: #1f2937;
+}
+
+.uap-btn-upgrade:active {
+  transform: scale(0.985);
+}
+
+/* Menu Items List */
+.uap-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f2f5;
+}
+
+.uap-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #111827;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
+  font-family: inherit;
+}
+
+.uap-menu-item:hover {
+  background: #f4f5f7;
+  color: #000000;
+}
+
+.uap-menu-icon {
+  width: 18px;
+  height: 18px;
+  color: #1f2937;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.uap-menu-item:hover .uap-menu-icon {
+  color: #000000;
+}
+
+.uap-menu-divider {
+  height: 1px;
+  background: #f0f2f5;
+  margin: 6px 0;
+  border: none;
+}
+
+.uap-menu-item.logout {
+  color: #111827;
+}
+
+.uap-menu-item.logout:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.uap-menu-item.logout:hover .uap-menu-icon {
+  color: #dc2626;
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar bottom actions (Lightbulb & Bell icons above Avatar)
+   -------------------------------------------------------------------------- */
+.sidebar-bottom-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.sidebar-action-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #6b7280);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.sidebar-action-icon-btn:hover {
+  background: var(--bg-hover, #f3f4f6);
+  color: var(--text-primary, #111827);
+}
+
+.sidebar-action-icon-btn .badge-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff4d15;
+  border: 1.5px solid #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Internal Modals Framework
+   -------------------------------------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: overlayFadeIn 0.2s ease;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-dialog {
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25), 0 0 1px 1px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 680px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: dialogScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #111827;
+  font-family: inherit;
+}
+
+.modal-dialog.wide {
+  max-width: 860px;
+}
+
+@keyframes dialogScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px 18px 28px;
+  border-bottom: 1px solid #f1f3f5;
+  flex-shrink: 0;
+}
+
+.modal-title-group h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: #111827;
+  letter-spacing: -0.02em;
+}
+
+.modal-title-group p {
+  font-size: 13.5px;
+  color: #6b7280;
+  margin: 4px 0 0 0;
+}
+
+.modal-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: #f4f5f7;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.modal-close-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.modal-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.modal-footer {
+  padding: 16px 28px;
+  border-top: 1px solid #f1f3f5;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #fafafa;
+  flex-shrink: 0;
+}
+
+/* Common Modal Elements */
+.btn-secondary {
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.btn-primary {
+  padding: 10px 22px;
+  border-radius: 12px;
+  border: none;
+  background: #000000;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary:hover {
+  background: #1f2937;
+}
+
+.btn-primary.accent-green {
+  background: #10b981;
+}
+
+.btn-primary.accent-green:hover {
+  background: #059669;
+}
+
+/* --------------------------------------------------------------------------
+   1. UPGRADE PLAN MODAL
+   -------------------------------------------------------------------------- */
+.pricing-interval-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.pricing-switch-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pricing-switch-btn.active {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+}
+
+.save-pill {
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid #a7f3d0;
+}
+
+.pricing-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.pricing-card {
+  border-radius: 18px;
+  border: 1.5px solid #e5e7eb;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.pricing-card.featured {
+  border-color: #000000;
+  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.12);
+  background: #fafafc;
+}
+
+.featured-badge {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000000;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 3px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.pricing-card-header {
+  margin-bottom: 16px;
+}
+
+.tier-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.tier-desc {
+  font-size: 12px;
+  color: #6b7280;
+  min-height: 32px;
+}
+
+.tier-price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 12px 0;
+}
+
+.tier-price .amount {
+  font-size: 28px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.tier-price .period {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.tier-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.tier-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #374151;
+  line-height: 1.35;
+}
+
+.tier-features li svg {
+  width: 15px;
+  height: 15px;
+  color: #10b981;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.tier-action-btn {
+  width: 100%;
+  padding: 10px 0;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tier-action-btn.primary {
+  background: #000000;
+  color: #ffffff;
+  border: none;
+}
+
+.tier-action-btn.primary:hover {
+  background: #1f2937;
+}
+
+.tier-action-btn:hover:not(.primary) {
+  background: #f9fafb;
+}
+
+/* --------------------------------------------------------------------------
+   2. ACCOUNT MODAL
+   -------------------------------------------------------------------------- */
+.account-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.account-large-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-input {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 13.5px;
+  outline: none;
+  background: #ffffff;
+  color: #111827;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
+}
+
+.form-input:disabled {
+  background: #f9fafb;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.danger-zone-box {
+  border-radius: 14px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.danger-zone-box h4 {
+  margin: 0 0 4px 0;
+  color: #991b1b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.danger-zone-box p {
+  margin: 0;
+  font-size: 12px;
+  color: #b91c1c;
+}
+
+.btn-danger {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #f87171;
+  background: #ffffff;
+  color: #dc2626;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   3. AI SETTINGS MODAL
+   -------------------------------------------------------------------------- */
+.settings-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 10px 0;
+}
+
+.tone-cards-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.tone-card {
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.tone-card.active {
+  border-color: #111827;
+  background: #f8fafc;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.tone-card .tone-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.tone-card .tone-desc {
+  font-size: 10.5px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.toggle-setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.toggle-info h4 {
+  margin: 0 0 2px 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.toggle-info p {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.switch-control {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch-control input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #e5e7eb;
+  transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 24px;
+}
+
+.switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.switch-control input:checked + .switch-slider {
+  background-color: #10b981;
+}
+
+.switch-control input:checked + .switch-slider:before {
+  transform: translateX(20px);
+}
+
+/* --------------------------------------------------------------------------
+   4. BILLING MODAL
+   -------------------------------------------------------------------------- */
+.billing-current-plan-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.invoices-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.invoices-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.invoices-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f1f3f5;
+  color: #374151;
+}
+
+.status-badge-paid {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   5. COMMUNITY MODAL
+   -------------------------------------------------------------------------- */
+.community-hero-banner {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  border-radius: 18px;
+  padding: 24px;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.community-hero-banner h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.community-hero-banner p {
+  margin: 0;
+  font-size: 13px;
+  color: #c7d2fe;
+}
+
+.referral-link-box {
+  display: flex;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.referral-link-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 13px;
+  padding: 0 8px;
+  outline: none;
+}
+
+.community-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.community-card {
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.community-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* --------------------------------------------------------------------------
+   6. PRIVACY POLICY MODAL
+   -------------------------------------------------------------------------- */
+.privacy-scroll-content {
+  line-height: 1.6;
+  font-size: 13.5px;
+  color: #374151;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.privacy-badge-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.privacy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.privacy-section-h {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 12px 0 4px 0;
+}
