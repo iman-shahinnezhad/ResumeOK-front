@@ -107,10 +107,31 @@ const IMAN_RESUME_DEFAULTS = {
     }
   ],
   languages: [
-    { id: '1', name: 'English', proficiency: 'Fluent' },
-    { id: '2', name: 'Persian', proficiency: 'Native' }
+    'English (Fluent)',
+    'Persian (Native)'
   ]
 };
+
+export function formatLanguageDisplay(l: any): string {
+  if (!l) return '';
+  if (typeof l === 'string') return l;
+  if (typeof l === 'object') {
+    const name = l.name || l.language || l.title || '';
+    const prof = l.proficiency || l.level || '';
+    if (name && prof) return `${name} (${prof})`;
+    return name || prof || '';
+  }
+  return String(l);
+}
+
+export function formatSkillDisplay(s: any): string {
+  if (!s) return '';
+  if (typeof s === 'string') return s;
+  if (typeof s === 'object') {
+    return s.name || s.title || s.skill || '';
+  }
+  return String(s);
+}
 
 function getInitialProfile(user: any) {
   let localProfile: any = {};
@@ -190,6 +211,9 @@ function getInitialProfile(user: any) {
     if (!merged.skills || merged.skills.length <= 2) {
       merged.skills = IMAN_RESUME_DEFAULTS.skills;
     }
+    if (!merged.languages || merged.languages.length === 0) {
+      merged.languages = IMAN_RESUME_DEFAULTS.languages;
+    }
     if (!merged.summary) {
       merged.summary = IMAN_RESUME_DEFAULTS.summary;
     }
@@ -211,11 +235,15 @@ function getInitialProfile(user: any) {
     merged.skills = typeof merged.skills === 'string'
       ? merged.skills.split(',').map((s: string) => s.trim()).filter(Boolean)
       : [];
+  } else {
+    merged.skills = merged.skills.map((s: any) => formatSkillDisplay(s)).filter(Boolean);
   }
   if (!Array.isArray(merged.languages)) {
     merged.languages = typeof merged.languages === 'string'
       ? merged.languages.split(',').map((s: string) => s.trim()).filter(Boolean)
       : [];
+  } else {
+    merged.languages = merged.languages.map((l: any) => formatLanguageDisplay(l)).filter(Boolean);
   }
   if (!Array.isArray(merged.projects)) merged.projects = [];
 
@@ -406,11 +434,15 @@ export default function ProfileInfo({ user, onUserUpdate, onProfileChange }: Pro
         merged.skills = typeof merged.skills === 'string'
           ? merged.skills.split(',').map((s: string) => s.trim()).filter(Boolean)
           : [];
+      } else {
+        merged.skills = merged.skills.map((s: any) => formatSkillDisplay(s)).filter(Boolean);
       }
       if (!Array.isArray(merged.languages)) {
         merged.languages = typeof merged.languages === 'string'
           ? merged.languages.split(',').map((s: string) => s.trim()).filter(Boolean)
           : [];
+      } else {
+        merged.languages = merged.languages.map((l: any) => formatLanguageDisplay(l)).filter(Boolean);
       }
       if (!Array.isArray(merged.projects)) {
         merged.projects = [];
@@ -655,17 +687,22 @@ export default function ProfileInfo({ user, onUserUpdate, onProfileChange }: Pro
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       const val = skillInput.trim();
-      if (val && !profile.skills.includes(val)) {
-        setProfile((prev: any) => ({ ...prev, skills: [...(prev.skills || []), val] }));
+      if (val) {
+        const valLower = val.toLowerCase();
+        const alreadyExists = (profile.skills || []).some((s: any) => formatSkillDisplay(s).toLowerCase() === valLower);
+        if (!alreadyExists) {
+          setProfile((prev: any) => ({ ...prev, skills: [...(prev.skills || []), val] }));
+        }
       }
       setSkillInput('');
     }
   };
 
-  const removeSkill = (tag: string) => {
+  const removeSkill = (tag: any) => {
+    const targetText = formatSkillDisplay(tag).toLowerCase();
     setProfile((prev: any) => ({
       ...prev,
-      skills: (prev.skills || []).filter((s: string) => s !== tag)
+      skills: (prev.skills || []).filter((s: any) => formatSkillDisplay(s).toLowerCase() !== targetText && s !== tag)
     }));
   };
 
@@ -674,17 +711,22 @@ export default function ProfileInfo({ user, onUserUpdate, onProfileChange }: Pro
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       const val = langInput.trim();
-      if (val && !profile.languages.includes(val)) {
-        setProfile((prev: any) => ({ ...prev, languages: [...(prev.languages || []), val] }));
+      if (val) {
+        const valLower = val.toLowerCase();
+        const alreadyExists = (profile.languages || []).some((l: any) => formatLanguageDisplay(l).toLowerCase() === valLower);
+        if (!alreadyExists) {
+          setProfile((prev: any) => ({ ...prev, languages: [...(prev.languages || []), val] }));
+        }
       }
       setLangInput('');
     }
   };
 
-  const removeLanguage = (lang: string) => {
+  const removeLanguage = (lang: any) => {
+    const targetText = formatLanguageDisplay(lang).toLowerCase();
     setProfile((prev: any) => ({
       ...prev,
-      languages: (prev.languages || []).filter((l: string) => l !== lang)
+      languages: (prev.languages || []).filter((l: any) => formatLanguageDisplay(l).toLowerCase() !== targetText && l !== lang)
     }));
   };
 
@@ -1130,12 +1172,16 @@ export default function ProfileInfo({ user, onUserUpdate, onProfileChange }: Pro
           <div className="profile-field-group">
             <label className="profile-field-label">Skills (Type skill and press Enter)</label>
             <div className="skills-tags-wrap">
-              {profile.skills?.map((s: string) => (
-                <span key={s} className="skill-tag-pill">
-                  {s}
-                  <button type="button" className="skill-tag-remove" onClick={() => removeSkill(s)}>✕</button>
-                </span>
-              ))}
+              {profile.skills?.map((s: any, idx: number) => {
+                const text = formatSkillDisplay(s);
+                if (!text) return null;
+                return (
+                  <span key={`${text}-${idx}`} className="skill-tag-pill">
+                    {text}
+                    <button type="button" className="skill-tag-remove" onClick={() => removeSkill(s)}>✕</button>
+                  </span>
+                );
+              })}
               <input
                 type="text"
                 className="skill-tag-input-inline"
@@ -1150,8 +1196,10 @@ export default function ProfileInfo({ user, onUserUpdate, onProfileChange }: Pro
           {/* Quick Add Suggestions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontWeight: 600 }}>Popular suggestions:</span>
-            {['React', 'TypeScript', 'Node.js', 'Python', 'Tailwind CSS', 'SQL', 'GraphQL', 'AWS', 'Docker', 'Figma', 'Product Design'].map(sugg => (
-              !profile.skills?.includes(sugg) && (
+            {['React', 'TypeScript', 'Node.js', 'Python', 'Tailwind CSS', 'SQL', 'GraphQL', 'AWS', 'Docker', 'Figma', 'Product Design'].map(sugg => {
+              const alreadyHas = (profile.skills || []).some((s: any) => formatSkillDisplay(s).toLowerCase() === sugg.toLowerCase());
+              if (alreadyHas) return null;
+              return (
                 <button
                   key={sugg}
                   type="button"
@@ -1160,19 +1208,23 @@ export default function ProfileInfo({ user, onUserUpdate, onProfileChange }: Pro
                 >
                   + {sugg}
                 </button>
-              )
-            ))}
+              );
+            })}
           </div>
 
           <div className="profile-field-group" style={{ marginTop: '10px' }}>
             <label className="profile-field-label">Languages (Type language and press Enter)</label>
             <div className="skills-tags-wrap">
-              {profile.languages?.map((l: string) => (
-                <span key={l} className="skill-tag-pill">
-                  {l}
-                  <button type="button" className="skill-tag-remove" onClick={() => removeLanguage(l)}>✕</button>
-                </span>
-              ))}
+              {profile.languages?.map((l: any, idx: number) => {
+                const text = formatLanguageDisplay(l);
+                if (!text) return null;
+                return (
+                  <span key={`${text}-${idx}`} className="skill-tag-pill">
+                    {text}
+                    <button type="button" className="skill-tag-remove" onClick={() => removeLanguage(l)}>✕</button>
+                  </span>
+                );
+              })}
               <input
                 type="text"
                 className="skill-tag-input-inline"

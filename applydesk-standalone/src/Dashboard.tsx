@@ -1587,9 +1587,7 @@ export default function Dashboard({ user, onReopenOnboarding }: DashboardProps) 
         isDefault: (String(r.id || (r as any)._id || '') === targetId || r.fileName === targetId || r.name === targetId)
       }));
       setUserResumes(updated);
-      localStorage.setItem('applydesk_resumes', JSON.stringify(updated));
-      localStorage.setItem('user_resumes', JSON.stringify(updated));
-      localStorage.setItem('resumeok_resumes', JSON.stringify(updated));
+      safeSaveResumes(updated);
 
       const activeDef = updated.find(r => r.isDefault) || (updated.length > 0 ? updated[0] : null);
       let updatedProfile: any = null;
